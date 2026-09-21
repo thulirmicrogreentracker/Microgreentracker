@@ -1,22 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Sprout, Settings, Download } from 'lucide-react';
-import { Batch, BatchStats, WateringRecord, BatchNote, BatchPhoto } from './types';
+import { Plus, Sprout, Settings, Download, BarChart3 } from 'lucide-react';
+import { Batch, BatchStats, CropType, WateringRecord, BatchNote, BatchPhoto } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useReminders } from './hooks/useReminders';
+import { defaultCropTypes } from './data/cropTypes';
 import BatchCard from './components/BatchCard';
 import AddBatchModal from './components/AddBatchModal';
 import Dashboard from './components/Dashboard';
 import NotificationPanel from './components/NotificationPanel';
 import QuickActionModal from './components/QuickActionModal';
 import ExportPanel from './components/ExportPanel';
+import SidePanel from './components/SidePanel';
+import ConfigPanel from './components/ConfigPanel';
+import ReportsPanel from './components/ReportsPanel';
 import { getDaysSince } from './utils/dateUtils';
 
 function App() {
   const [batches, setBatches] = useLocalStorage<Batch[]>('microgreen-batches', []);
+  const [cropTypes, setCropTypes] = useLocalStorage<CropType[]>('microgreen-crop-types', defaultCropTypes);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editBatch, setEditBatch] = useState<Batch | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [showExportPanel, setShowExportPanel] = useState(false);
+  const [sidePanelView, setSidePanelView] = useState<'config' | 'reports' | null>(null);
   
   // Quick action modal state
   const [quickActionModal, setQuickActionModal] = useState<{
@@ -203,6 +209,26 @@ function App() {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => setSidePanelView(sidePanelView === 'reports' ? null : 'reports')}
+              className={`px-4 py-3 rounded-xl transition-colors font-medium flex items-center shadow-sm ${
+                sidePanelView === 'reports' ? 'bg-blue-700 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              data-panel-trigger
+            >
+              <BarChart3 className="w-5 h-5 mr-2" />
+              Reports
+            </button>
+            <button
+              onClick={() => setSidePanelView(sidePanelView === 'config' ? null : 'config')}
+              className={`px-4 py-3 rounded-xl transition-colors font-medium flex items-center shadow-sm ${
+                sidePanelView === 'config' ? 'bg-gray-800 text-white' : 'bg-gray-700 text-white hover:bg-gray-800'
+              }`}
+              data-panel-trigger
+            >
+              <Settings className="w-5 h-5 mr-2" />
+              Config
+            </button>
+            <button
               onClick={() => setShowExportPanel(!showExportPanel)}
               className="bg-blue-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center shadow-sm"
             >
@@ -283,6 +309,7 @@ function App() {
           onAdd={addBatch}
           editBatch={editBatch}
           onUpdate={updateBatch}
+          cropTypes={cropTypes}
         />
 
         {/* Quick Action Modal */}
@@ -293,6 +320,16 @@ function App() {
           actionType={quickActionModal.actionType}
           onSave={handleQuickActionSave}
         />
+
+        {/* Side Panel */}
+        <SidePanel view={sidePanelView} onClose={() => setSidePanelView(null)}>
+          {sidePanelView === 'config' && (
+            <ConfigPanel cropTypes={cropTypes} onUpdateCropTypes={setCropTypes} />
+          )}
+          {sidePanelView === 'reports' && (
+            <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} />
+          )}
+        </SidePanel>
       </div>
     </div>
   );

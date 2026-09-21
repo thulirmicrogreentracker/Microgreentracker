@@ -1,6 +1,6 @@
 import { CropType } from '../types';
 
-export const cropTypes: CropType[] = [
+export const defaultCropTypes: CropType[] = [
   {
     name: 'Arugula',
     daysToGermination: 2,

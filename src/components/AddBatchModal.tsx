@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Calendar, CreditCard as Edit3 } from 'lucide-react';
-import { Batch } from '../types';
-import { cropTypes } from '../data/cropTypes';
+import { Batch, CropType } from '../types';
 import { addDaysToDate } from '../utils/dateUtils';
 
 interface AddBatchModalProps {
@@ -10,14 +9,16 @@ interface AddBatchModalProps {
   onAdd: (batch: Omit<Batch, 'id' | 'createdAt' | 'updatedAt'>) => void;
   editBatch?: Batch | null;
   onUpdate?: (batch: Batch) => void;
+  cropTypes: CropType[];
 }
 
-const AddBatchModal: React.FC<AddBatchModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onAdd, 
-  editBatch, 
-  onUpdate 
+const AddBatchModal: React.FC<AddBatchModalProps> = ({
+  isOpen,
+  onClose,
+  onAdd,
+  editBatch,
+  onUpdate,
+  cropTypes
 }) => {
   const [cropType, setCropType] = useState('');
   const [trayId, setTrayId] = useState('');
