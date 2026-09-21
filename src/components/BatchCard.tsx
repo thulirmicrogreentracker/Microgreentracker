@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, CreditCard as Edit3, Trash2, Sprout, Leaf, CheckCircle2, Camera, FileText, Droplets, Sun, AlertCircle } from 'lucide-react';
+import { Calendar, CreditCard as Edit3, Trash2, Sprout, Leaf, CheckCircle2, Camera, FileText, Droplets, Sun, AlertCircle, Hash } from 'lucide-react';
 import { Batch } from '../types';
 import { formatDate, getDaysSince, getRelativeTimeString } from '../utils/dateUtils';
 
@@ -58,6 +58,12 @@ const BatchCard: React.FC<BatchCardProps> = ({
               <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                 {batch.trayId}
               </span>
+              {batch.trayNumber != null && (
+                <span className="text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full flex items-center gap-1">
+                  <Hash className="w-3 h-3" />
+                  {batch.trayNumber}
+                </span>
+              )}
             </div>
             <div className="flex items-center text-sm text-gray-500 mb-3">
               <Calendar className="w-4 h-4 mr-1" />

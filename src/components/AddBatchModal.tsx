@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Calendar, CreditCard as Edit3 } from 'lucide-react';
+import { X, Plus, Calendar, CreditCard as Edit3, Hash } from 'lucide-react';
 import { Batch, CropType } from '../types';
 import { addDaysToDate } from '../utils/dateUtils';
 
@@ -10,6 +10,9 @@ interface AddBatchModalProps {
   editBatch?: Batch | null;
   onUpdate?: (batch: Batch) => void;
   cropTypes: CropType[];
+  availableTrayNumbers: number[];
+  totalTrays: number;
+  trayNumberPrefix: string;
 }
 
 const AddBatchModal: React.FC<AddBatchModalProps> = ({
@@ -18,10 +21,14 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({
   onAdd,
   editBatch,
   onUpdate,
-  cropTypes
+  cropTypes,
+  availableTrayNumbers,
+  totalTrays,
+  trayNumberPrefix,
 }) => {
   const [cropType, setCropType] = useState('');
   const [trayId, setTrayId] = useState('');
+  const [trayNumber, setTrayNumber] = useState<number | ''>('');
   const [sowingDate, setSowingDate] = useState(new Date().toISOString().split('T')[0]);
   const [expectedHarvestDate, setExpectedHarvestDate] = useState('');
   const [stage, setStage] = useState<Batch['stage']>('sowing');
@@ -43,6 +50,7 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({
     if (editBatch) {
       setCropType(editBatch.cropType);
       setTrayId(editBatch.trayId);
+      setTrayNumber(editBatch.trayNumber ?? '');
       setSowingDate(editBatch.sowingDate);
       setExpectedHarvestDate(editBatch.expectedHarvestDate);
       setStage(editBatch.stage);
@@ -51,6 +59,7 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({
     } else {
       setCropType('');
       setTrayId('');
+      setTrayNumber(availableTrayNumbers.length > 0 ? availableTrayNumbers[0] : '');
       setSowingDate(new Date().toISOString().split('T')[0]);
       setExpectedHarvestDate('');
       setStage('sowing');
@@ -66,6 +75,7 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({
     const batchData = {
       cropType: cropType.trim(),
       trayId: trayId.trim(),
+      trayNumber: trayNumber === '' ? undefined : Number(trayNumber),
       sowingDate,
       expectedHarvestDate,
       stage,
@@ -78,8 +88,8 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({
     };
 
     if (editBatch && onUpdate) {
-      onUpdate({ 
-        ...editBatch, 
+      onUpdate({
+        ...editBatch,
         ...batchData,
         updatedAt: new Date().toISOString()
       });
@@ -146,6 +156,42 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({
                 required
               />
             </div>
+          </div>
+
+          {/* Tray Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Hash className="w-3.5 h-3.5 inline mr-1" />
+              Physical Tray Number
+            </label>
+            {!editBatch && availableTrayNumbers.length === 0 ? (
+              <div className="px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                All {totalTrays} trays are in use. Complete a batch to free up a tray, or increase your tray count in Config.
+              </div>
+            ) : (
+              <select
+                value={trayNumber}
+                onChange={(e) => setTrayNumber(e.target.value ? Number(e.target.value) : '')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+              >
+                {editBatch && (
+                  <option value="">Unassigned</option>
+                )}
+                {editBatch && editBatch.trayNumber != null && !availableTrayNumbers.includes(editBatch.trayNumber) && (
+                  <option value={editBatch.trayNumber}>
+                    {trayNumberPrefix} #{editBatch.trayNumber} (currently in use)
+                  </option>
+                )}
+                {availableTrayNumbers.map(n => (
+                  <option key={n} value={n}>
+                    {trayNumberPrefix} #{n}
+                  </option>
+                ))}
+              </select>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              {availableTrayNumbers.length} of {totalTrays} trays available
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

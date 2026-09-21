@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Sprout, Settings, Download, BarChart3 } from 'lucide-react';
-import { Batch, BatchStats, CropType, WateringRecord, BatchNote, BatchPhoto } from './types';
+import { Batch, BatchStats, CropType, AppConfig, WateringRecord, BatchNote, BatchPhoto } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useReminders } from './hooks/useReminders';
 import { defaultCropTypes } from './data/cropTypes';
@@ -18,6 +18,7 @@ import { getDaysSince } from './utils/dateUtils';
 function App() {
   const [batches, setBatches] = useLocalStorage<Batch[]>('microgreen-batches', []);
   const [cropTypes, setCropTypes] = useLocalStorage<CropType[]>('microgreen-crop-types', defaultCropTypes);
+  const [config, setConfig] = useLocalStorage<AppConfig>('microgreen-config', { totalTrays: 10, trayNumberPrefix: 'Tray' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editBatch, setEditBatch] = useState<Batch | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
@@ -36,6 +37,19 @@ function App() {
   });
 
   const { notifications, completeReminder, deleteReminder } = useReminders(batches);
+
+  // Tray numbers: completed batches free up their tray for reuse
+  const availableTrayNumbers = useMemo(() => {
+    const usedNumbers = new Set(
+      batches
+        .filter(b => b.stage !== 'completed' && b.trayNumber != null)
+        .map(b => b.trayNumber)
+    );
+    const all = Array.from({ length: config.totalTrays }, (_, i) => i + 1);
+    return all.filter(n => !usedNumbers.has(n));
+  }, [batches, config.totalTrays]);
+
+  const usedTrayCount = config.totalTrays - availableTrayNumbers.length;
 
   const stats: BatchStats = useMemo(() => {
     const stats = {
@@ -310,6 +324,9 @@ function App() {
           editBatch={editBatch}
           onUpdate={updateBatch}
           cropTypes={cropTypes}
+          availableTrayNumbers={availableTrayNumbers}
+          totalTrays={config.totalTrays}
+          trayNumberPrefix={config.trayNumberPrefix}
         />
 
         {/* Quick Action Modal */}
@@ -324,7 +341,13 @@ function App() {
         {/* Side Panel */}
         <SidePanel view={sidePanelView} onClose={() => setSidePanelView(null)}>
           {sidePanelView === 'config' && (
-            <ConfigPanel cropTypes={cropTypes} onUpdateCropTypes={setCropTypes} />
+            <ConfigPanel
+              cropTypes={cropTypes}
+              onUpdateCropTypes={setCropTypes}
+              config={config}
+              onUpdateConfig={setConfig}
+              usedTrayCount={usedTrayCount}
+            />
           )}
           {sidePanelView === 'reports' && (
             <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} />

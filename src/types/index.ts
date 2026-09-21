@@ -2,6 +2,7 @@ export interface Batch {
   id: string;
   cropType: string;
   trayId: string;
+  trayNumber: number;
   sowingDate: string;
   expectedHarvestDate: string;
   actualHarvestDate?: string;
@@ -76,4 +77,9 @@ export interface CropType {
   wateringFrequency: number; // days
   lightingHours: number;
   category: 'leafy' | 'herb' | 'brassica' | 'legume' | 'other';
+}
+
+export interface AppConfig {
+  totalTrays: number;
+  trayNumberPrefix: string;
 }

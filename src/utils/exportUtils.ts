@@ -20,6 +20,10 @@ export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
   pdf.setFont('helvetica', 'normal');
   pdf.text(`Tray ID: ${batch.trayId}`, margin, yPosition);
   yPosition += 8;
+  if (batch.trayNumber != null) {
+    pdf.text(`Tray Number: #${batch.trayNumber}`, margin, yPosition);
+    yPosition += 8;
+  }
   pdf.text(`Sowing Date: ${formatDate(batch.sowingDate)}`, margin, yPosition);
   yPosition += 8;
   pdf.text(`Expected Harvest: ${formatDate(batch.expectedHarvestDate)}`, margin, yPosition);
@@ -60,6 +64,7 @@ export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
 export const exportAllBatchesToCSV = (batches: Batch[]): void => {
   const headers = [
     'Tray ID',
+    'Tray Number',
     'Crop Type',
     'Sowing Date',
     'Expected Harvest',
@@ -76,6 +81,7 @@ export const exportAllBatchesToCSV = (batches: Batch[]): void => {
     headers.join(','),
     ...batches.map(batch => [
       batch.trayId,
+      batch.trayNumber ?? '',
       batch.cropType,
       batch.sowingDate,
       batch.expectedHarvestDate,

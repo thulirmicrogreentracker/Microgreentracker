@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat } from 'lucide-react';
-import { CropType } from '../types';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash } from 'lucide-react';
+import { CropType, AppConfig } from '../types';
 
 interface ConfigPanelProps {
   cropTypes: CropType[];
   onUpdateCropTypes: (crops: CropType[]) => void;
+  config: AppConfig;
+  onUpdateConfig: (config: AppConfig) => void;
+  usedTrayCount: number;
 }
 
 const categoryIcons: Record<CropType['category'], React.FC<{ className?: string }>> = {
@@ -31,7 +34,7 @@ const defaultCrop: Omit<CropType, 'name'> = {
   category: 'other',
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newCrop, setNewCrop] = useState<Omit<CropType, 'name'> & { name: string }>({
@@ -76,6 +79,42 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes 
 
   return (
     <div className="space-y-6">
+      {/* Tray Settings */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Tray Settings</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <Hash className="w-3 h-3 inline mr-1" />
+              Total Physical Trays
+            </label>
+            <input
+              type="number"
+              value={config.totalTrays}
+              onChange={e => onUpdateConfig({ ...config, totalTrays: Math.max(1, Number(e.target.value) || 1) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              min={1}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {usedTrayCount} in use, {config.totalTrays - usedTrayCount} available
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Tray Label Prefix</label>
+            <input
+              type="text"
+              value={config.trayNumberPrefix}
+              onChange={e => onUpdateConfig({ ...config, trayNumberPrefix: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              placeholder="e.g., Tray, Rack, Shelf"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Shown as "{config.trayNumberPrefix || 'Tray'} #1", "{config.trayNumberPrefix || 'Tray'} #2", etc.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* General settings section */}
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">General Settings</h3>
