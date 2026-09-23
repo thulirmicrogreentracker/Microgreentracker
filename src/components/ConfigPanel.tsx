@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash, HardDrive, History } from 'lucide-react';
 import { CropType, AppConfig } from '../types';
 
 interface ConfigPanelProps {
@@ -8,6 +8,8 @@ interface ConfigPanelProps {
   config: AppConfig;
   onUpdateConfig: (config: AppConfig) => void;
   usedTrayCount: number;
+  onBackupNow: () => void;
+  onShowRestore: () => void;
 }
 
 const categoryIcons: Record<CropType['category'], React.FC<{ className?: string }>> = {
@@ -34,7 +36,7 @@ const defaultCrop: Omit<CropType, 'name'> = {
   category: 'other',
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount, onBackupNow, onShowRestore }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newCrop, setNewCrop] = useState<Omit<CropType, 'name'> & { name: string }>({
@@ -79,6 +81,33 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
 
   return (
     <div className="space-y-6">
+      {/* Backup & Restore */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+          <HardDrive className="w-4 h-4" />
+          Backup & Restore
+        </h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Your data is backed up automatically every day. You can also create a manual backup or restore from a previous one.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={onBackupNow}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+          >
+            <HardDrive className="w-4 h-4" />
+            Backup Now
+          </button>
+          <button
+            onClick={onShowRestore}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+          >
+            <History className="w-4 h-4" />
+            Restore
+          </button>
+        </div>
+      </div>
+
       {/* Tray Settings */}
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Tray Settings</h3>
