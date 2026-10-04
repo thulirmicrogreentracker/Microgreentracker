@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, Droplets, Sun, Calendar, BarChart3, PieChart, Target, Clock, AlertTriangle, CheckCircle2, Sprout, Leaf } from 'lucide-react';
+import { TrendingUp, Droplets, Sun, Calendar, BarChart3, PieChart, Target, Clock, AlertTriangle, CheckCircle2, Sprout, Leaf, Images, ChevronRight } from 'lucide-react';
 import { Batch, BatchStats, CropType } from '../types';
 import { getDaysSince, formatDate } from '../utils/dateUtils';
 
@@ -7,6 +7,7 @@ interface ReportsPanelProps {
   batches: Batch[];
   stats: BatchStats;
   cropTypes: CropType[];
+  onOpenCropPhotos: (crop: string) => void;
 }
 
 const stageColors: Record<string, string> = {
@@ -17,7 +18,19 @@ const stageColors: Record<string, string> = {
   completed: 'bg-gray-400',
 };
 
-const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes }) => {
+const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, onOpenCropPhotos }) => {
+  const photosByCrop = useMemo(() => {
+    const byCrop = new Map<string, { photos: number; batches: number }>();
+    batches.forEach(b => {
+      if (b.photos.length === 0) return;
+      const entry = byCrop.get(b.cropType) ?? { photos: 0, batches: 0 };
+      entry.photos += b.photos.length;
+      entry.batches += 1;
+      byCrop.set(b.cropType, entry);
+    });
+    return [...byCrop.entries()].map(([crop, v]) => ({ crop, ...v })).sort((a, b) => b.photos - a.photos);
+  }, [batches]);
+
   const cropReport = useMemo(() => {
     const byCrop = batches.reduce((acc, b) => {
       if (!acc[b.cropType]) {
@@ -142,6 +155,31 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes }
           <div className="text-2xl font-bold text-green-900">{stats.completed}</div>
         </div>
       </div>
+
+      {/* Photos by crop */}
+      {photosByCrop.length > 0 && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Images className="w-4 h-4 text-gray-600" />
+            <h3 className="text-sm font-semibold text-gray-900">Photos by Crop</h3>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {photosByCrop.map(c => (
+              <button
+                key={c.crop}
+                onClick={() => onOpenCropPhotos(c.crop)}
+                className="w-full flex items-center justify-between py-2.5 text-left hover:bg-gray-50 -mx-1 px-1 rounded-lg"
+              >
+                <span className="text-sm font-medium text-gray-900">{c.crop}</span>
+                <span className="flex items-center gap-1 text-xs text-gray-500">
+                  {c.photos} photo{c.photos === 1 ? '' : 's'} · {c.batches} batch{c.batches === 1 ? '' : 'es'}
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stage Distribution */}
       {stageDistribution.length > 0 && (

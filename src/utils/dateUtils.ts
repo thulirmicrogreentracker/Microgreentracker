@@ -1,4 +1,4 @@
-import { format, addDays, differenceInDays, isToday, isTomorrow, isPast } from 'date-fns';
+import { format, addDays, differenceInDays, differenceInCalendarDays, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
 
 export const formatDate = (date: string | Date): string => {
   return format(new Date(date), 'MMM dd, yyyy');
@@ -41,3 +41,6 @@ export const getRelativeTimeString = (date: string): string => {
   if (days > 0) return `In ${days} days`;
   return `${Math.abs(days)} days ago`;
 };
+// "Day N" of a batch: calendar days from the sowing date (a local YYYY-MM-DD) to `date`.
+export const getDayNumber = (sowingDate: string, date: string): number =>
+  differenceInCalendarDays(new Date(date), parseISO(sowingDate));

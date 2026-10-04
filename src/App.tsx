@@ -14,6 +14,10 @@ import NotificationPanel from './components/NotificationPanel';
 import QuickActionModal from './components/QuickActionModal';
 import ConfigPanel from './components/ConfigPanel';
 import ReportsPanel from './components/ReportsPanel';
+import BatchGallery from './components/photos/BatchGallery';
+import PhotoViewer from './components/photos/PhotoViewer';
+import PhotoCompare from './components/photos/PhotoCompare';
+import CropPhotos from './components/photos/CropPhotos';
 import { getDaysSince } from './utils/dateUtils';
 import { generateTestBatches } from './utils/generateTestData';
 
@@ -38,6 +42,10 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRestoreSheet, setShowRestoreSheet] = useState(false);
+  const [galleryBatchId, setGalleryBatchId] = useState<string | null>(null);
+  const [viewerPhoto, setViewerPhoto] = useState<{ batchId: string; photoId: string } | null>(null);
+  const [compareBatchId, setCompareBatchId] = useState<string | null>(null);
+  const [cropPhotos, setCropPhotos] = useState<string | null>(null);
 
   const [quickActionModal, setQuickActionModal] = useState<{
     isOpen: boolean;
@@ -66,13 +74,17 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     const handle = CapacitorApp.addListener('backButton', () => {
       if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
       else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
+      else if (viewerPhoto) setViewerPhoto(null);
+      else if (compareBatchId) setCompareBatchId(null);
+      else if (galleryBatchId) setGalleryBatchId(null);
+      else if (cropPhotos) setCropPhotos(null);
       else if (showRestoreSheet) setShowRestoreSheet(false);
       else if (showNotifications) setShowNotifications(false);
       else if (activeTab !== 'home') setActiveTab('home');
       else CapacitorApp.exitApp();
     });
     return () => { handle.then(h => h.remove()); };
-  }, [quickActionModal.isOpen, isModalOpen, showRestoreSheet, showNotifications, activeTab]);
+  }, [quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
 
   const availableTrayNumbers = useMemo(() => {
     const usedNumbers = new Set(
@@ -171,6 +183,23 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     setIsModalOpen(false);
     setEditBatch(null);
   };
+
+  const updatePhotos = (batchId: string, fn: (photos: BatchPhoto[]) => BatchPhoto[]) =>
+    setBatches(prev => prev.map(batch =>
+      batch.id === batchId ? { ...batch, photos: fn(batch.photos), updatedAt: new Date().toISOString() } : batch
+    ));
+
+  const updatePhotoCaption = (batchId: string, photoId: string, caption: string) =>
+    updatePhotos(batchId, photos => photos.map(p => (p.id === photoId ? { ...p, caption: caption || undefined } : p)));
+
+  const deletePhoto = (batchId: string, photoId: string) =>
+    updatePhotos(batchId, photos => photos.filter(p => p.id !== photoId));
+
+  const galleryBatch = batches.find(b => b.id === galleryBatchId) ?? null;
+  const viewerBatch = batches.find(b => b.id === viewerPhoto?.batchId) ?? null;
+  const compareBatch = batches.find(b => b.id === compareBatchId) ?? null;
+  const canCompare = (batch: Batch) =>
+    batch.photos.length >= 2 || batches.some(b => b.id !== batch.id && b.cropType === batch.cropType && b.photos.length > 0);
 
   const handleQuickAction = (batchId: string, actionType: 'watering' | 'photo' | 'note') => {
     const batch = batches.find(b => b.id === batchId);
@@ -384,6 +413,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
                       onAddPhoto={(batchId) => handleQuickAction(batchId, 'photo')}
                       onAddNote={(batchId) => handleQuickAction(batchId, 'note')}
                       onAddWatering={(batchId) => handleQuickAction(batchId, 'watering')}
+                      onOpenGallery={setGalleryBatchId}
                     />
                   </div>
                 ))}
@@ -393,7 +423,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         )}
 
         {activeTab === 'reports' && (
-          <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} />
+          <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
         )}
 
         {activeTab === 'config' && (
@@ -552,6 +582,34 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center">
           <div className="bg-white rounded-xl px-6 py-4 text-sm font-medium text-gray-900 shadow-lg">{busyMessage}</div>
         </div>
+      )}
+
+      {/* Photo screens, back to front */}
+      {cropPhotos && (
+        <CropPhotos crop={cropPhotos} batches={batches} onClose={() => setCropPhotos(null)} onOpenGallery={setGalleryBatchId} />
+      )}
+      {galleryBatch && (
+        <BatchGallery
+          batch={galleryBatch}
+          canCompare={canCompare(galleryBatch)}
+          onClose={() => setGalleryBatchId(null)}
+          onOpenPhoto={(photoId) => setViewerPhoto({ batchId: galleryBatch.id, photoId })}
+          onAddPhoto={() => handleQuickAction(galleryBatch.id, 'photo')}
+          onCompare={() => setCompareBatchId(galleryBatch.id)}
+        />
+      )}
+      {compareBatch && (
+        <PhotoCompare batch={compareBatch} batches={batches} onClose={() => setCompareBatchId(null)} />
+      )}
+      {viewerBatch && viewerPhoto && (
+        <PhotoViewer
+          key={viewerPhoto.photoId}
+          batch={viewerBatch}
+          photoId={viewerPhoto.photoId}
+          onClose={() => setViewerPhoto(null)}
+          onUpdateCaption={(photoId, caption) => updatePhotoCaption(viewerBatch.id, photoId, caption)}
+          onDelete={(photoId) => deletePhoto(viewerBatch.id, photoId)}
+        />
       )}
 
       {/* Add/Edit Modal */}

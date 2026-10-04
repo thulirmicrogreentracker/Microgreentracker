@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Calendar, CreditCard as Edit3, Trash2, Sprout, Leaf, CheckCircle2, Camera, FileText, Droplets, Sun, AlertCircle, Hash } from 'lucide-react';
+import { Calendar, CreditCard as Edit3, Trash2, Camera, FileText, Droplets, Sun, AlertCircle, Hash } from 'lucide-react';
 import { Batch } from '../types';
 import { formatDate, getDaysSince, getRelativeTimeString } from '../utils/dateUtils';
+import { stageConfig } from '../data/stages';
+import PhotoStrip from './photos/PhotoStrip';
 
 interface BatchCardProps {
   batch: Batch;
@@ -11,15 +13,9 @@ interface BatchCardProps {
   onAddPhoto: (batchId: string) => void;
   onAddNote: (batchId: string) => void;
   onAddWatering: (batchId: string) => void;
+  onOpenGallery: (batchId: string) => void;
 }
 
-const stageConfig = {
-  sowing: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Sprout, label: 'Sowing', next: 'germination' },
-  germination: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Sprout, label: 'Germination', next: 'growth' },
-  growth: { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: Leaf, label: 'Growing', next: 'harvest' },
-  harvest: { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2, label: 'Ready to Harvest', next: 'completed' },
-  completed: { color: 'bg-gray-100 text-gray-800 border-gray-200', icon: CheckCircle2, label: 'Completed', next: null }
-};
 
 const BatchCard: React.FC<BatchCardProps> = ({ 
   batch, 
@@ -28,11 +24,13 @@ const BatchCard: React.FC<BatchCardProps> = ({
   onStageChange, 
   onAddPhoto, 
   onAddNote, 
-  onAddWatering 
+  onAddWatering,
+  onOpenGallery
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const config = stageConfig[batch.stage];
   const StageIcon = config.icon;
+  const nextStage = config.next;
   
   const daysSinceSowing = getDaysSince(batch.sowingDate);
   const harvestTimeframe = getRelativeTimeString(batch.expectedHarvestDate);
@@ -112,17 +110,18 @@ const BatchCard: React.FC<BatchCardProps> = ({
           </div>
         </div>
 
+        <PhotoStrip
+          batch={batch}
+          onOpenGallery={() => onOpenGallery(batch.id)}
+          onAddPhoto={() => onAddPhoto(batch.id)}
+        />
+
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="text-center bg-gray-50 rounded-lg py-1.5">
             <FileText className="w-3.5 h-3.5 text-gray-400 mx-auto mb-0.5" />
             <div className="text-xs font-semibold text-gray-900">{batch.notes.length}</div>
             <div className="text-[10px] text-gray-500">Notes</div>
-          </div>
-          <div className="text-center bg-gray-50 rounded-lg py-1.5">
-            <Camera className="w-3.5 h-3.5 text-gray-400 mx-auto mb-0.5" />
-            <div className="text-xs font-semibold text-gray-900">{batch.photos.length}</div>
-            <div className="text-[10px] text-gray-500">Photos</div>
           </div>
           <div className="text-center bg-gray-50 rounded-lg py-1.5">
             <Droplets className={`w-3.5 h-3.5 mx-auto mb-0.5 ${needsWatering ? 'text-red-500' : 'text-blue-500'}`} />
@@ -160,12 +159,12 @@ const BatchCard: React.FC<BatchCardProps> = ({
           </button>
         </div>
 
-        {config.next && (
+        {nextStage && (
           <button
-            onClick={() => onStageChange(batch.id, config.next as Batch['stage'])}
+            onClick={() => onStageChange(batch.id, nextStage)}
             className="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors font-medium text-xs"
           >
-            Mark as {stageConfig[config.next as Batch['stage']].label}
+            Mark as {stageConfig[nextStage].label}
           </button>
         )}
       </div>
