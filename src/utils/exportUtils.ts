@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Batch } from '../types';
 import { formatDate, getDaysSince } from './dateUtils';
+import { saveFile } from './saveFile';
 
 export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
   const pdf = new jsPDF();
@@ -58,10 +59,10 @@ export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
     });
   }
 
-  pdf.save(`${batch.cropType}_${batch.trayId}_report.pdf`);
+  await saveFile(`${batch.cropType}_${batch.trayId}_report.pdf`, pdf.output('blob'), 'application/pdf');
 };
 
-export const exportAllBatchesToCSV = (batches: Batch[]): void => {
+export const exportAllBatchesToCSV = (batches: Batch[]): Promise<void> => {
   const headers = [
     'Tray ID',
     'Tray Number',
@@ -95,11 +96,5 @@ export const exportAllBatchesToCSV = (batches: Batch[]): void => {
     ].join(','))
   ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `microgreen_batches_${new Date().toISOString().split('T')[0]}.csv`;
-  link.click();
-  window.URL.revokeObjectURL(url);
+  return saveFile(`microgreen_batches_${new Date().toISOString().split('T')[0]}.csv`, csvContent, 'text/csv');
 };

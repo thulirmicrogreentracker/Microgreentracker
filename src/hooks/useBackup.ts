@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { saveFile } from '../utils/saveFile';
 
 const BACKUP_DB_NAME = 'microgreen-backups';
 const BACKUP_STORE = 'snapshots';
@@ -121,15 +122,11 @@ export function downloadBackup(id: string): void {
     req.onsuccess = () => {
       const snapshot = req.result;
       if (!snapshot) return;
-      const blob = new Blob([JSON.stringify(snapshot.data, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `microgreen-backup-${snapshot.timestamp.split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      saveFile(
+        `microgreen-backup-${snapshot.timestamp.split('T')[0]}.json`,
+        JSON.stringify(snapshot.data, null, 2),
+        'application/json'
+      ).catch((e) => console.error('Backup download failed:', e));
     };
   });
 }

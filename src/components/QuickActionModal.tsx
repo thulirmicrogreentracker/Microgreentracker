@@ -101,7 +101,7 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col max-w-md mx-auto lg:max-w-lg xl:max-w-xl">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+      <div className="flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] border-b border-gray-100 shrink-0">
         <button
           onClick={onClose}
           className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors"
@@ -217,7 +217,7 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
         )}
       </form>
 
-      <div className="flex gap-3 p-4 border-t border-gray-100 shrink-0 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex gap-3 p-4 border-t border-gray-100 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <button
           type="button"
           onClick={onClose}

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Sprout, Settings, BarChart3, Home, Bell, X } from 'lucide-react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download } from 'lucide-react';
 import { Batch, BatchStats, CropType, AppConfig, WateringRecord, BatchNote, BatchPhoto } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useReminders } from './hooks/useReminders';
@@ -47,6 +48,19 @@ function App() {
       listBackups().then(setBackups).catch(() => setBackups([]));
     }
   }, [showRestoreSheet]);
+
+  // Android hardware back button: close the top-most screen instead of exiting the app.
+  useEffect(() => {
+    const handle = CapacitorApp.addListener('backButton', () => {
+      if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
+      else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
+      else if (showRestoreSheet) setShowRestoreSheet(false);
+      else if (showNotifications) setShowNotifications(false);
+      else if (activeTab !== 'home') setActiveTab('home');
+      else CapacitorApp.exitApp();
+    });
+    return () => { handle.then(h => h.remove()); };
+  }, [quickActionModal.isOpen, isModalOpen, showRestoreSheet, showNotifications, activeTab]);
 
   const availableTrayNumbers = useMemo(() => {
     const usedNumbers = new Set(
@@ -236,7 +250,7 @@ function App() {
   return (
     <div className="fixed inset-0 bg-gray-50 flex flex-col max-w-md mx-auto lg:max-w-lg xl:max-w-xl">
       {/* App Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shrink-0">
+      <header className="flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] bg-white border-b border-gray-100 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="bg-emerald-100 p-2 rounded-lg">
             <Sprout className="w-5 h-5 text-emerald-600" />
@@ -332,7 +346,7 @@ function App() {
       {activeTab === 'home' && (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-20 right-4 max-w-md:w-auto lg:max-w-lg:w-auto xl:max-w-xl:w-auto z-30 bg-emerald-600 text-white rounded-full p-4 shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 max-w-md:w-auto lg:max-w-lg:w-auto xl:max-w-xl:w-auto z-30 bg-emerald-600 text-white rounded-full p-4 shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
           style={{ right: 'max(1rem, calc((100vw - 100%) / 2 + 1rem))' }}
         >
           <Plus className="w-6 h-6" />
@@ -373,7 +387,7 @@ function App() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-y-auto p-4">
+            <div className="overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               {notifications.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-8">No pending notifications</p>
               ) : (
@@ -402,7 +416,7 @@ function App() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-y-auto p-4">
+            <div className="overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <button
                 onClick={() => { backupNow(); listBackups().then(setBackups); }}
                 className="w-full mb-3 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
@@ -426,7 +440,7 @@ function App() {
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Download"
                         >
-                          <Settings className="w-4 h-4" />
+                          <Download className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleRestore(b.id)}
