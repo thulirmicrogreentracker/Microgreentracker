@@ -1,11 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download } from 'lucide-react';
-import { Batch, BatchStats, CropType, AppConfig, WateringRecord, BatchNote, BatchPhoto } from './types';
-import { useLocalStorage } from './hooks/useLocalStorage';
+import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download, FolderOpen, AlertTriangle } from 'lucide-react';
+import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto } from './types';
+import { useAppData, UpdateAppData } from './hooks/useAppData';
 import { useReminders } from './hooks/useReminders';
-import { useDailyBackup, listBackups, restoreBackup, deleteBackup, downloadBackup, BackupInfo } from './hooks/useBackup';
-import { defaultCropTypes } from './data/cropTypes';
+import { useDailySnapshot } from './hooks/useBackup';
+import { createSnapshot, deleteSnapshot, listSnapshots, readSnapshot, SnapshotInfo } from './storage/snapshots';
+import { exportBackupFile, parseBackupFile, writeBackupPhotos } from './storage/backupFile';
 import BatchCard from './components/BatchCard';
 import AddBatchModal from './components/AddBatchModal';
 import Dashboard from './components/Dashboard';
@@ -18,10 +19,19 @@ import { generateTestBatches } from './utils/generateTestData';
 
 type Tab = 'home' | 'reports' | 'config';
 
-function App() {
-  const [batches, setBatches] = useLocalStorage<Batch[]>('microgreen-batches', []);
-  const [cropTypes, setCropTypes] = useLocalStorage<CropType[]>('microgreen-crop-types', defaultCropTypes);
-  const [config, setConfig] = useLocalStorage<AppConfig>('microgreen-config', { totalTrays: 10, trayNumberPrefix: 'Tray' });
+interface TrackerAppProps {
+  data: AppData;
+  update: UpdateAppData;
+  saveError: string | null;
+  onRetrySave: () => void;
+}
+
+function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
+  const { batches, cropTypes, config, reminders } = data;
+  const setBatches = (fn: (prev: Batch[]) => Batch[]) => update(d => ({ ...d, batches: fn(d.batches) }));
+  const setCropTypes = (next: CropType[]) => update(d => ({ ...d, cropTypes: next }));
+  const setConfig = (next: AppConfig) => update(d => ({ ...d, config: next }));
+  const setReminders = (fn: (prev: Reminder[]) => Reminder[]) => update(d => ({ ...d, reminders: fn(d.reminders) }));
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editBatch, setEditBatch] = useState<Batch | null>(null);
@@ -39,13 +49,15 @@ function App() {
     actionType: null
   });
 
-  const { notifications, completeReminder, deleteReminder } = useReminders(batches);
-  const { lastBackup, backupNow } = useDailyBackup();
-  const [backups, setBackups] = useState<BackupInfo[]>([]);
+  const { notifications, completeReminder, deleteReminder } = useReminders(batches, reminders, setReminders);
+  const { lastBackup, snapshotNow } = useDailySnapshot(data);
+  const [backups, setBackups] = useState<SnapshotInfo[]>([]);
+  const [busyMessage, setBusyMessage] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (showRestoreSheet) {
-      listBackups().then(setBackups).catch(() => setBackups([]));
+      listSnapshots().then(setBackups).catch(() => setBackups([]));
     }
   }, [showRestoreSheet]);
 
@@ -120,11 +132,11 @@ function App() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setBatches([...batches, batch]);
+    setBatches(prev => [...prev, batch]);
   };
 
   const updateBatch = (updatedBatch: Batch) => {
-    setBatches(batches.map(batch =>
+    setBatches(prev => prev.map(batch =>
       batch.id === updatedBatch.id ? { ...updatedBatch, updatedAt: new Date().toISOString() } : batch
     ));
     setEditBatch(null);
@@ -132,13 +144,13 @@ function App() {
 
   const deleteBatch = (id: string) => {
     if (window.confirm('Are you sure you want to delete this batch? This action cannot be undone.')) {
-      setBatches(batches.filter(batch => batch.id !== id));
+      setBatches(prev => prev.filter(batch => batch.id !== id));
       if (selectedBatch?.id === id) setSelectedBatch(null);
     }
   };
 
   const updateBatchStage = (id: string, stage: Batch['stage']) => {
-    setBatches(batches.map(batch =>
+    setBatches(prev => prev.map(batch =>
       batch.id === id
         ? {
             ...batch,
@@ -168,7 +180,7 @@ function App() {
   };
 
   const handleQuickActionSave = (batchId: string, actionData: { type: string; data: Record<string, unknown> }) => {
-    setBatches(batches.map(batch => {
+    setBatches(prev => prev.map(batch => {
       if (batch.id !== batchId) return batch;
       const updatedBatch = { ...batch, updatedAt: new Date().toISOString() };
 
@@ -227,23 +239,65 @@ function App() {
     { key: 'config', label: 'Config', icon: Settings },
   ];
 
-  const handleRestore = async (id: string) => {
-    if (!window.confirm('Restore this backup? Current data will be replaced.')) return;
-    await restoreBackup(id);
-    window.location.reload();
+  const runBusy = async (message: string, task: () => Promise<void>) => {
+    setBusyMessage(message);
+    try {
+      await task();
+    } catch (e) {
+      console.error(e);
+      window.alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyMessage(null);
+    }
+  };
+
+  // Replaces all app data, keeping the current data as an on-phone snapshot first so it can be undone.
+  const replaceData = async (next: AppData) => {
+    await createSnapshot(data);
+    update(() => next);
+    setSelectedBatch(null);
+    setActiveTab('home');
+  };
+
+  const handleSnapshotNow = () => runBusy('Saving a copy…', async () => {
+    await snapshotNow();
+    setBackups(await listSnapshots());
+  });
+
+  const handleRestore = (id: string) => {
+    if (!window.confirm('Restore this backup? Your current data will be replaced (a copy of it is kept in this list).')) return;
+    runBusy('Restoring…', async () => {
+      await replaceData(await readSnapshot(id));
+      setShowRestoreSheet(false);
+    });
   };
 
   const handleDeleteBackup = async (id: string) => {
-    await deleteBackup(id);
-    setBackups(backups.filter(b => b.id !== id));
+    await deleteSnapshot(id);
+    setBackups(prev => prev.filter(b => b.id !== id));
   };
+
+  const handleDownloadBackup = (id: string) =>
+    runBusy('Preparing backup file…', async () => exportBackupFile(await readSnapshot(id)));
+
+  const handleExportBackup = () => runBusy('Preparing backup file…', () => exportBackupFile(data));
+
+  const handleImportFile = (file: File) => runBusy('Reading backup…', async () => {
+    const backup = await parseBackupFile(file);
+    const when = backup.createdAt ? ` from ${new Date(backup.createdAt).toLocaleString()}` : '';
+    const count = backup.data.batches.length;
+    if (!window.confirm(`Restore this backup${when}? It has ${count} batch${count === 1 ? '' : 'es'}. Your current data will be replaced (a copy of it is kept under Config → Restore).`)) return;
+    setBusyMessage('Restoring…');
+    await writeBackupPhotos(backup);
+    await replaceData(backup.data);
+  });
 
   const handleLoadTestData = () => {
     const confirmMsg = batches.length > 0
       ? 'This will replace all your current batches with test data. Continue?'
       : 'Load one month of sample batch data?';
     if (!window.confirm(confirmMsg)) return;
-    setBatches(generateTestBatches());
+    setBatches(() => generateTestBatches());
     setActiveTab('home');
   };
 
@@ -277,6 +331,14 @@ function App() {
         </button>
       </header>
 
+      {saveError && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-100 text-red-700 text-xs shrink-0">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Your last change couldn't be saved on this phone.</span>
+          <button onClick={onRetrySave} className="font-semibold underline">Retry</button>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 pb-28">
         {activeTab === 'home' && (
@@ -295,6 +357,13 @@ function App() {
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   Add Your First Batch
+                </button>
+                <button
+                  onClick={() => importInputRef.current?.click()}
+                  className="mt-3 text-emerald-700 px-6 py-2 rounded-xl hover:bg-emerald-50 transition-colors text-sm font-medium inline-flex items-center"
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  Restore from a backup file
                 </button>
               </div>
             ) : (
@@ -334,8 +403,10 @@ function App() {
             config={config}
             onUpdateConfig={setConfig}
             usedTrayCount={usedTrayCount}
-            onBackupNow={backupNow}
+            onBackupNow={handleSnapshotNow}
             onShowRestore={() => setShowRestoreSheet(true)}
+            onExportBackup={handleExportBackup}
+            onImportBackup={() => importInputRef.current?.click()}
             onLoadTestData={handleLoadTestData}
             hasBatches={batches.length > 0}
           />
@@ -418,14 +489,14 @@ function App() {
             </div>
             <div className="overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <button
-                onClick={() => { backupNow(); listBackups().then(setBackups); }}
+                onClick={handleSnapshotNow}
                 className="w-full mb-3 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Create Backup Now
               </button>
               {backups.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-8">No backups yet. Backups are created automatically each day.</p>
+                <p className="text-sm text-gray-500 text-center py-8">No backups yet. A copy is saved on this phone automatically each day.</p>
               ) : (
                 <div className="space-y-2">
                   {backups.map((b) => (
@@ -436,9 +507,9 @@ function App() {
                       </div>
                       <div className="flex gap-1.5">
                         <button
-                          onClick={() => downloadBackup(b.id)}
+                          onClick={() => handleDownloadBackup(b.id)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Download"
+                          title="Save as backup file"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -465,6 +536,24 @@ function App() {
         </div>
       )}
 
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".zip,.json,application/zip,application/x-zip-compressed,application/json,application/octet-stream"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = ''; // allow picking the same file again
+          if (file) handleImportFile(file);
+        }}
+      />
+
+      {busyMessage && (
+        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center">
+          <div className="bg-white rounded-xl px-6 py-4 text-sm font-medium text-gray-900 shadow-lg">{busyMessage}</div>
+        </div>
+      )}
+
       {/* Add/Edit Modal */}
       <AddBatchModal
         isOpen={isModalOpen}
@@ -488,6 +577,30 @@ function App() {
       />
     </div>
   );
+}
+
+function App() {
+  const { data, loadError, saveError, retrySave, update } = useAppData();
+
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
+        <AlertTriangle className="w-10 h-10 text-red-500 mb-3" />
+        <h1 className="text-base font-semibold text-gray-900 mb-1">Couldn't open your data</h1>
+        <p className="text-sm text-gray-500">{loadError}</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="fixed inset-0 bg-gray-50 flex items-center justify-center">
+        <Sprout className="w-10 h-10 text-emerald-600 animate-pulse" />
+      </div>
+    );
+  }
+
+  return <TrackerApp data={data} update={update} saveError={saveError} onRetrySave={retrySave} />;
 }
 
 export default App;

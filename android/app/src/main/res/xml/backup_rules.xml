@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup (Android 11 and lower). Photos are left out because Auto Backup
+     stops entirely once app data passes 25 MB; they travel in the app's backup file instead. -->
+<full-backup-content>
+    <exclude domain="file" path="microgreen/photos/" />
+</full-backup-content>

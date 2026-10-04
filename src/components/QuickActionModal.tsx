@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Droplets, Camera, FileText, Plus, ChevronLeft } from 'lucide-react';
 import { Batch, WateringRecord, BatchNote, BatchPhoto } from '../types';
+import { savePhotoFromFile } from '../storage/photos';
 
 interface QuickActionModalProps {
   isOpen: boolean;
@@ -51,17 +52,18 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
       }
       case 'photo': {
         if (photoFile) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const photo: Omit<BatchPhoto, 'id'> = {
-              url: e.target?.result as string,
-              caption: photoCaption.trim() || undefined,
-              timestamp: new Date().toISOString(),
-              stage: batch.stage,
-            };
-            onSave(batch.id, { type: 'photo', data: photo as unknown as Record<string, unknown> });
-          };
-          reader.readAsDataURL(photoFile);
+          const caption = photoCaption.trim() || undefined;
+          const timestamp = new Date().toISOString();
+          const stage = batch.stage;
+          savePhotoFromFile(photoFile)
+            .then(file => {
+              const photo: Omit<BatchPhoto, 'id'> = { file, caption, timestamp, stage };
+              onSave(batch.id, { type: 'photo', data: photo as unknown as Record<string, unknown> });
+            })
+            .catch(err => {
+              console.error('Saving photo failed:', err);
+              window.alert('The photo could not be saved. Please try again.');
+            });
         }
         break;
       }

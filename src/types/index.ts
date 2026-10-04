@@ -26,7 +26,7 @@ export interface BatchNote {
 
 export interface BatchPhoto {
   id: string;
-  url: string;
+  file: string; // file name inside the app's photos folder (see src/storage/photos.ts)
   caption?: string;
   timestamp: string;
   stage: Batch['stage'];
@@ -82,4 +82,11 @@ export interface CropType {
 export interface AppConfig {
   totalTrays: number;
   trayNumberPrefix: string;
+}
+
+export interface AppData {
+  batches: Batch[];
+  cropTypes: CropType[];
+  config: AppConfig;
+  reminders: Reminder[];
 }

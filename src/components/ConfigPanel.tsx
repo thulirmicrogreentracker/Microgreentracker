@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash, HardDrive, History, Database } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash, HardDrive, History, Database, Upload, FolderOpen } from 'lucide-react';
 import { CropType, AppConfig, Batch } from '../types';
 
 interface ConfigPanelProps {
@@ -10,6 +10,8 @@ interface ConfigPanelProps {
   usedTrayCount: number;
   onBackupNow: () => void;
   onShowRestore: () => void;
+  onExportBackup: () => void;
+  onImportBackup: () => void;
   onLoadTestData: () => void;
   hasBatches: boolean;
 }
@@ -38,7 +40,7 @@ const defaultCrop: Omit<CropType, 'name'> = {
   category: 'other',
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount, onBackupNow, onShowRestore, onLoadTestData, hasBatches }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newCrop, setNewCrop] = useState<Omit<CropType, 'name'> & { name: string }>({
@@ -90,7 +92,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           Backup & Restore
         </h3>
         <p className="text-xs text-gray-500 mb-3">
-          Your data is backed up automatically every day. You can also create a manual backup or restore from a previous one.
+          A copy of your data is saved on this phone automatically every day. You can also save one now or go back to an earlier copy.
         </p>
         <div className="flex gap-2">
           <button
@@ -107,6 +109,29 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
             <History className="w-4 h-4" />
             Restore
           </button>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <h4 className="text-xs font-semibold text-gray-900 mb-1">Backup file</h4>
+          <p className="text-xs text-gray-500 mb-3">
+            Save everything, including photos, as one file to Google Drive, Files or email. Open it on a new phone to restore.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onExportBackup}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Save File
+            </button>
+            <button
+              onClick={onImportBackup}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Restore File
+            </button>
+          </div>
         </div>
       </div>
 

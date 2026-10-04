@@ -4,11 +4,32 @@ Track microgreen batches from sowing to harvest: trays, watering, notes, photos,
 
 The app is a React + Vite web app that also ships as native **Android** and **iOS** apps through [Capacitor](https://capacitorjs.com). All data is stored on the device; there is no server or account.
 
+## Where data is stored
+
+Everything stays on the phone, in the app's private storage (`src/storage/`):
+
+- `microgreen/data-a.json` / `data-b.json`: all batches, crops, settings and reminders. Saves alternate between
+  the two files, so if the app is killed mid-save the previous copy is still intact.
+- `microgreen/photos/`: one compressed JPEG per photo (longest side 1600 px).
+- `microgreen/snapshots/`: an automatic copy of the data taken each day (last 30 kept), shown under
+  **Config → Restore**.
+
+In a browser the same files live in IndexedDB. Data from older versions of the app (browser localStorage)
+is moved over automatically the first time the new version opens.
+
+### Backup files
+
+**Config → Save File** creates `microgreen-backup-YYYY-MM-DD.zip` (all data plus photos) and opens the
+phone's share sheet, so it can be saved to Google Drive, Files, or emailed. **Config → Restore File** (or
+*Restore from a backup file* on a fresh install) opens it again; the data that gets replaced is kept as a
+snapshot first. On Android, Auto Backup additionally copies the data (not photos) to the user's Google
+account.
+
 ## Project layout
 
 | Path | What it is |
 |---|---|
-| `src/` | The app itself (React + TypeScript + Tailwind) |
+| `src/` | The app itself (React + TypeScript + Tailwind); `src/storage/` holds on-device storage and backups |
 | `android/` | Native Android project (open in Android Studio) |
 | `ios/` | Native iOS project (open in Xcode) |
 | `assets/` | Source images for the app icon and splash screen |

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup (Android 12+). See backup_rules.xml. Device-to-device transfer keeps
+     the default of copying everything, photos included. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="microgreen/photos/" />
+    </cloud-backup>
+</data-extraction-rules>
