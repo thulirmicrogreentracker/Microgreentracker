@@ -13,6 +13,7 @@ import QuickActionModal from './components/QuickActionModal';
 import ConfigPanel from './components/ConfigPanel';
 import ReportsPanel from './components/ReportsPanel';
 import { getDaysSince } from './utils/dateUtils';
+import { generateTestBatches } from './utils/generateTestData';
 
 type Tab = 'home' | 'reports' | 'config';
 
@@ -223,6 +224,15 @@ function App() {
     setBackups(backups.filter(b => b.id !== id));
   };
 
+  const handleLoadTestData = () => {
+    const confirmMsg = batches.length > 0
+      ? 'This will replace all your current batches with test data. Continue?'
+      : 'Load one month of sample batch data?';
+    if (!window.confirm(confirmMsg)) return;
+    setBatches(generateTestBatches());
+    setActiveTab('home');
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-50 flex flex-col max-w-md mx-auto lg:max-w-lg xl:max-w-xl">
       {/* App Header */}
@@ -312,6 +322,8 @@ function App() {
             usedTrayCount={usedTrayCount}
             onBackupNow={backupNow}
             onShowRestore={() => setShowRestoreSheet(true)}
+            onLoadTestData={handleLoadTestData}
+            hasBatches={batches.length > 0}
           />
         )}
       </main>

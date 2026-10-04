@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash, HardDrive, History } from 'lucide-react';
-import { CropType, AppConfig } from '../types';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash, HardDrive, History, Database } from 'lucide-react';
+import { CropType, AppConfig, Batch } from '../types';
 
 interface ConfigPanelProps {
   cropTypes: CropType[];
@@ -10,6 +10,8 @@ interface ConfigPanelProps {
   usedTrayCount: number;
   onBackupNow: () => void;
   onShowRestore: () => void;
+  onLoadTestData: () => void;
+  hasBatches: boolean;
 }
 
 const categoryIcons: Record<CropType['category'], React.FC<{ className?: string }>> = {
@@ -36,7 +38,7 @@ const defaultCrop: Omit<CropType, 'name'> = {
   category: 'other',
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount, onBackupNow, onShowRestore }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount, onBackupNow, onShowRestore, onLoadTestData, hasBatches }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newCrop, setNewCrop] = useState<Omit<CropType, 'name'> & { name: string }>({
@@ -106,6 +108,24 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
             Restore
           </button>
         </div>
+      </div>
+
+      {/* Test Data */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+          <Database className="w-4 h-4" />
+          Test Data
+        </h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Populate the app with a full month of sample batches across all growth stages, complete with watering records and notes.
+        </p>
+        <button
+          onClick={onLoadTestData}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+        >
+          <Database className="w-4 h-4" />
+          {hasBatches ? 'Replace Data with Test Batches' : 'Load Test Data (1 Month)'}
+        </button>
       </div>
 
       {/* Tray Settings */}
