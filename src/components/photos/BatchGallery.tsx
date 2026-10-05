@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Camera, ChevronLeft, Columns2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Batch } from '../../types';
+import { batchCode, photoTrayCode } from '../../utils/batches';
 import { STAGE_ORDER, stageConfig } from '../../data/stages';
 import { getDayNumber } from '../../utils/dateUtils';
 import PhotoImage from './PhotoImage';
@@ -11,7 +12,7 @@ interface BatchGalleryProps {
   canCompare: boolean;
   onClose: () => void;
   onOpenPhoto: (photoId: string) => void;
-  onAddPhoto: () => void;
+  onAddPhoto: (trayId?: string) => void; // the tray the gallery is filtered to, if any
   onCompare: () => void;
 }
 
@@ -20,7 +21,17 @@ type Filter = 'all' | Batch['stage'];
 // All photos of one batch, grouped by the growth stage they were taken in.
 const BatchGallery: React.FC<BatchGalleryProps> = ({ batch, canCompare, onClose, onOpenPhoto, onAddPhoto, onCompare }) => {
   const [filter, setFilter] = useState<Filter>('all');
-  const photos = [...batch.photos].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const [trayFilter, setTrayFilter] = useState<string>('all'); // 'all', 'batch' or a Tray.id
+  const allPhotos = [...batch.photos].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  // Trays that have photos, in tray order; the filter row only appears once some photo shows a single tray.
+  const photoTrays = batch.trays.filter(t => allPhotos.some(p => p.trayId === t.id));
+  const trayChips = photoTrays.length === 0 ? [] : [
+    { key: 'all', label: 'All trays' },
+    ...(allPhotos.some(p => !photoTrayCode(batch, p)) ? [{ key: 'batch', label: 'Whole batch' }] : []),
+    ...photoTrays.map(t => ({ key: t.id, label: t.code })),
+  ];
+  const photos = allPhotos.filter(p =>
+    trayFilter === 'all' || (trayFilter === 'batch' ? !photoTrayCode(batch, p) : p.trayId === trayFilter));
   const dayOf = (timestamp: string) => getDayNumber(batch.sowingDate, timestamp);
 
   const sections = STAGE_ORDER
@@ -42,8 +53,8 @@ const BatchGallery: React.FC<BatchGalleryProps> = ({ batch, canCompare, onClose,
           Back
         </button>
         <div className="text-center min-w-0">
-          <h2 className="text-base font-semibold text-gray-900 truncate">{batch.cropType} · {batch.trayId}</h2>
-          <p className="text-[11px] text-gray-500">{photos.length} photo{photos.length === 1 ? '' : 's'} · {today}</p>
+          <h2 className="text-base font-semibold text-gray-900 truncate">{batchCode(batch.batchNumber)} · {batch.cropType}</h2>
+          <p className="text-[11px] text-gray-500">{allPhotos.length} photo{allPhotos.length === 1 ? '' : 's'} · {today}</p>
         </div>
         <button
           onClick={onCompare}
@@ -67,6 +78,26 @@ const BatchGallery: React.FC<BatchGalleryProps> = ({ batch, canCompare, onClose,
                 aria-pressed={on}
                 className={`shrink-0 min-h-[32px] px-3 rounded-full text-xs font-medium border transition-colors ${
                   on ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {trayChips.length > 0 && (
+        <div role="group" aria-label="Filter by tray" className="flex gap-1.5 px-4 pt-2 pb-1 overflow-x-auto no-scrollbar shrink-0">
+          {trayChips.map(chip => {
+            const on = chip.key === trayFilter;
+            return (
+              <button
+                key={chip.key}
+                onClick={() => setTrayFilter(chip.key)}
+                aria-pressed={on}
+                className={`shrink-0 min-h-[32px] px-3 rounded-full text-xs font-medium border transition-colors ${
+                  on ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                 }`}
               >
                 {chip.label}
@@ -103,11 +134,12 @@ const BatchGallery: React.FC<BatchGalleryProps> = ({ batch, canCompare, onClose,
               <div className="grid grid-cols-3 gap-2">
                 {section.photos.map(photo => {
                   const day = dayOf(photo.timestamp);
+                  const tray = photoTrayCode(batch, photo);
                   return (
                     <button
                       key={photo.id}
                       onClick={() => onOpenPhoto(photo.id)}
-                      aria-label={`Day ${day}${photo.caption ? `, ${photo.caption}` : ''}, open photo`}
+                      aria-label={`${tray ? `${tray}, ` : ''}Day ${day}${photo.caption ? `, ${photo.caption}` : ''}, open photo`}
                       className="flex flex-col gap-1 text-left"
                     >
                       <div className="relative w-full aspect-square rounded-lg overflow-hidden">
@@ -115,6 +147,11 @@ const BatchGallery: React.FC<BatchGalleryProps> = ({ batch, canCompare, onClose,
                         <span className="absolute left-1.5 bottom-1.5 px-1.5 py-0.5 rounded-md bg-gray-900/70 text-white text-[10px] font-semibold">
                           Day {day}
                         </span>
+                        {tray && (
+                          <span className="absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded-md bg-white/90 text-gray-900 text-[10px] font-semibold">
+                            {tray}
+                          </span>
+                        )}
                       </div>
                       <span className={`text-[11px] leading-tight truncate w-full ${photo.caption ? 'text-gray-700' : 'text-gray-400'}`}>
                         {photo.caption || 'No caption'}
@@ -130,7 +167,7 @@ const BatchGallery: React.FC<BatchGalleryProps> = ({ batch, canCompare, onClose,
       </main>
 
       <button
-        onClick={onAddPhoto}
+        onClick={() => onAddPhoto(trayFilter === 'all' || trayFilter === 'batch' ? undefined : trayFilter)}
         className="absolute left-1/2 -translate-x-1/2 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] inline-flex items-center gap-2 min-h-[48px] px-6 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
       >
         <Camera className="w-[18px] h-[18px]" />

@@ -1,8 +1,20 @@
+export interface Tray {
+  id: string;
+  code: string; // "T001": numbered from AppConfig.lastTrayNumber, never reused
+  slot?: number; // physical tray position, 1..AppConfig.totalTrays
+  status: 'active' | 'lost';
+  lostDate?: string; // local YYYY-MM-DD
+  lostReason?: string; // one of AppConfig.lossReasons
+  lostNote?: string;
+  harvestWeight?: number; // grams, entered when the batch is harvested
+}
+
 export interface Batch {
   id: string;
+  batchNumber: number; // shown as "B001": numbered from AppConfig.lastBatchNumber
   cropType: string;
-  trayId: string;
-  trayNumber: number;
+  trays: Tray[];
+  seedWeightPerTray?: number; // grams of seed sown in each tray
   sowingDate: string;
   expectedHarvestDate: string;
   actualHarvestDate?: string;
@@ -11,6 +23,8 @@ export interface Batch {
   photos: BatchPhoto[];
   watering: WateringRecord[];
   lighting: LightingRecord[];
+  // Total harvest. Set to the sum of the trays' harvestWeight (grams) when weighed per tray;
+  // older data may have a total in ounces or pounds instead. Read it with batchYieldGrams().
   yieldAmount?: number;
   yieldUnit?: 'grams' | 'ounces' | 'pounds';
   createdAt: string;
@@ -30,13 +44,14 @@ export interface BatchPhoto {
   caption?: string;
   timestamp: string;
   stage: Batch['stage'];
+  trayId?: string; // Tray.id when the photo shows one tray; absent for the whole batch
 }
 
 export interface WateringRecord {
   id: string;
   timestamp: string;
   amount?: number;
-  unit?: 'ml' | 'cups' | 'liters';
+  unit?: 'ml' | 'cups' | 'liters' | 'sprays';
   notes?: string;
 }
 
@@ -68,6 +83,9 @@ export interface BatchStats {
   completed: number;
   avgDaysToHarvest: number;
   totalYield: number;
+  lost: number; // batches whose trays were all lost (not counted in the stages above)
+  traysGrowing: number;
+  traysLost: number;
 }
 
 export interface CropType {
@@ -76,12 +94,19 @@ export interface CropType {
   daysToHarvest: number;
   wateringFrequency: number; // days
   lightingHours: number;
-  category: 'leafy' | 'herb' | 'brassica' | 'legume' | 'other';
+  category: string; // one of AppConfig.categories
 }
 
 export interface AppConfig {
   totalTrays: number;
   trayNumberPrefix: string;
+  categories: string[];
+  categoryIcons: Record<string, string>; // category → icon key from data/categoryIcons.ts
+  lossReasons: string[];
+  // Highest batch / tray number handed out so far. Saved with the data (and so in backups), and never
+  // lower than the numbers already in use, so new batches and trays keep counting up after a restore.
+  lastBatchNumber: number;
+  lastTrayNumber: number;
 }
 
 export interface AppData {

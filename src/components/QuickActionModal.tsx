@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import { X, Droplets, Camera, FileText, Plus, ChevronLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Droplets, Camera, FileText, Plus, ChevronLeft } from 'lucide-react';
 import { Batch, WateringRecord, BatchNote, BatchPhoto } from '../types';
 import { savePhotoFromFile } from '../storage/photos';
+import { activeTrays, batchCode } from '../utils/batches';
+import { stageConfig, STAGE_ORDER } from '../data/stages';
 
 interface QuickActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   batch: Batch | null;
   actionType: 'watering' | 'photo' | 'note' | null;
+  trayId?: string; // pre-selected tray for a photo
   onSave: (batchId: string, data: { type: string; data: Record<string, unknown> }) => void;
 }
 
@@ -16,19 +19,40 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
   onClose,
   batch,
   actionType,
+  trayId,
   onSave,
 }) => {
   const [waterAmount, setWaterAmount] = useState<number | ''>('');
-  const [waterUnit, setWaterUnit] = useState<'ml' | 'cups' | 'liters'>('ml');
+  const [waterUnit, setWaterUnit] = useState<NonNullable<WateringRecord['unit']>>('ml');
   const [waterNotes, setWaterNotes] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'watering' | 'fertilizer' | 'issue' | 'observation'>('general');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoCaption, setPhotoCaption] = useState('');
+  const [photoTrayId, setPhotoTrayId] = useState(''); // '' = whole batch
+  const [photoStage, setPhotoStage] = useState<Batch['stage']>('sowing');
+  const [preview, setPreview] = useState<string | null>(null);
+
+  // Each time the form opens, photos default to the whole batch and its current stage.
+  useEffect(() => {
+    if (!isOpen || !batch) return;
+    setPhotoTrayId(trayId ?? '');
+    setPhotoStage(batch.stage);
+  }, [isOpen, batch?.id, trayId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!photoFile) return setPreview(null);
+    const url = URL.createObjectURL(photoFile);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!batch) return;
+    // The Save button sits outside the <form>, so `required` isn't enforced by the browser.
+    if (actionType === 'note' && !noteContent.trim()) return;
+    if (actionType === 'photo' && !photoFile) return;
 
     switch (actionType) {
       case 'watering': {
@@ -54,10 +78,11 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
         if (photoFile) {
           const caption = photoCaption.trim() || undefined;
           const timestamp = new Date().toISOString();
-          const stage = batch.stage;
+          const stage = photoStage;
+          const trayId = photoTrayId || undefined;
           savePhotoFromFile(photoFile)
             .then(file => {
-              const photo: Omit<BatchPhoto, 'id'> = { file, caption, timestamp, stage };
+              const photo: Omit<BatchPhoto, 'id'> = { file, caption, timestamp, stage, ...(trayId ? { trayId } : {}) };
               onSave(batch.id, { type: 'photo', data: photo as unknown as Record<string, unknown> });
             })
             .catch(err => {
@@ -118,7 +143,7 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Icon className="w-4 h-4" />
-          {batch.cropType} - {batch.trayId}
+          {batchCode(batch.batchNumber)} · {batch.cropType} · {batch.trays.length} tray{batch.trays.length === 1 ? '' : 's'}
         </div>
 
         {actionType === 'watering' && (
@@ -133,19 +158,20 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                   placeholder="0"
                   min="0"
-                  step="0.1"
+                  step={waterUnit === 'sprays' ? 1 : 0.1}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Unit</label>
                 <select
                   value={waterUnit}
-                  onChange={(e) => setWaterUnit(e.target.value as 'ml' | 'cups' | 'liters')}
+                  onChange={(e) => setWaterUnit(e.target.value as NonNullable<WateringRecord['unit']>)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                 >
                   <option value="ml">ml</option>
                   <option value="cups">cups</option>
                   <option value="liters">liters</option>
+                  <option value="sprays">sprays</option>
                 </select>
               </div>
             </div>
@@ -194,16 +220,45 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
 
         {actionType === 'photo' && (
           <>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Which tray?</label>
+                <select
+                  value={photoTrayId}
+                  onChange={(e) => setPhotoTrayId(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                >
+                  <option value="">Whole batch</option>
+                  {activeTrays(batch).map(t => (
+                    <option key={t.id} value={t.id}>{t.code}{t.slot != null ? ` · #${t.slot}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Stage</label>
+                <select
+                  value={photoStage}
+                  onChange={(e) => setPhotoStage(e.target.value as Batch['stage'])}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                >
+                  {STAGE_ORDER.map(st => <option key={st} value={st}>{stageConfig[st].label}</option>)}
+                </select>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Photo</label>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                required
-              />
+              <label className="flex items-center justify-center gap-2 w-full min-h-[48px] px-3 py-2.5 border-2 border-dashed border-purple-300 bg-purple-50 text-purple-700 rounded-lg font-medium cursor-pointer">
+                <Camera className="w-4 h-4" />
+                {photoFile ? 'Retake photo' : 'Take photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                  className="sr-only"
+                />
+              </label>
+              {preview && <img src={preview} alt="Selected photo" className="mt-3 w-full max-h-72 object-contain rounded-lg bg-gray-100" />}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Caption (Optional)</label>

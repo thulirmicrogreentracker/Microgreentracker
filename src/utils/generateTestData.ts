@@ -1,18 +1,20 @@
-import { Batch, CropType, WateringRecord, BatchNote } from '../types';
+import { Batch, CropType, WateringRecord, BatchNote, Tray } from '../types';
+import { defaultLossReasons } from '../data/lossReasons';
+import { trayCode } from './batches';
 
 const cropTypes: CropType[] = [
-  { name: 'Radish', daysToGermination: 2, daysToHarvest: 6, wateringFrequency: 1, lightingHours: 12, category: 'brassica' },
-  { name: 'Broccoli', daysToGermination: 3, daysToHarvest: 10, wateringFrequency: 1, lightingHours: 12, category: 'brassica' },
-  { name: 'Sunflower', daysToGermination: 2, daysToHarvest: 10, wateringFrequency: 2, lightingHours: 14, category: 'other' },
-  { name: 'Pea Shoots', daysToGermination: 3, daysToHarvest: 12, wateringFrequency: 1, lightingHours: 12, category: 'legume' },
-  { name: 'Arugula', daysToGermination: 2, daysToHarvest: 7, wateringFrequency: 1, lightingHours: 12, category: 'leafy' },
-  { name: 'Kale', daysToGermination: 3, daysToHarvest: 10, wateringFrequency: 1, lightingHours: 12, category: 'brassica' },
-  { name: 'Basil', daysToGermination: 5, daysToHarvest: 14, wateringFrequency: 1, lightingHours: 14, category: 'herb' },
-  { name: 'Mustard', daysToGermination: 3, daysToHarvest: 8, wateringFrequency: 1, lightingHours: 12, category: 'brassica' },
-  { name: 'Lettuce', daysToGermination: 2, daysToHarvest: 8, wateringFrequency: 1, lightingHours: 12, category: 'leafy' },
-  { name: 'Cilantro', daysToGermination: 7, daysToHarvest: 14, wateringFrequency: 1, lightingHours: 12, category: 'herb' },
-  { name: 'Mizuna', daysToGermination: 3, daysToHarvest: 8, wateringFrequency: 1, lightingHours: 12, category: 'brassica' },
-  { name: 'Cabbage', daysToGermination: 3, daysToHarvest: 10, wateringFrequency: 1, lightingHours: 12, category: 'brassica' },
+  { name: 'Radish', daysToGermination: 2, daysToHarvest: 6, wateringFrequency: 1, lightingHours: 12, category: 'Brassica' },
+  { name: 'Broccoli', daysToGermination: 3, daysToHarvest: 10, wateringFrequency: 1, lightingHours: 12, category: 'Brassica' },
+  { name: 'Sunflower', daysToGermination: 2, daysToHarvest: 10, wateringFrequency: 2, lightingHours: 14, category: 'Other' },
+  { name: 'Pea Shoots', daysToGermination: 3, daysToHarvest: 12, wateringFrequency: 1, lightingHours: 12, category: 'Legumes & Pulses' },
+  { name: 'Arugula', daysToGermination: 2, daysToHarvest: 7, wateringFrequency: 1, lightingHours: 12, category: 'Leafy' },
+  { name: 'Kale', daysToGermination: 3, daysToHarvest: 10, wateringFrequency: 1, lightingHours: 12, category: 'Brassica' },
+  { name: 'Basil', daysToGermination: 5, daysToHarvest: 14, wateringFrequency: 1, lightingHours: 14, category: 'Herb' },
+  { name: 'Mustard', daysToGermination: 3, daysToHarvest: 8, wateringFrequency: 1, lightingHours: 12, category: 'Brassica' },
+  { name: 'Lettuce', daysToGermination: 2, daysToHarvest: 8, wateringFrequency: 1, lightingHours: 12, category: 'Leafy' },
+  { name: 'Cilantro', daysToGermination: 7, daysToHarvest: 14, wateringFrequency: 1, lightingHours: 12, category: 'Herb' },
+  { name: 'Mizuna', daysToGermination: 3, daysToHarvest: 8, wateringFrequency: 1, lightingHours: 12, category: 'Brassica' },
+  { name: 'Cabbage', daysToGermination: 3, daysToHarvest: 10, wateringFrequency: 1, lightingHours: 12, category: 'Brassica' },
 ];
 
 function daysAgoISO(days: number): string {
@@ -21,14 +23,19 @@ function daysAgoISO(days: number): string {
   return d.toISOString();
 }
 
+const localDate = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 function daysAgoDateStr(days: number): string {
-  return daysAgoISO(days).split('T')[0];
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return localDate(d);
 }
 
 function daysFromNowDateStr(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+  return localDate(d);
 }
 
 function randomId(): string {
@@ -66,7 +73,7 @@ const noteTemplates: { type: BatchNote['type']; content: string }[] = [
   { type: 'observation', content: 'True leaves starting to emerge' },
 ];
 
-function generateNotes(sowingDaysAgo: number, crop: CropType): BatchNote[] {
+function generateNotes(sowingDaysAgo: number): BatchNote[] {
   const notes: BatchNote[] = [];
   const noteCount = Math.min(Math.floor(sowingDaysAgo / 2), 5);
 
@@ -86,18 +93,10 @@ function generateNotes(sowingDaysAgo: number, crop: CropType): BatchNote[] {
 function determineStage(sowingDaysAgo: number, crop: CropType): {
   stage: Batch['stage'];
   actualHarvestDate?: string;
-  yieldAmount?: number;
-  yieldUnit?: 'grams' | 'ounces' | 'pounds';
 } {
   if (sowingDaysAgo >= crop.daysToHarvest + 2) {
-    const harvestDay = sowingDaysAgo - 2;
-    const baseYield = 80 + Math.random() * 120;
-    return {
-      stage: 'completed',
-      actualHarvestDate: daysAgoDateStr(harvestDay),
-      yieldAmount: Math.round(baseYield * 10) / 10,
-      yieldUnit: 'grams',
-    };
+    // Harvested on the crop's usual day after sowing; tray weights are added by the caller.
+    return { stage: 'completed', actualHarvestDate: daysAgoDateStr(sowingDaysAgo - crop.daysToHarvest) };
   }
   if (sowingDaysAgo >= crop.daysToHarvest - 1) {
     return { stage: 'harvest' };
@@ -111,10 +110,12 @@ function determineStage(sowingDaysAgo: number, crop: CropType): {
   return { stage: 'sowing' };
 }
 
-export function generateTestBatches(): Batch[] {
+// Sample batches of 1-4 trays each. Growing trays get positions 1..totalTrays while there are free ones,
+// and about one tray in eight is marked lost.
+export function generateTestBatches(totalTrays: number): Batch[] {
   const batches: Batch[] = [];
-  let trayNumber = 1;
-  const totalTrays = 10;
+  let nextTray = 0;
+  let nextSlot = 1;
 
   // Spread batches across 30 days with staggered sowing dates
   const sowingSchedule: { cropIdx: number; daysAgo: number }[] = [];
@@ -144,24 +145,41 @@ export function generateTestBatches(): Batch[] {
     const expectedHarvest = daysFromNowDateStr(crop.daysToHarvest - schedule.daysAgo);
     const stageInfo = determineStage(schedule.daysAgo, crop);
 
-    const trayNum = trayNumber;
-    trayNumber = (trayNumber % totalTrays) + 1;
+    const growing = stageInfo.stage !== 'completed';
+    const trays: Tray[] = Array.from({ length: 1 + Math.floor(Math.random() * 4) }, () => {
+      const lost = schedule.daysAgo >= 2 && Math.random() < 0.125;
+      const slot = growing && !lost && nextSlot <= totalTrays ? nextSlot++ : undefined;
+      return {
+        id: randomId(),
+        code: trayCode(++nextTray),
+        slot,
+        status: lost ? 'lost' : 'active',
+        ...(stageInfo.stage === 'completed' && !lost ? { harvestWeight: Math.round(150 + Math.random() * 200) } : {}),
+        ...(lost ? {
+          lostDate: daysAgoDateStr(Math.floor(Math.random() * schedule.daysAgo)),
+          lostReason: defaultLossReasons[Math.floor(Math.random() * 4)],
+        } : {}),
+      };
+    });
 
     const batch: Batch = {
       id: randomId(),
+      batchNumber: idx + 1,
       cropType: crop.name,
-      trayId: `T${String(idx + 1).padStart(3, '0')}`,
-      trayNumber: trayNum,
+      trays,
+      seedWeightPerTray: 10 + Math.round(Math.random() * 20),
       sowingDate,
       expectedHarvestDate: expectedHarvest,
       actualHarvestDate: stageInfo.actualHarvestDate,
       stage: stageInfo.stage,
-      notes: generateNotes(schedule.daysAgo, crop),
+      notes: generateNotes(schedule.daysAgo),
       photos: [],
       watering: generateWateringRecords(schedule.daysAgo, crop),
       lighting: [],
-      yieldAmount: stageInfo.yieldAmount,
-      yieldUnit: stageInfo.yieldUnit,
+      ...(stageInfo.stage === 'completed' ? {
+        yieldAmount: trays.reduce((sum, t) => sum + (t.harvestWeight ?? 0), 0),
+        yieldUnit: 'grams' as const,
+      } : {}),
       createdAt: daysAgoISO(schedule.daysAgo),
       updatedAt: daysAgoISO(Math.max(0, schedule.daysAgo - 1)),
     };

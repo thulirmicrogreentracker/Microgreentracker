@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Pencil, Share2, Trash2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { Batch } from '../../types';
+import { batchCode, photoTrayCode } from '../../utils/batches';
 import { stageConfig } from '../../data/stages';
 import { getDayNumber } from '../../utils/dateUtils';
 import { sharePhoto } from '../../storage/photos';
@@ -22,6 +23,7 @@ const ZoomableImage: React.FC<{ name: string; alt: string; onSwipe: (direction: 
   const [gesturing, setGesturing] = useState(false);
   const gesture = useRef<Gesture | null>(null);
   const lastTap = useRef(0);
+  const lastTouchEnd = useRef(0);
   const boxRef = useRef<HTMLDivElement>(null);
 
   const clampPan = (scale: number, x: number, y: number) => {
@@ -69,6 +71,7 @@ const ZoomableImage: React.FC<{ name: string; alt: string; onSwipe: (direction: 
       return;
     }
     gesture.current = null;
+    lastTouchEnd.current = Date.now();
     setGesturing(false);
     if (view.scale < 1.05) setView({ scale: 1, x: 0, y: 0 });
     if (!g || g.kind !== 'pan') return;
@@ -93,7 +96,8 @@ const ZoomableImage: React.FC<{ name: string; alt: string; onSwipe: (direction: 
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       onTouchCancel={onTouchEnd}
-      onDoubleClick={toggleZoom}
+      // Mouse only: Android WebViews also fire dblclick after a touch double-tap, which onTouchEnd already handled.
+      onDoubleClick={() => { if (Date.now() - lastTouchEnd.current > 800) toggleZoom(); }}
     >
       <div
         className={`w-full h-full ${gesturing ? '' : 'transition-transform duration-200'}`}
@@ -155,7 +159,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ batch, photoId, onClose, onUp
   const stage = stageConfig[photo.stage];
 
   const handleShare = () =>
-    sharePhoto(photo.file, `${batch.cropType}-${batch.trayId}-day-${day}`).catch(e => {
+    sharePhoto(photo.file, `${batch.cropType}-${batchCode(batch.batchNumber)}-day-${day}`).catch(e => {
       console.error(e);
       window.alert('This photo could not be shared.');
     });
@@ -176,7 +180,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ batch, photoId, onClose, onUp
           <X className="w-[22px] h-[22px]" />
         </button>
         <div className="text-center min-w-0">
-          <div className="text-sm font-semibold truncate">{batch.cropType} · {batch.trayId}</div>
+          <div className="text-sm font-semibold truncate">{batchCode(batch.batchNumber)} · {batch.cropType}</div>
           <div className="text-xs text-gray-400">{index + 1} of {photos.length}</div>
         </div>
         <div className="w-11" />
@@ -217,7 +221,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ batch, photoId, onClose, onUp
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${stage.color}`}>{stage.label}</span>
           <span className="text-[13px] text-gray-300">
-            Day {day} · {format(new Date(photo.timestamp), 'MMM d, yyyy · h:mm a')}
+            {photoTrayCode(batch, photo) ? `${photoTrayCode(batch, photo)} · ` : ''}Day {day} · {format(new Date(photo.timestamp), 'MMM d, yyyy · h:mm a')}
           </span>
         </div>
         {editing ? (

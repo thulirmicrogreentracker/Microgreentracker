@@ -2,6 +2,7 @@ import React from 'react';
 import { Camera, ChevronRight, Plus } from 'lucide-react';
 import { Batch } from '../../types';
 import { getDayNumber } from '../../utils/dateUtils';
+import { photoTrayCode } from '../../utils/batches';
 import PhotoImage from './PhotoImage';
 
 const TILES = 5;
@@ -47,11 +48,12 @@ const PhotoStrip: React.FC<PhotoStripProps> = ({ batch, onOpenGallery, onAddPhot
         {shown.map((photo, i) => {
           const isMoreTile = overflow && i === TILES - 1;
           const day = getDayNumber(batch.sowingDate, photo.timestamp);
+          const tray = photoTrayCode(batch, photo);
           return (
             <button
               key={photo.id}
               onClick={stop(onOpenGallery)}
-              aria-label={isMoreTile ? `${hiddenCount} more photos` : `Day ${day} photo`}
+              aria-label={isMoreTile ? `${hiddenCount} more photos` : `${tray ? `${tray} ` : ''}Day ${day} photo`}
               className="flex flex-col gap-1 text-gray-500"
             >
               <div className="relative w-full aspect-square rounded-md overflow-hidden">
@@ -62,7 +64,7 @@ const PhotoStrip: React.FC<PhotoStripProps> = ({ batch, onOpenGallery, onAddPhot
                   </div>
                 )}
               </div>
-              <span className="text-[10px] text-center w-full">{isMoreTile ? 'More' : `Day ${day}`}</span>
+              <span className="text-[10px] text-center w-full">{isMoreTile ? 'More' : tray ? `${tray} · D${day}` : `Day ${day}`}</span>
             </button>
           );
         })}

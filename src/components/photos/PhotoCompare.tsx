@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { Batch, BatchPhoto } from '../../types';
+import { batchCode, batchYieldGrams, formatGrams, photoTrayCode } from '../../utils/batches';
 import { stageConfig } from '../../data/stages';
 import { getDayNumber } from '../../utils/dateUtils';
 import PhotoImage from './PhotoImage';
@@ -24,7 +25,7 @@ const closestTo = (batch: Batch, day: number) =>
 const describeBatch = (b: Batch) => {
   const parts = [`Sown ${format(new Date(`${b.sowingDate}T00:00:00`), 'MMM d')}`];
   if (b.actualHarvestDate) parts.push(`harvested ${format(new Date(`${b.actualHarvestDate}T00:00:00`), 'MMM d')}`);
-  if (b.yieldAmount) parts.push(`${b.yieldAmount} ${b.yieldUnit ?? 'g'}`);
+  if (batchYieldGrams(b) > 0) parts.push(formatGrams(batchYieldGrams(b)));
   return parts.join(' · ');
 };
 
@@ -46,6 +47,7 @@ const Side: React.FC<{ title: string; batch: Batch; photo: BatchPhoto; children:
     <PhotoImage name={photo.file} size="full" alt={`Day ${dayOf(batch, photo)} photo`} className="w-full aspect-[3/4] rounded-xl" />
     {children}
     <div className="text-[11px] text-gray-500 leading-snug">
+      {photoTrayCode(batch, photo) ? `${photoTrayCode(batch, photo)} · ` : ''}
       {stageConfig[photo.stage].label}
       {photo.caption ? ` · “${photo.caption}”` : ''}
     </div>
@@ -55,7 +57,7 @@ const Side: React.FC<{ title: string; batch: Batch; photo: BatchPhoto; children:
 const photoOptions = (batch: Batch) =>
   byTime(batch.photos).map(p => (
     <option key={p.id} value={p.id}>
-      Day {dayOf(batch, p)} · {format(new Date(p.timestamp), 'MMM d')}
+      {photoTrayCode(batch, p) ? `${photoTrayCode(batch, p)} · ` : ''}Day {dayOf(batch, p)} · {format(new Date(p.timestamp), 'MMM d')}
     </option>
   ));
 
@@ -92,7 +94,7 @@ const PhotoCompare: React.FC<PhotoCompareProps> = ({ batch, batches, onClose }) 
     const gap = Math.abs(dayOf(batch, right) - dayOf(batch, left));
     summary = gap === 0 ? 'Both photos are from the same day.' : `${gap} day${gap === 1 ? '' : 's'} apart.`;
   } else if (mode === 'other' && mine && otherBatch && otherPhoto) {
-    summary = `Day ${dayOf(batch, mine)} of ${batch.trayId} next to day ${dayOf(otherBatch, otherPhoto)} of ${otherBatch.trayId}. ${otherBatch.trayId}: ${describeBatch(otherBatch)}.`;
+    summary = `Day ${dayOf(batch, mine)} of ${batchCode(batch.batchNumber)} next to day ${dayOf(otherBatch, otherPhoto)} of ${batchCode(otherBatch.batchNumber)}. ${batchCode(otherBatch.batchNumber)}: ${describeBatch(otherBatch)}.`;
   }
 
   return (
@@ -145,16 +147,16 @@ const PhotoCompare: React.FC<PhotoCompareProps> = ({ batch, batches, onClose }) 
 
         {mode === 'other' && otherBatch && mine && otherPhoto && (
           <div className="grid grid-cols-2 gap-2.5">
-            <Side title={`This batch (${batch.trayId})`} batch={batch} photo={mine}>
+            <Side title={`This batch (${batchCode(batch.batchNumber)})`} batch={batch} photo={mine}>
               <Select label="Photo from this batch" value={mine.id} onChange={id => { setMineId(id); setOtherPhotoId(null); }}>
                 {photoOptions(batch)}
               </Select>
             </Side>
-            <Side title={`${otherBatch.cropType} ${otherBatch.trayId}`} batch={otherBatch} photo={otherPhoto}>
+            <Side title={`${otherBatch.cropType} ${batchCode(otherBatch.batchNumber)}`} batch={otherBatch} photo={otherPhoto}>
               <Select label="Other batch" value={otherBatch.id} onChange={id => { setOtherBatchId(id); setOtherPhotoId(null); }}>
                 {others.map(b => (
                   <option key={b.id} value={b.id}>
-                    {b.trayId} · sown {format(new Date(`${b.sowingDate}T00:00:00`), 'MMM d')}
+                    {batchCode(b.batchNumber)} · sown {format(new Date(`${b.sowingDate}T00:00:00`), 'MMM d')}
                   </option>
                 ))}
               </Select>

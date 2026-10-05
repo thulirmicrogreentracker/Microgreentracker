@@ -59,8 +59,10 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
     localStorage.setItem('microgreen-batches', JSON.stringify(batches));
   });
   await page.goto(URL);
-  const card = crop => page.locator('div.cursor-pointer', { hasText: crop }).first();
+  // Batches are numbered B001.. in the order they were created (all at once here, so in list order).
+  const card = crop => page.locator('[data-batch-card]', { hasText: crop }).first();
   await card('Radish').waitFor();
+  await page.getByRole('button', { name: 'Expand all' }).click(); // cards start collapsed
 
   // ---------- 1. Photo strips on cards ----------
   const radish = card('Radish');
@@ -71,7 +73,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   check(await radish.getByRole('button', { name: 'Add photo' }).count() === 0, 'strip: no Add tile when full');
   check(await card('Basil').getByRole('button', { name: 'Add photo' }).count() === 1 && await card('Basil').getByRole('button', { name: /^Day 2 photo$/ }).count() === 1, 'strip: Basil shows its 1 photo plus Add tile');
   check(await card('Kale').getByRole('button', { name: 'See all' }).count() === 0 && await card('Kale').getByRole('button', { name: 'Add photo' }).count() === 1, 'strip: Kale (no photos) shows only Add tile');
-  check(await radish.locator('text=Photos').count() >= 1 && await radish.locator('.grid-cols-3').count() === 0, 'card: old 3-tile stats replaced (Photos tile gone)');
+  check(await radish.locator('text=Photos').count() >= 1, 'card: photo strip shown');
 
   await page.waitForFunction(() => [...document.querySelectorAll('img')].filter(i => i.complete && i.naturalWidth > 0).length >= 6);
   let files = await disc(page);
@@ -87,7 +89,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
 
   // ---------- 2. Gallery ----------
   await radish.getByRole('button', { name: 'See all' }).click();
-  await page.getByRole('heading', { name: 'Radish · T1' }).waitFor();
+  await page.getByRole('heading', { name: 'B001 · Radish' }).waitFor();
   check(await page.locator('text=6 photos · Day 8').count() === 1, 'gallery: header shows 6 photos · Day 8');
   const badges = await page.locator('main section > div:first-child > span:first-child').allInnerTexts();
   check(badges.join('|') === 'Sowing|Germination|Growing|Ready to Harvest', `gallery: grouped by stage (${badges.join('|')})`);
@@ -133,9 +135,15 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await touch('touchEnd', []);
   await page.waitForTimeout(200);
   check(await page.locator('text=5 of 6').count() === 1, 'viewer: while zoomed, dragging pans instead of changing photo');
-  await page.locator('.touch-none').dblclick();
+  for (let i = 0; i < 2; i++) {
+    await touch('touchStart', [[200, 330]]);
+    await touch('touchEnd', []);
+    await page.waitForTimeout(100);
+  }
   await page.waitForTimeout(300);
   check(/scale\(1\)/.test(await page.locator('.touch-none > div').getAttribute('style')), 'viewer: double-tap resets zoom');
+  // A mouse double-click also zooms; it is ignored right after a touch, so wait first.
+  await page.waitForTimeout(900);
   await page.locator('.touch-none').dblclick();
   await page.waitForTimeout(300);
   check(/scale\(2\.5\)/.test(await page.locator('.touch-none > div').getAttribute('style')), 'viewer: double-tap zooms to 2.5x');
@@ -179,7 +187,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   check(true, 'compare: both photos load');
   await page.getByRole('tab', { name: 'Another batch' }).click();
   const summary = await page.locator('main').last().locator('> div.bg-white').innerText();
-  check(/Day 8 of T1 next to day 8 of T4/.test(summary) && /harvested .* · 120 grams/.test(summary), `compare: other batch matched by day (${summary})`);
+  check(/Day 8 of T1 next to day 8 of T4/.test(summary) && /harvested .* · 120 g/.test(summary), `compare: other batch matched by day (${summary})`);
   await page.screenshot({ path: path.join(OUT, 'compare.png') });
   await page.getByRole('button', { name: 'Back' }).last().click();
   await page.getByRole('button', { name: 'Back' }).last().click();
@@ -193,11 +201,11 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await page.getByRole('heading', { name: 'Radish photos' }).waitFor();
   check(await page.getByText('2 batches · 8 photos').count() === 1, 'crop photos: header counts');
   const trays = await page.locator('main section h3').allInnerTexts();
-  check(trays.join(',') === 'T1,T4', `crop photos: newest batch first (${trays.join(',')})`);
+  check(trays.join(',') === 'B001,B002', `crop photos: newest batch first (${trays.join(',')})`);
   check(await page.getByText(/harvested .* · 120 grams/).count() === 1, 'crop photos: harvested batch shows yield');
   await page.screenshot({ path: path.join(OUT, 'crop.png') });
   await page.locator('main section').nth(1).getByRole('button', { name: 'Open', exact: true }).click();
-  await page.getByRole('heading', { name: 'Radish · T4' }).waitFor();
+  await page.getByRole('heading', { name: 'B002 · Radish' }).waitFor();
   check(await page.getByText('3 photos · Completed').count() === 1, 'crop photos: Open goes to that batch gallery');
 
   // ---------- 6. Add photo from the gallery ----------
@@ -220,6 +228,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
     };
   }));
   await page.reload();
+  await page.getByRole('button', { name: 'Expand all' }).click();
   await card('Basil').getByText('Missing').waitFor({ timeout: 5000 }).catch(() => {});
   check(await card('Basil').getByText('Missing').count() === 1, 'missing file: tile shows "Missing" placeholder');
 

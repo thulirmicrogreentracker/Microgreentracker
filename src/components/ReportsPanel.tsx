@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, Droplets, Sun, Calendar, BarChart3, PieChart, Target, Clock, AlertTriangle, CheckCircle2, Sprout, Leaf, Images, ChevronRight } from 'lucide-react';
+import { TrendingUp, Droplets, Calendar, BarChart3, PieChart, Target, Clock, AlertTriangle, CheckCircle2, Sprout, Leaf, Images, ChevronRight } from 'lucide-react';
 import { Batch, BatchStats, CropType } from '../types';
 import { getDaysSince, formatDate } from '../utils/dateUtils';
+import { activeTrays, batchCode, batchSeedGrams, batchYieldGrams, formatGrams, isBatchGrowing, lostTrays } from '../utils/batches';
+import { format, parseISO } from 'date-fns';
 
 interface ReportsPanelProps {
   batches: Batch[];
@@ -34,29 +36,28 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
   const cropReport = useMemo(() => {
     const byCrop = batches.reduce((acc, b) => {
       if (!acc[b.cropType]) {
-        acc[b.cropType] = { total: 0, completed: 0, totalYield: 0, avgDays: 0, daysSum: 0 };
+        acc[b.cropType] = { total: 0, completed: 0, totalYield: 0, avgDays: 0, daysSum: 0, trays: 0, lostTrays: 0, harvestedTrays: 0 };
       }
       acc[b.cropType].total++;
+      acc[b.cropType].trays += b.trays.length;
+      acc[b.cropType].lostTrays += lostTrays(b).length;
+      if (b.stage === 'completed') acc[b.cropType].harvestedTrays += activeTrays(b).length;
       if (b.stage === 'completed' && b.actualHarvestDate) {
         acc[b.cropType].completed++;
         const days = getDaysSince(b.sowingDate) - getDaysSince(b.actualHarvestDate);
         acc[b.cropType].daysSum += Math.abs(days);
       }
-      if (b.yieldAmount) {
-        let yieldInGrams = b.yieldAmount;
-        if (b.yieldUnit === 'ounces') yieldInGrams *= 28.35;
-        if (b.yieldUnit === 'pounds') yieldInGrams *= 453.59;
-        acc[b.cropType].totalYield += yieldInGrams;
-      }
+      acc[b.cropType].totalYield += batchYieldGrams(b);
       return acc;
-    }, {} as Record<string, { total: number; completed: number; totalYield: number; avgDays: number; daysSum: number }>);
+    }, {} as Record<string, { total: number; completed: number; totalYield: number; avgDays: number; daysSum: number; trays: number; lostTrays: number; harvestedTrays: number }>);
 
     return Object.entries(byCrop)
       .map(([name, data]) => ({
         name,
         ...data,
         avgDays: data.completed > 0 ? data.daysSum / data.completed : 0,
-        successRate: data.total > 0 ? (data.completed / data.total) * 100 : 0,
+        survivalRate: data.trays > 0 ? ((data.trays - data.lostTrays) / data.trays) * 100 : 0,
+        yieldPerTray: data.harvestedTrays > 0 ? data.totalYield / data.harvestedTrays : 0,
       }))
       .sort((a, b) => b.total - a.total);
   }, [batches]);
@@ -90,9 +91,18 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
     }).filter(r => r.batchCount > 0).sort((a, b) => b.adherence - a.adherence);
   }, [batches, cropTypes]);
 
+  const lossReport = useMemo(() => {
+    const lost = batches.flatMap(b => lostTrays(b).map(t => ({ crop: b.cropType, reason: t.lostReason || 'Unknown' })));
+    const totalTrays = batches.reduce((n, b) => n + b.trays.length, 0);
+    const count = (key: 'crop' | 'reason') => [...lost.reduce((m, l) => m.set(l[key], (m.get(l[key]) ?? 0) + 1), new Map<string, number>())]
+      .map(([name, n]) => ({ name, n }))
+      .sort((a, b) => b.n - a.n);
+    return { lost: lost.length, totalTrays, byReason: count('reason'), byCrop: count('crop') };
+  }, [batches]);
+
   const timelineReport = useMemo(() => {
     return batches
-      .filter(b => b.stage !== 'completed')
+      .filter(isBatchGrowing)
       .map(b => {
         const cropConfig = cropTypes.find(ct => ct.name === b.cropType);
         const daysSinceSow = getDaysSince(b.sowingDate);
@@ -101,7 +111,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
         return {
           id: b.id,
           cropType: b.cropType,
-          trayId: b.trayId,
+          code: `${batchCode(b.batchNumber)} · ${activeTrays(b).length} tray${activeTrays(b).length === 1 ? '' : 's'}`,
           stage: b.stage,
           sowingDate: b.sowingDate,
           daysSinceSow,
@@ -112,11 +122,54 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
       .sort((a, b) => a.daysToHarvest - b.daysToHarvest);
   }, [batches, cropTypes]);
 
-  const yieldByCrop = useMemo(() => {
-    return cropReport
-      .filter(c => c.totalYield > 0)
-      .sort((a, b) => b.totalYield - a.totalYield);
-  }, [cropReport]);
+  // Harvested weight: everything in grams, from the per-tray weights (or an older batch total).
+  const harvestReport = useMemo(() => {
+    const harvested = batches
+      .filter(b => b.stage === 'completed' && batchYieldGrams(b) > 0)
+      .map(b => {
+        const trays = activeTrays(b).filter(t => t.harvestWeight != null);
+        const grams = batchYieldGrams(b);
+        const seed = batchSeedGrams(b);
+        return {
+          batch: b,
+          grams,
+          seed,
+          weighedTrays: trays.length,
+          minTray: trays.length ? Math.min(...trays.map(t => t.harvestWeight ?? 0)) : 0,
+          maxTray: trays.length ? Math.max(...trays.map(t => t.harvestWeight ?? 0)) : 0,
+        };
+      });
+    const total = harvested.reduce((n, h) => n + h.grams, 0);
+    const weighedTrays = harvested.reduce((n, h) => n + h.weighedTrays, 0);
+    const weighedGrams = harvested.filter(h => h.weighedTrays > 0).reduce((n, h) => n + h.grams, 0);
+    // Seed-to-yield only counts batches with both a seed weight and a harvest.
+    const withSeed = harvested.filter(h => h.seed > 0);
+    const ratio = withSeed.length ? withSeed.reduce((n, h) => n + h.grams, 0) / withSeed.reduce((n, h) => n + h.seed, 0) : 0;
+
+    const byCrop = [...harvested.reduce((m, h) => {
+      const e = m.get(h.batch.cropType) ?? { grams: 0, weighedGrams: 0, trays: 0, seedGrams: 0, seedYield: 0 };
+      e.grams += h.grams;
+      if (h.weighedTrays > 0) { e.weighedGrams += h.grams; e.trays += h.weighedTrays; }
+      if (h.seed > 0) { e.seedGrams += h.seed; e.seedYield += h.grams; }
+      return m.set(h.batch.cropType, e);
+    }, new Map<string, { grams: number; weighedGrams: number; trays: number; seedGrams: number; seedYield: number }>())]
+      .map(([name, e]) => ({ name, ...e }))
+      .sort((a, b) => b.grams - a.grams);
+
+    const byMonth = [...harvested.reduce((m, h) => {
+      const key = (h.batch.actualHarvestDate || h.batch.updatedAt).slice(0, 7);
+      return m.set(key, (m.get(key) ?? 0) + h.grams);
+    }, new Map<string, number>())]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-6)
+      .map(([month, grams]) => ({ month, label: format(parseISO(`${month}-01`), 'MMM yyyy'), grams }));
+
+    const recent = [...harvested]
+      .sort((a, b) => (b.batch.actualHarvestDate || '').localeCompare(a.batch.actualHarvestDate || '') || b.batch.batchNumber - a.batch.batchNumber)
+      .slice(0, 8);
+
+    return { total, weighedTrays, avgPerTray: weighedTrays ? weighedGrams / weighedTrays : 0, ratio, byCrop, byMonth, recent };
+  }, [batches]);
 
   return (
     <div className="space-y-6">
@@ -135,7 +188,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
             <span className="text-xs font-medium text-emerald-800">Total Yield</span>
           </div>
           <div className="text-2xl font-bold text-emerald-900">
-            {stats.totalYield > 0 ? `${stats.totalYield.toFixed(0)}g` : 'N/A'}
+            {stats.totalYield > 0 ? formatGrams(stats.totalYield) : 'N/A'}
           </div>
         </div>
         <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100 rounded-xl p-4">
@@ -222,12 +275,16 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
                     <Sprout className="w-4 h-4 text-emerald-500" />
                     <span className="text-sm font-medium text-gray-900">{crop.name}</span>
                   </div>
-                  <span className="text-xs text-gray-500">{crop.total} batches</span>
+                  <span className="text-xs text-gray-500">{crop.total} batch{crop.total === 1 ? '' : 'es'} · {crop.trays} tray{crop.trays === 1 ? '' : 's'}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-4 gap-2 text-xs">
                   <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
-                    <div className="text-gray-500">Success</div>
-                    <div className="font-semibold text-gray-900">{crop.successRate.toFixed(0)}%</div>
+                    <div className="text-gray-500">Survival</div>
+                    <div className={`font-semibold ${crop.survivalRate < 90 ? 'text-red-600' : 'text-gray-900'}`}>{crop.survivalRate.toFixed(0)}%</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
+                    <div className="text-gray-500">Per tray</div>
+                    <div className="font-semibold text-gray-900">{crop.yieldPerTray > 0 ? formatGrams(crop.yieldPerTray) : '-'}</div>
                   </div>
                   <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
                     <div className="text-gray-500">Avg Days</div>
@@ -235,12 +292,51 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
                   </div>
                   <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
                     <div className="text-gray-500">Yield</div>
-                    <div className="font-semibold text-gray-900">{crop.totalYield > 0 ? `${crop.totalYield.toFixed(0)}g` : '-'}</div>
+                    <div className="font-semibold text-gray-900">{crop.totalYield > 0 ? formatGrams(crop.totalYield) : '-'}</div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Tray losses */}
+      {lossReport.totalTrays > 0 && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              <h3 className="text-sm font-semibold text-gray-900">Tray Losses</h3>
+            </div>
+            <span className="text-xs text-gray-500">
+              {lossReport.lost} of {lossReport.totalTrays} trays ({((lossReport.lost / lossReport.totalTrays) * 100).toFixed(1)}%)
+            </span>
+          </div>
+          {lossReport.lost === 0 ? (
+            <p className="text-xs text-gray-500">No trays lost. Report one from a batch card with “Report loss”.</p>
+          ) : (
+            <div className="space-y-4">
+              {([['By reason', lossReport.byReason], ['By crop', lossReport.byCrop]] as const).map(([title, rows]) => (
+                <div key={title}>
+                  <h4 className="text-xs font-medium text-gray-500 mb-2">{title}</h4>
+                  <div className="space-y-2">
+                    {rows.map(r => (
+                      <div key={r.name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-700">{r.name}</span>
+                          <span className="text-xs text-gray-500">{r.n} tray{r.n === 1 ? '' : 's'}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-red-400" style={{ width: `${(r.n / rows[0].n) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -301,7 +397,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
                   <Clock className="w-4 h-4 text-gray-400 shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate">{b.cropType} - {b.trayId}</div>
+                  <div className="font-medium text-gray-900 truncate">{b.cropType} · {b.code}</div>
                   <div className="text-xs text-gray-500 capitalize">{b.stage} &middot; Sown {formatDate(b.sowingDate)}</div>
                 </div>
                 <div className="text-right shrink-0">
@@ -317,32 +413,80 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ batches, stats, cropTypes, 
         </div>
       )}
 
-      {/* Yield by Crop */}
-      {yieldByCrop.length > 0 && (
+      {/* Harvested weight */}
+      {harvestReport.total > 0 && (
         <div className="bg-white border border-gray-100 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-gray-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Yield by Crop</h3>
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-semibold text-gray-900">Harvested Weight</h3>
           </div>
-          <div className="space-y-3">
-            {yieldByCrop.map(c => {
-              const max = yieldByCrop[0].totalYield;
-              const pct = (c.totalYield / max) * 100;
-              return (
-                <div key={c.name}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-700">{c.name}</span>
-                    <span className="text-xs text-gray-500">{c.totalYield.toFixed(0)}g</span>
+          <div className="grid grid-cols-3 gap-2 text-xs mb-4">
+            <div className="bg-emerald-50 rounded-lg px-2 py-2 text-center">
+              <div className="text-emerald-700">Total</div>
+              <div className="font-bold text-emerald-900 text-sm">{formatGrams(harvestReport.total)}</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg px-2 py-2 text-center">
+              <div className="text-gray-500">Per tray</div>
+              <div className="font-bold text-gray-900 text-sm">{harvestReport.avgPerTray > 0 ? formatGrams(harvestReport.avgPerTray) : '-'}</div>
+              <div className="text-[10px] text-gray-400">{harvestReport.weighedTrays} trays weighed</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg px-2 py-2 text-center">
+              <div className="text-gray-500">Seed → yield</div>
+              <div className="font-bold text-gray-900 text-sm">{harvestReport.ratio > 0 ? `${harvestReport.ratio.toFixed(1)}×` : '-'}</div>
+              <div className="text-[10px] text-gray-400">g harvested per g seed</div>
+            </div>
+          </div>
+
+          <h4 className="text-xs font-medium text-gray-500 mb-2">By crop</h4>
+          <div className="space-y-3 mb-4">
+            {harvestReport.byCrop.map(c => (
+              <div key={c.name}>
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <span className="text-xs font-medium text-gray-700 truncate">{c.name}</span>
+                  <span className="text-xs text-gray-500 shrink-0">
+                    {formatGrams(c.grams)}
+                    {c.trays > 0 && <> · {formatGrams(c.weighedGrams / c.trays)}/tray</>}
+                    {c.seedGrams > 0 && <> · {(c.seedYield / c.seedGrams).toFixed(1)}×</>}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(c.grams / harvestReport.byCrop[0].grams) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {harvestReport.byMonth.length > 1 && (
+            <>
+              <h4 className="text-xs font-medium text-gray-500 mb-2">By month</h4>
+              <div className="space-y-2 mb-4">
+                {harvestReport.byMonth.map(m => (
+                  <div key={m.month} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 w-16 shrink-0">{m.label}</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-emerald-400" style={{ width: `${(m.grams / Math.max(...harvestReport.byMonth.map(x => x.grams))) * 100}%` }} />
+                    </div>
+                    <span className="text-xs text-gray-500 w-16 text-right shrink-0">{formatGrams(m.grams)}</span>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
+                ))}
+              </div>
+            </>
+          )}
+
+          <h4 className="text-xs font-medium text-gray-500 mb-2">Recent harvests</h4>
+          <div className="divide-y divide-gray-50">
+            {harvestReport.recent.map(h => (
+              <div key={h.batch.id} className="flex items-center justify-between py-2 gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-gray-900 truncate">{batchCode(h.batch.batchNumber)} · {h.batch.cropType}</div>
+                  <div className="text-[11px] text-gray-500">
+                    {h.batch.actualHarvestDate ? formatDate(h.batch.actualHarvestDate) : ''}
+                    {h.weighedTrays > 0 && <> · {h.weighedTrays} tray{h.weighedTrays === 1 ? '' : 's'}{h.weighedTrays > 1 ? ` · ${formatGrams(h.minTray)}–${formatGrams(h.maxTray)}` : ''}</>}
                   </div>
                 </div>
-              );
-            })}
+                <span className="text-sm font-semibold text-emerald-700 shrink-0">{formatGrams(h.grams)}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

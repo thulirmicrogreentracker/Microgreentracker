@@ -83,8 +83,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   const seqBefore = env.seq;
   await page.locator('button.fixed').click(); // floating add button
   await page.locator('select').first().selectOption('Kale');
-  await page.getByPlaceholder('e.g., T001').fill('T9');
-  await page.getByRole('button', { name: 'Add Batch' }).click();
+  await page.getByRole('button', { name: /^Add \d+ tray/ }).click(); // tray ID and number are automatic
   await page.getByText('Kale').first().waitFor();
   await page.waitForTimeout(300);
   env = await latestData(page);
@@ -95,7 +94,8 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   check(await page.evaluate(() => !localStorage.getItem('microgreen-batches').includes('Kale')), 'save: old localStorage no longer written');
 
   // ---------- 5. Adding a photo stores a compressed JPEG file ----------
-  const kaleCard = page.locator('div.cursor-pointer', { hasText: 'Kale' }).first();
+  const kaleCard = page.locator('[data-batch-card]', { hasText: 'Kale' }).first();
+  if (await kaleCard.locator('button[aria-expanded="false"]').count()) await kaleCard.locator('button[aria-expanded]').click(); // cards start collapsed
   await kaleCard.getByRole('button', { name: /Photo/ }).click();
   await page.locator('input[type=file][accept="image/*"]').setInputFiles(path.join(ASSETS, 'splash.png')); // 2732x2732
   await page.getByPlaceholder('Describe this photo...').fill('new photo');
@@ -127,12 +127,14 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   console.log(listing.split('\n').filter(l => /backup|photos/.test(l)).map(l => '  ' + l.trim()).join('\n'));
   check(listing.includes('backup.json') && listing.includes('photos/ph1abc.png') && listing.includes('photos/' + photoName), 'export: zip has backup.json and both photos');
   const manifest = JSON.parse(execSync(`unzip -p ${zipPath} backup.json`).toString());
-  check(manifest.format === 'microgreen-manager-backup' && manifest.schemaVersion === 1 && manifest.data.batches.length === 3, 'export: manifest has format, version and 3 batches');
+  check(manifest.format === 'microgreen-manager-backup' && manifest.schemaVersion === 2 && manifest.data.batches.length === 3, 'export: manifest has format, version and 3 batches');
 
   // ---------- 7. Wipe data, then restore from the file ----------
   await page.getByRole('button', { name: 'Home' }).click();
   for (const crop of ['Radish', 'Basil', 'Kale']) {
-    await page.locator('div.cursor-pointer', { hasText: crop }).first().locator('button:has(svg.lucide-trash2), button:has(svg.lucide-trash-2)').first().click();
+    const c = page.locator('[data-batch-card]', { hasText: crop }).first();
+    if (await c.locator('button[aria-expanded="false"]').count()) await c.locator('button[aria-expanded]').click();
+    await c.getByRole('button', { name: 'Delete batch' }).click();
     await page.waitForTimeout(200);
   }
   await page.getByText('No batches yet').waitFor();

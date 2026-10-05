@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { Batch, BatchPhoto } from '../../types';
+import { batchCode, batchYieldGrams, formatGrams } from '../../utils/batches';
 import { stageConfig } from '../../data/stages';
 import { getDayNumber } from '../../utils/dateUtils';
 import PhotoImage from './PhotoImage';
@@ -51,13 +52,13 @@ const CropPhotos: React.FC<CropPhotosProps> = ({ crop, batches, onClose, onOpenG
           const photos = [...batch.photos].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
           const meta = [`Sown ${shortDate(batch.sowingDate)}`, `${photos.length} photo${photos.length === 1 ? '' : 's'}`];
           if (batch.actualHarvestDate) meta.push(`harvested ${shortDate(batch.actualHarvestDate)}`);
-          if (batch.yieldAmount) meta.push(`${batch.yieldAmount} ${batch.yieldUnit ?? 'g'}`);
+          if (batchYieldGrams(batch) > 0) meta.push(formatGrams(batchYieldGrams(batch)));
           return (
             <section key={batch.id} className="bg-white border border-gray-100 rounded-xl p-3.5 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[15px] font-semibold text-gray-900">{batch.trayId}</h3>
+                    <h3 className="text-[15px] font-semibold text-gray-900">{batchCode(batch.batchNumber)}</h3>
                     <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${stageConfig[batch.stage].color}`}>
                       {stageConfig[batch.stage].label}
                     </span>
@@ -68,7 +69,7 @@ const CropPhotos: React.FC<CropPhotosProps> = ({ crop, batches, onClose, onOpenG
                   Open
                 </button>
               </div>
-              <button onClick={() => onOpenGallery(batch.id)} aria-label={`Open ${batch.trayId} photos`} className="grid grid-cols-5 gap-1.5 w-full">
+              <button onClick={() => onOpenGallery(batch.id)} aria-label={`Open ${batchCode(batch.batchNumber)} photos`} className="grid grid-cols-5 gap-1.5 w-full">
                 {spread(photos).map(photo => (
                   <span key={photo.id} className="flex flex-col gap-1">
                     <PhotoImage name={photo.file} size="thumb" alt="" className="w-full aspect-square rounded-md" />

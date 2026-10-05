@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Batch } from '../types';
 import { formatDate, getDaysSince } from './dateUtils';
+import { batchCode, batchSeedGrams, batchYieldGrams, formatGrams, lostTrays } from './batches';
 import { saveFile } from './saveFile';
 
 export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
@@ -19,12 +19,10 @@ export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
   // Basic Info
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
-  pdf.text(`Tray ID: ${batch.trayId}`, margin, yPosition);
+  pdf.text(`Batch: ${batchCode(batch.batchNumber)}`, margin, yPosition);
   yPosition += 8;
-  if (batch.trayNumber != null) {
-    pdf.text(`Tray Number: #${batch.trayNumber}`, margin, yPosition);
-    yPosition += 8;
-  }
+  pdf.text(`Trays: ${batch.trays.map(t => t.code + (t.status === 'lost' ? ' (lost)' : '')).join(', ')}`, margin, yPosition);
+  yPosition += 8;
   pdf.text(`Sowing Date: ${formatDate(batch.sowingDate)}`, margin, yPosition);
   yPosition += 8;
   pdf.text(`Expected Harvest: ${formatDate(batch.expectedHarvestDate)}`, margin, yPosition);
@@ -35,13 +33,18 @@ export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
   yPosition += 15;
 
   // Yield Info
-  if (batch.yieldAmount) {
+  if (batchYieldGrams(batch) > 0) {
     pdf.setFont('helvetica', 'bold');
     pdf.text('Yield Information:', margin, yPosition);
     yPosition += 8;
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`Amount: ${batch.yieldAmount} ${batch.yieldUnit || 'units'}`, margin, yPosition);
-    yPosition += 15;
+    pdf.text(`Harvested: ${formatGrams(batchYieldGrams(batch))}`, margin, yPosition);
+    yPosition += 8;
+    for (const t of batch.trays.filter(t => t.harvestWeight != null)) {
+      pdf.text(`  ${t.code}: ${formatGrams(t.harvestWeight ?? 0)}`, margin, yPosition);
+      yPosition += 6;
+    }
+    yPosition += 9;
   }
 
   // Notes
@@ -59,21 +62,22 @@ export const exportBatchToPDF = async (batch: Batch): Promise<void> => {
     });
   }
 
-  await saveFile(`${batch.cropType}_${batch.trayId}_report.pdf`, pdf.output('blob'), 'application/pdf');
+  await saveFile(`${batch.cropType}_${batchCode(batch.batchNumber)}_report.pdf`, pdf.output('blob'), 'application/pdf');
 };
 
 export const exportAllBatchesToCSV = (batches: Batch[]): Promise<void> => {
   const headers = [
-    'Tray ID',
-    'Tray Number',
+    'Batch',
+    'Trays',
+    'Trays Lost',
     'Crop Type',
     'Sowing Date',
     'Expected Harvest',
     'Actual Harvest',
     'Stage',
     'Days Since Sowing',
-    'Yield Amount',
-    'Yield Unit',
+    'Seed (g)',
+    'Harvested (g)',
     'Notes Count',
     'Photos Count'
   ];
@@ -81,16 +85,17 @@ export const exportAllBatchesToCSV = (batches: Batch[]): Promise<void> => {
   const csvContent = [
     headers.join(','),
     ...batches.map(batch => [
-      batch.trayId,
-      batch.trayNumber ?? '',
+      batchCode(batch.batchNumber),
+      batch.trays.map(t => t.code).join(' '),
+      lostTrays(batch).length,
       batch.cropType,
       batch.sowingDate,
       batch.expectedHarvestDate,
       batch.actualHarvestDate || '',
       batch.stage,
       getDaysSince(batch.sowingDate),
-      batch.yieldAmount || '',
-      batch.yieldUnit || '',
+      batchSeedGrams(batch) || '',
+      Math.round(batchYieldGrams(batch)) || '',
       batch.notes.length,
       batch.photos.length
     ].join(','))

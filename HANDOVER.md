@@ -120,14 +120,30 @@ assets/                    icon/splash source PNGs → `npx capacitor-assets gen
 tests/e2e/                 Playwright browser tests (see §6)
 ```
 
-### Storage format (version 1)
+### Data model
+
+- A **batch** (`B001`, `B002`, …) is one crop sown on one date. Stage, watering, photos and notes belong to the batch.
+- A batch holds one or more **trays** (`Batch.trays`): each has a code (`T001`, …), an optional physical position
+  (`slot`, 1..`config.totalTrays`) and a status (`active` or `lost`, with `lostReason`, `lostDate`, `lostNote`).
+  A batch whose trays are all lost is shown as "Lost" and gets no reminders. Helpers live in `utils/batches.ts`.
+- Batch and tray numbers come from `config.lastBatchNumber` / `config.lastTrayNumber`. They are saved with the data,
+  so they travel in backups, and `syncCounters()` keeps them at or above the highest number in the data, so
+  numbering carries on after a restore and numbers are never reused.
+- Crop categories (`config.categories`) and loss reasons (`config.lossReasons`) are editable in Config.
+
+### Storage format (version 2)
+
+Version 2 added trays, numbering, categories and loss reasons. `normalizeAppData()` upgrades version 1 data (from
+the device, snapshots or backup files): each old batch becomes a one-tray batch keeping its tray ID and position,
+and gets a batch number in creation order.
+
 
 - **On the device:**
   - `microgreen/data-a.json` and `data-b.json`, each `{ schemaVersion, seq, savedAt, data: AppData }`. The one
     with the higher valid `seq` wins.
   - `microgreen/photos/<name>.jpg` and `microgreen/thumbs/<name>.jpg`.
   - `microgreen/snapshots/snapshot-<epochMs>.json`.
-- **Backup file:** `.zip` with `backup.json` = `{ format: "microgreen-manager-backup", schemaVersion: 1, createdAt,
+- **Backup file:** `.zip` with `backup.json` = `{ format: "microgreen-manager-backup", schemaVersion: 2, createdAt,
   data }` and `photos/<name>`. Old `.json` backups (the localStorage key format) are still accepted on import.
 - **Changing the data shape:** bump `SCHEMA_VERSION` in `storage/appData.ts` and teach `normalizeAppData()` to
   upgrade old data. Imports refuse backups from a *newer* schema version.
@@ -162,24 +178,16 @@ npm run test:e2e                     # prints PASS/FAIL per check, then ALL PASS
 - The iOS build, which hasn't been built at all yet.
 
 **Problems that were already there before this branch, still unfixed:**
-- **Type errors:**
-  - `AddBatchModal.tsx`: `trayNumber` can be `undefined`, but the `Batch` type requires it.
-  - `Dashboard.tsx`: reads `item.trend`, which doesn't exist.
-- **Lint errors:** about 9 unused imports and variables (`npm run lint`).
 - **Reminders** (`hooks/useReminders.ts`):
   - Each batch gets one watering reminder that never repeats.
   - Dismissing an automatic reminder brings it straight back.
   - The germination check is always day 2 instead of the crop's `daysToGermination`.
   - Watering ignores the crop's `wateringFrequency`.
-- **UTC dates:** some places compute "today" with `new Date().toISOString().split('T')[0]`, which is the UTC date.
-  It's wrong before 05:30 in India. Affected: the default sowing date in `AddBatchModal`, `actualHarvestDate` in
-  `App.updateBatchStage`, and reminders. The new code uses local dates (`getDayNumber`, backup file names).
 - **Web/PWA only:** `public/sw.js` serves from cache first, so web users can get stuck on an old version. Native apps
   don't register it.
 - **Unfinished code:**
   - `utils/exportUtils.ts` (PDF/CSV export) isn't reachable from the UI, so `jspdf` and `html2canvas` are unused.
   - Lighting records exist in the type but have no UI.
-  - `BatchCard`'s `onAddNote` prop is unused.
 - **Accessibility:** stacked full-screen screens (gallery under viewer) stay in the accessibility tree. Consider
   `inert` on lower layers.
 
@@ -205,7 +213,7 @@ npm run test:e2e                     # prints PASS/FAIL per check, then ALL PASS
      replace. Offer it on a fresh install.
    - **Reuse what's built:** `backupFile.ts` (format and validation), `snapshots.ts` (safety copy) and
      `photos.ts` (photo files).
-3. **Fix the reminders and the UTC dates** (§7). Consider native notifications (`@capacitor/local-notifications`).
+3. **Fix the reminders** (§7). Consider native notifications (`@capacitor/local-notifications`).
 4. **Publish the APK as a GitHub Release asset** (a direct `.apk` link for phones; currently only a zipped artifact).
 5. **Store release:**
    - **Android:** create an upload keystore (keep it safe, since losing it means you can't update the app), raise
