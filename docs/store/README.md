@@ -7,11 +7,12 @@ Everything needed for the store listings, and the steps to get there.
 | [privacy-policy.md](privacy-policy.md) | Privacy policy | Publish at a public web address; link it in both stores and in the app |
 | [faq.md](faq.md) | Questions and answers for users | Your support page, and optionally in the app |
 | [store-listing.md](store-listing.md) | Names, descriptions, keywords, categories, privacy and content-rating answers | App Store Connect and Play Console |
-| [screenshots.md](screenshots.md) | Screenshot plan with captions, sizes and the feature graphic brief | App Store Connect and Play Console |
+| [screenshots.md](screenshots.md) and [screenshots/](screenshots/) | Ready-made store screenshots (iPhone and Android, captioned and plain), the Play feature graphic and icon, and how to remake them | App Store Connect and Play Console |
 
 ## 1. Fill in the placeholders
 
-Search these files for square brackets and replace them:
+Search these files and `src/data/appInfo.ts` for square brackets and replace them (the app shows the privacy policy
+and FAQ itself, with the values from `appInfo.ts`):
 
 | Placeholder | Example |
 |---|---|
@@ -28,14 +29,15 @@ the repository (or a separate small one) public, enable Pages for the `docs` fol
 
 ## 3. Changes still needed in the app
 
-- [ ] **Privacy policy link inside the app** (App Store guideline 5.1.1): add a "Privacy policy" and "Help / FAQ" link
-      in Config that opens the published pages.
-- [ ] **Export compliance (iOS):** add `ITSAppUsesNonExemptEncryption` = `NO` to `ios/App/App/Info.plist`, so App
-      Store Connect stops asking the encryption question for every build (the app uses no encryption of its own).
-- [ ] **iPad decision:** the iOS app currently supports iPad (`TARGETED_DEVICE_FAMILY = 1,2`), which means iPad
-      screenshots are required and Apple reviews it on iPad. Either keep it and capture iPad screenshots, or make it
-      iPhone-only (`TARGETED_DEVICE_FAMILY = 1`). iPhone-only is simpler for a first release.
-- [ ] **Remove leftover Bolt.new tags** from `index.html` (`og:image` / `twitter:image` point to bolt.new).
+- [x] **Privacy policy and FAQ inside the app** (App Store guideline 5.1.1): Config → About opens both, from the same
+      text as this folder, so they work offline. A "Contact support" link appears once `supportEmail` is filled in.
+- [x] **Export compliance (iOS):** `ITSAppUsesNonExemptEncryption` = `NO` is set in `ios/App/App/Info.plist`.
+- [x] **iPhone-only** (`TARGETED_DEVICE_FAMILY = 1`), so no iPad screenshots or iPad review. To support iPad later,
+      set it back to `1,2` and add 13" iPad screenshots.
+- [x] **Bolt.new tags removed** from `index.html`.
+- [x] **Test Data button hidden in store builds** (only shown with `npm run dev`), so a grower can't replace their
+      data by accident.
+- [ ] **Screenshot with real tray photos** (see screenshots.md).
 - [ ] **Version numbers** for each upload: Android `versionCode` (must increase every upload) and `versionName` in
       `android/app/build.gradle`; iOS `CURRENT_PROJECT_VERSION` (build) and `MARKETING_VERSION` in Xcode.
       Both are currently 1 / 1.0.
