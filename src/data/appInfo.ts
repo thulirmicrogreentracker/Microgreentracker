@@ -1,10 +1,10 @@
-// Publisher details shown in the app and in docs/store/*.md. Fill them in before publishing; the in-app privacy
-// policy and FAQ replace the matching [PLACEHOLDERS] in those documents with these values.
+// Publisher details shown in the app (Config → About). Keep them in step with docs/store/*.md, which the app also
+// shows; any [PLACEHOLDER] left in those documents is replaced with these values.
 export const appInfo = {
-  developerName: '[DEVELOPER NAME]',
-  supportEmail: '[SUPPORT EMAIL]',
-  privacyPolicyUrl: '[PRIVACY POLICY URL]',
-  supportUrl: '[SUPPORT URL]',
+  developerName: 'Rajeshkumar',
+  supportEmail: 'thulirmicrogreentracker@gmail.com',
+  privacyPolicyUrl: 'https://universepdkt.github.io/Microgreentracker/store/privacy-policy',
+  supportUrl: 'https://universepdkt.github.io/Microgreentracker/store/faq',
 };
 
 export const isFilledIn = (value: string) => !/^\[.*\]$/.test(value);
