@@ -1,5 +1,6 @@
 import React from 'react';
 import { BatchStats } from '../types';
+import { formatGrams } from '../utils/batches';
 import { Sprout, Leaf, CheckCircle2, BarChart3, TrendingUp, Calendar } from 'lucide-react';
 
 interface DashboardProps {
@@ -29,7 +30,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
             >
               <div className="flex items-center justify-between mb-1">
                 <Icon className="w-3.5 h-3.5" />
-                {item.trend && <span className="text-xs text-green-600 font-medium">{item.trend}</span>}
               </div>
               <div className="text-xl font-bold leading-tight">{item.value}</div>
               <div className="text-[10px] leading-tight">{item.label}</div>
@@ -38,9 +38,17 @@ const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
         })}
       </div>
 
+      <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100 text-xs text-gray-600">
+        <span><span className="font-bold text-gray-900">{stats.traysGrowing}</span> tray{stats.traysGrowing === 1 ? '' : 's'} growing</span>
+        <span>
+          <span className={`font-bold ${stats.traysLost > 0 ? 'text-red-600' : 'text-gray-900'}`}>{stats.traysLost}</span> tray{stats.traysLost === 1 ? '' : 's'} lost
+          {stats.lost > 0 && <> · {stats.lost} batch{stats.lost === 1 ? '' : 'es'} lost</>}
+        </span>
+      </div>
+
       {/* Performance Stats */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-lg p-3 border border-gray-100">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-blue-600" />
             <div>
@@ -51,13 +59,13 @@ const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-lg p-3 border border-gray-100">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-green-600" />
             <div>
               <div className="text-[10px] text-gray-500">Total Yield</div>
               <div className="text-sm font-bold text-gray-900">
-                {stats.totalYield > 0 ? `${stats.totalYield.toFixed(1)}g` : 'N/A'}
+                {stats.totalYield > 0 ? formatGrams(stats.totalYield) : 'N/A'}
               </div>
             </div>
           </div>

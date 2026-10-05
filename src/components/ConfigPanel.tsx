@@ -1,65 +1,218 @@
-import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, Tag, ChevronDown, ChevronUp, Flower2, Leaf, UtensilsCrossed, Wheat, Hash, HardDrive, History, Database } from 'lucide-react';
-import { CropType, AppConfig, Batch } from '../types';
+import React, { useEffect, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, Hash, HardDrive, History, Database, Upload, FolderOpen, ListPlus, ShieldCheck, HelpCircle, Mail, ChevronRight, Info } from 'lucide-react';
+import { appInfo, isFilledIn } from '../data/appInfo';
+import type { InfoPageKind } from './InfoPage';
+import { CropType, AppConfig } from '../types';
+import { batchCode, trayCode } from '../utils/batches';
+import { categoryIcon, categoryIconOptions } from '../data/categoryIcons';
+import { defaultCategories, defaultCropTypes } from '../data/cropTypes';
 
 interface ConfigPanelProps {
   cropTypes: CropType[];
   onUpdateCropTypes: (crops: CropType[]) => void;
   config: AppConfig;
   onUpdateConfig: (config: AppConfig) => void;
+  onRenameCategory: (from: string, to: string) => void;
+  onAddStandardCrops: () => void;
+  onOpenInfo: (page: InfoPageKind) => void;
+  onDeleteCategory: (name: string) => void;
+  highestBatchNumber: number;
+  highestTrayNumber: number;
   usedTrayCount: number;
   onBackupNow: () => void;
   onShowRestore: () => void;
+  onExportBackup: () => void;
+  onImportBackup: () => void;
   onLoadTestData: () => void;
   hasBatches: boolean;
 }
 
-const categoryIcons: Record<CropType['category'], React.FC<{ className?: string }>> = {
-  leafy: Leaf,
-  herb: Flower2,
-  brassica: UtensilsCrossed,
-  legume: Wheat,
-  other: Tag,
-};
-
-const categoryColors: Record<CropType['category'], string> = {
-  leafy: 'text-green-600 bg-green-50',
-  herb: 'text-emerald-600 bg-emerald-50',
-  brassica: 'text-teal-600 bg-teal-50',
-  legume: 'text-amber-600 bg-amber-50',
-  other: 'text-gray-600 bg-gray-50',
-};
-
-const defaultCrop: Omit<CropType, 'name'> = {
+const defaultCrop: Omit<CropType, 'name' | 'category'> = {
   daysToGermination: 3,
   daysToHarvest: 10,
   wateringFrequency: 1,
   lightingHours: 12,
-  category: 'other',
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, usedTrayCount, onBackupNow, onShowRestore, onLoadTestData, hasBatches }) => {
+// An editable list of names (crop categories, loss reasons).
+const NameListEditor: React.FC<{
+  items: string[];
+  placeholder: string;
+  countFor?: (name: string) => number;
+  onAdd: (name: string) => void;
+  onRename: (from: string, to: string) => void;
+  onDelete: (name: string) => void;
+  iconFor?: (name: string) => string | undefined; // icon key, when the items have icons
+  onPickIcon?: (name: string, iconKey: string) => void;
+}> = ({ items, placeholder, countFor, onAdd, onRename, onDelete, iconFor, onPickIcon }) => {
+  const [draft, setDraft] = useState('');
+  const [picking, setPicking] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const exists = (name: string, except?: string) =>
+    items.some(i => i !== except && i.toLowerCase() === name.trim().toLowerCase());
+
+  const add = () => {
+    const name = draft.trim();
+    if (!name || exists(name)) return;
+    onAdd(name);
+    setDraft('');
+  };
+  const saveRename = () => {
+    const name = editText.trim();
+    if (editing && name && !exists(name, editing) && name !== editing) onRename(editing, name);
+    setEditing(null);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="divide-y divide-gray-100 bg-white rounded-lg border border-gray-100">
+        {items.map(item => (
+          <div key={item}>
+          <div className="flex items-center gap-2 px-3 py-2">
+            {editing === item ? (
+              <>
+                <input
+                  value={editText}
+                  onChange={e => setEditText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveRename()}
+                  className="flex-1 min-w-0 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                  autoFocus
+                />
+                <button onClick={saveRename} aria-label="Save name" className="p-1.5 text-emerald-600"><Check className="w-4 h-4" /></button>
+                <button onClick={() => setEditing(null)} aria-label="Cancel" className="p-1.5 text-gray-400"><X className="w-4 h-4" /></button>
+              </>
+            ) : (
+              <>
+                {iconFor && (() => {
+                  const ItemIcon = categoryIcon(iconFor(item));
+                  return (
+                    <button
+                      onClick={() => setPicking(picking === item ? null : item)}
+                      aria-label={`Choose icon for ${item}`}
+                      aria-expanded={picking === item}
+                      className={`p-1.5 rounded-lg border ${picking === item ? 'border-emerald-400 bg-emerald-50' : 'border-transparent bg-emerald-50'} text-emerald-700`}
+                    >
+                      <ItemIcon className="w-4 h-4" />
+                    </button>
+                  );
+                })()}
+                <span className="flex-1 min-w-0 text-sm text-gray-900 truncate">{item}</span>
+                {countFor && <span className="text-xs text-gray-400">{countFor(item)}</span>}
+                <button onClick={() => { setEditing(item); setEditText(item); }} aria-label={`Rename ${item}`} className="p-1.5 text-gray-400 hover:text-blue-600">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => onDelete(item)}
+                  disabled={items.length <= 1}
+                  aria-label={`Delete ${item}`}
+                  className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-30"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
+          {picking === item && onPickIcon && (
+            <div role="group" aria-label={`Icons for ${item}`} className="grid grid-cols-7 gap-1.5 px-3 pb-3">
+              {categoryIconOptions.map(opt => {
+                const OptIcon = opt.icon;
+                const on = iconFor?.(item) === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => { onPickIcon(item, opt.key); setPicking(null); }}
+                    aria-label={opt.label}
+                    aria-pressed={on}
+                    title={opt.label}
+                    className={`aspect-square flex items-center justify-center rounded-lg border ${on ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600'}`}
+                  >
+                    <OptIcon className="w-4 h-4" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && add()}
+          placeholder={placeholder}
+          className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        />
+        <button
+          onClick={add}
+          disabled={!draft.trim() || exists(draft)}
+          className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg disabled:opacity-40 flex items-center gap-1"
+        >
+          <Plus className="w-4 h-4" /> Add
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// A whole number that is applied when the field loses focus, so typing isn't fought mid-way.
+const NumberSetting: React.FC<{ value: number; min: number; onChange: (n: number) => void; label: string }> = ({ value, min, onChange, label }) => {
+  const [text, setText] = useState(String(value));
+  React.useEffect(() => setText(String(value)), [value]);
+  const commit = () => {
+    const n = Math.round(Number(text));
+    if (Number.isFinite(n) && n >= min) onChange(n);
+    else setText(String(value));
+  };
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      aria-label={label}
+      value={text}
+      min={min}
+      onChange={e => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+    />
+  );
+};
+
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onOpenInfo, onDeleteCategory, highestBatchNumber, highestTrayNumber, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    // The installed app's version and build number (not available in a browser).
+    CapacitorApp.getInfo().then(i => setVersion(`${i.version} (${i.build})`)).catch(() => setVersion(null));
+  }, []);
   const [isAdding, setIsAdding] = useState(false);
-  const [newCrop, setNewCrop] = useState<Omit<CropType, 'name'> & { name: string }>({
+  const fallbackCategory = config.categories.includes('Other') ? 'Other' : config.categories[0];
+  const [newCrop, setNewCrop] = useState<CropType>({
     name: '',
     ...defaultCrop,
+    category: fallbackCategory,
   });
   const [editForm, setEditForm] = useState<CropType | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
-  const grouped = cropTypes.reduce((acc, crop) => {
-    if (!acc[crop.category]) acc[crop.category] = [];
-    acc[crop.category].push(crop);
-    return acc;
-  }, {} as Record<string, CropType[]>);
+  const has = (list: string[], name: string) => list.some(n => n.toLowerCase() === name.toLowerCase());
+  const missingCrops = defaultCropTypes.filter(c => !has(cropTypes.map(x => x.name), c.name)).length;
+  const missingCategories = defaultCategories.filter(c => !has(config.categories, c)).length;
+
+  const grouped = config.categories
+    .map(category => [category, cropTypes.filter(c => c.category === category)] as const)
+    .filter(([, crops]) => crops.length > 0);
 
   const handleAdd = () => {
     if (!newCrop.name.trim()) return;
     const exists = cropTypes.some(c => c.name.toLowerCase() === newCrop.name.trim().toLowerCase());
     if (exists) return;
     onUpdateCropTypes([...cropTypes, { ...newCrop, name: newCrop.name.trim() }]);
-    setNewCrop({ name: '', ...defaultCrop });
+    setNewCrop({ name: '', ...defaultCrop, category: fallbackCategory });
     setIsAdding(false);
   };
 
@@ -90,7 +243,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           Backup & Restore
         </h3>
         <p className="text-xs text-gray-500 mb-3">
-          Your data is backed up automatically every day. You can also create a manual backup or restore from a previous one.
+          A copy of your data is saved on this phone automatically every day. You can also save one now or go back to an earlier copy.
         </p>
         <div className="flex gap-2">
           <button
@@ -108,9 +261,33 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
             Restore
           </button>
         </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <h4 className="text-xs font-semibold text-gray-900 mb-1">Backup file</h4>
+          <p className="text-xs text-gray-500 mb-3">
+            Save everything, including photos, as one file to Google Drive, Files or email. Open it on a new phone to restore.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onExportBackup}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Save File
+            </button>
+            <button
+              onClick={onImportBackup}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Restore File
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Test Data */}
+      {/* Test Data: development builds only, so a store build can't replace a grower's data by accident. */}
+      {import.meta.env.DEV && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
           <Database className="w-4 h-4" />
@@ -127,6 +304,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           {hasBatches ? 'Replace Data with Test Batches' : 'Load Test Data (1 Month)'}
         </button>
       </div>
+      )}
 
       {/* Tray Settings */}
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
@@ -135,14 +313,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">
               <Hash className="w-3 h-3 inline mr-1" />
-              Total Physical Trays
+              Tray Positions (racks / shelf spots)
             </label>
-            <input
-              type="number"
+            <NumberSetting
+              label="Tray positions"
               value={config.totalTrays}
-              onChange={e => onUpdateConfig({ ...config, totalTrays: Math.max(1, Number(e.target.value) || 1) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               min={1}
+              onChange={n => onUpdateConfig({ ...config, totalTrays: Math.min(n, 2000) })}
             />
             <p className="text-xs text-gray-500 mt-1">
               {usedTrayCount} in use, {config.totalTrays - usedTrayCount} available
@@ -162,6 +339,76 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Numbering */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Numbering</h3>
+        <p className="text-xs text-gray-500 mb-3">
+          New batches and trays are numbered automatically, carrying on from the last number used, also after restoring a backup.
+          Change the next number if you already label trays on paper.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Next batch: {batchCode(config.lastBatchNumber + 1)}</label>
+            <NumberSetting
+              label="Next batch number"
+              value={config.lastBatchNumber + 1}
+              min={highestBatchNumber + 1}
+              onChange={n => onUpdateConfig({ ...config, lastBatchNumber: n - 1 })}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Next tray: {trayCode(config.lastTrayNumber + 1)}</label>
+            <NumberSetting
+              label="Next tray number"
+              value={config.lastTrayNumber + 1}
+              min={highestTrayNumber + 1}
+              onChange={n => onUpdateConfig({ ...config, lastTrayNumber: n - 1 })}
+            />
+          </div>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-2">
+          Can't go below {batchCode(highestBatchNumber + 1)} / {trayCode(highestTrayNumber + 1)}, so numbers are never reused.
+        </p>
+      </div>
+
+      {/* Crop categories */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Crop Categories</h3>
+        <p className="text-xs text-gray-500 mb-3">Group your crops. Tap an icon to change it; the number shows how many crops are in each.</p>
+        <NameListEditor
+          items={config.categories}
+          placeholder="New category, e.g. Flowers"
+          countFor={name => cropTypes.filter(c => c.category === name).length}
+          onAdd={name => onUpdateConfig({ ...config, categories: [...config.categories, name], categoryIcons: { ...config.categoryIcons, [name]: 'tag' } })}
+          onRename={onRenameCategory}
+          onDelete={onDeleteCategory}
+          iconFor={name => config.categoryIcons[name]}
+          onPickIcon={(name, key) => onUpdateConfig({ ...config, categoryIcons: { ...config.categoryIcons, [name]: key } })}
+        />
+        {(missingCrops > 0 || missingCategories > 0) && (
+          <button
+            onClick={onAddStandardCrops}
+            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+          >
+            <ListPlus className="w-4 h-4" />
+            Add standard microgreens ({missingCrops} crop{missingCrops === 1 ? '' : 's'}{missingCategories > 0 ? `, ${missingCategories} categor${missingCategories === 1 ? 'y' : 'ies'}` : ''})
+          </button>
+        )}
+      </div>
+
+      {/* Loss reasons */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Loss Reasons</h3>
+        <p className="text-xs text-gray-500 mb-3">Offered when you report a lost tray. Trays already marked keep their reason.</p>
+        <NameListEditor
+          items={config.lossReasons}
+          placeholder="New reason, e.g. Seed quality"
+          onAdd={name => onUpdateConfig({ ...config, lossReasons: [...config.lossReasons, name] })}
+          onRename={(from, to) => onUpdateConfig({ ...config, lossReasons: config.lossReasons.map(r => (r === from ? to : r)) })}
+          onDelete={name => onUpdateConfig({ ...config, lossReasons: config.lossReasons.filter(r => r !== name) })}
+        />
       </div>
 
       {/* General settings section */}
@@ -264,14 +511,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
             <label className="block text-xs font-medium text-emerald-800 mb-1">Category</label>
             <select
               value={newCrop.category}
-              onChange={e => setNewCrop({ ...newCrop, category: e.target.value as CropType['category'] })}
+              onChange={e => setNewCrop({ ...newCrop, category: e.target.value })}
               className="w-full px-3 py-2 border border-emerald-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
             >
-              <option value="leafy">Leafy</option>
-              <option value="herb">Herb</option>
-              <option value="brassica">Brassica</option>
-              <option value="legume">Legume</option>
-              <option value="other">Other</option>
+              {config.categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="flex gap-2 pt-1">
@@ -293,9 +536,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
       )}
 
       {/* Crop types list by category */}
-      {Object.entries(grouped).map(([category, crops]) => {
-        const Icon = categoryIcons[category as CropType['category']] || Tag;
-        const colorClass = categoryColors[category as CropType['category']] || 'text-gray-600 bg-gray-50';
+      {grouped.map(([category, crops]) => {
+        const Icon = categoryIcon(config.categoryIcons[category]);
+        const colorClass = 'text-emerald-700 bg-emerald-50';
         const isExpanded = expandedCategory === category;
 
         return (
@@ -308,7 +551,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
                 <div className={`p-1.5 rounded-lg ${colorClass}`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-semibold text-gray-900 capitalize">{category}</span>
+                <span className="text-sm font-semibold text-gray-900">{category}</span>
                 <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border">{crops.length}</span>
               </div>
               {isExpanded ? (
@@ -379,14 +622,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
                           <label className="block text-xs font-medium text-amber-800 mb-1">Category</label>
                           <select
                             value={editForm.category}
-                            onChange={e => setEditForm({ ...editForm, category: e.target.value as CropType['category'] })}
+                            onChange={e => setEditForm({ ...editForm, category: e.target.value })}
                             className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
                           >
-                            <option value="leafy">Leafy</option>
-                            <option value="herb">Herb</option>
-                            <option value="brassica">Brassica</option>
-                            <option value="legume">Legume</option>
-                            <option value="other">Other</option>
+                            {config.categories.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
                         <div className="flex gap-2">
@@ -411,15 +650,17 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
                     <div key={crop.name} className="px-4 py-3 hover:bg-gray-50 transition-colors group">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-900">{crop.name}</span>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={() => startEdit(crop)}
+                            aria-label={`Edit ${crop.name}`}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDelete(crop.name)}
+                            aria-label={`Delete ${crop.name}`}
                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -452,6 +693,37 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           </div>
         );
       })}
+
+      {/* About */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+          <Info className="w-4 h-4" />
+          About
+        </h3>
+        <div className="divide-y divide-gray-100 bg-white rounded-lg border border-gray-100">
+          {([
+            ['privacy', 'Privacy policy', ShieldCheck],
+            ['faq', 'Help & FAQ', HelpCircle],
+          ] as const).map(([kind, label, Icon]) => (
+            <button key={kind} onClick={() => onOpenInfo(kind)} className="w-full flex items-center gap-3 px-3 py-3 text-left">
+              <Icon className="w-4 h-4 text-emerald-600" />
+              <span className="flex-1 text-sm text-gray-900">{label}</span>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+          ))}
+          {isFilledIn(appInfo.supportEmail) && (
+            <a href={`mailto:${appInfo.supportEmail}`} className="w-full flex items-center gap-3 px-3 py-3">
+              <Mail className="w-4 h-4 text-emerald-600" />
+              <span className="flex-1 text-sm text-gray-900">Contact support</span>
+              <span className="text-xs text-gray-400 truncate max-w-[50%]">{appInfo.supportEmail}</span>
+            </a>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mt-3 text-center">
+          Microgreen Manager{version ? ` · version ${version}` : ''}
+          {isFilledIn(appInfo.developerName) && <><br />© {new Date().getFullYear()} {appInfo.developerName}</>}
+        </p>
+      </div>
     </div>
   );
 };

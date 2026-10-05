@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Reminder, Batch } from '../types';
-import { useLocalStorage } from './useLocalStorage';
-import { addDaysToDate, isDateToday, isDateTomorrow, getDaysFromNow } from '../utils/dateUtils';
+import { addDaysToDate, isDateToday, isDateTomorrow, getDaysFromNow, todayLocal } from '../utils/dateUtils';
+import { batchCode, isBatchGrowing } from '../utils/batches';
 
-export const useReminders = (batches: Batch[]) => {
-  const [reminders, setReminders] = useLocalStorage<Reminder[]>('microgreen-reminders', []);
+export const useReminders = (
+  batches: Batch[],
+  reminders: Reminder[],
+  setReminders: (fn: (prev: Reminder[]) => Reminder[]) => void
+) => {
   const [notifications, setNotifications] = useState<Reminder[]>([]);
 
   // Generate automatic reminders based on batch data
@@ -12,7 +15,8 @@ export const useReminders = (batches: Batch[]) => {
     const autoReminders: Reminder[] = [];
     
     batches.forEach(batch => {
-      if (batch.stage === 'completed') return;
+      if (!isBatchGrowing(batch)) return;
+      const label = `${batchCode(batch.batchNumber)} (${batch.trays.filter(t => t.status === 'active').length} trays)`;
 
       // Watering reminders (daily for active batches)
       if (batch.stage !== 'sowing') {
@@ -26,8 +30,8 @@ export const useReminders = (batches: Batch[]) => {
             batchId: batch.id,
             type: 'watering',
             title: `Water ${batch.cropType}`,
-            message: `Tray ${batch.trayId} needs watering`,
-            scheduledFor: new Date().toISOString().split('T')[0],
+            message: `${label} needs watering`,
+            scheduledFor: todayLocal(),
             completed: false,
             createdAt: new Date().toISOString()
           });
@@ -43,7 +47,7 @@ export const useReminders = (batches: Batch[]) => {
             batchId: batch.id,
             type: 'germination',
             title: `Check Germination`,
-            message: `${batch.cropType} in tray ${batch.trayId} should be germinating`,
+            message: `${batch.cropType} ${label} should be germinating`,
             scheduledFor: germinationDate,
             completed: false,
             createdAt: new Date().toISOString()
@@ -60,7 +64,7 @@ export const useReminders = (batches: Batch[]) => {
             batchId: batch.id,
             type: 'harvest',
             title: `Ready to Harvest`,
-            message: `${batch.cropType} in tray ${batch.trayId} is ready for harvest`,
+            message: `${batch.cropType} ${label} is ready for harvest`,
             scheduledFor: harvestDate,
             completed: false,
             createdAt: new Date().toISOString()
@@ -74,7 +78,7 @@ export const useReminders = (batches: Batch[]) => {
     const newReminders = autoReminders.filter(r => !existingIds.includes(r.id));
     
     if (newReminders.length > 0) {
-      setReminders([...reminders, ...newReminders]);
+      setReminders(prev => [...prev, ...newReminders]);
     }
   }, [batches, reminders, setReminders]);
 
@@ -88,7 +92,7 @@ export const useReminders = (batches: Batch[]) => {
   }, [reminders]);
 
   const completeReminder = (id: string) => {
-    setReminders(reminders.map(reminder => 
+    setReminders(prev => prev.map(reminder => 
       reminder.id === id ? { ...reminder, completed: true } : reminder
     ));
   };
@@ -99,11 +103,11 @@ export const useReminders = (batches: Batch[]) => {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString()
     };
-    setReminders([...reminders, newReminder]);
+    setReminders(prev => [...prev, newReminder]);
   };
 
   const deleteReminder = (id: string) => {
-    setReminders(reminders.filter(reminder => reminder.id !== id));
+    setReminders(prev => prev.filter(reminder => reminder.id !== id));
   };
 
   return {
