@@ -50,7 +50,7 @@ const LostTraySheet: React.FC<LostTraySheetProps> = ({ batch, initialTrayIds, re
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-4">
+        <div className="overflow-y-auto overflow-x-hidden p-4 space-y-4">
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-sm font-medium text-gray-700">Which trays? ({selected.size} of {trays.length})</span>

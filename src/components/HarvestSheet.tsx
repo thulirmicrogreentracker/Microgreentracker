@@ -40,7 +40,7 @@ const HarvestSheet: React.FC<HarvestSheetProps> = ({ batch, onSave, onClose }) =
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-4">
+        <div className="overflow-y-auto overflow-x-hidden p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Harvest date</label>
             <input

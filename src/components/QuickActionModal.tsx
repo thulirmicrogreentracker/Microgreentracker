@@ -141,7 +141,7 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
         <div className="w-16" />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Icon className="w-4 h-4" />
           {batchCode(batch.batchNumber)} · {batch.cropType} · {batch.trays.length} tray{batch.trays.length === 1 ? '' : 's'}
