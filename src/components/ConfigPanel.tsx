@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, Hash, HardDrive, History, Database, Upload, FolderOpen, ListPlus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, Hash, HardDrive, History, Database, Upload, FolderOpen, ListPlus, ShieldCheck, HelpCircle, Mail, ChevronRight, Info } from 'lucide-react';
+import { appInfo, isFilledIn } from '../data/appInfo';
+import type { InfoPageKind } from './InfoPage';
 import { CropType, AppConfig } from '../types';
 import { batchCode, trayCode } from '../utils/batches';
 import { categoryIcon, categoryIconOptions } from '../data/categoryIcons';
@@ -12,6 +15,7 @@ interface ConfigPanelProps {
   onUpdateConfig: (config: AppConfig) => void;
   onRenameCategory: (from: string, to: string) => void;
   onAddStandardCrops: () => void;
+  onOpenInfo: (page: InfoPageKind) => void;
   onDeleteCategory: (name: string) => void;
   highestBatchNumber: number;
   highestTrayNumber: number;
@@ -177,8 +181,14 @@ const NumberSetting: React.FC<{ value: number; min: number; onChange: (n: number
   );
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onDeleteCategory, highestBatchNumber, highestTrayNumber, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onOpenInfo, onDeleteCategory, highestBatchNumber, highestTrayNumber, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    // The installed app's version and build number (not available in a browser).
+    CapacitorApp.getInfo().then(i => setVersion(`${i.version} (${i.build})`)).catch(() => setVersion(null));
+  }, []);
   const [isAdding, setIsAdding] = useState(false);
   const fallbackCategory = config.categories.includes('Other') ? 'Other' : config.categories[0];
   const [newCrop, setNewCrop] = useState<CropType>({
@@ -276,7 +286,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
         </div>
       </div>
 
-      {/* Test Data */}
+      {/* Test Data: development builds only, so a store build can't replace a grower's data by accident. */}
+      {import.meta.env.DEV && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
           <Database className="w-4 h-4" />
@@ -293,6 +304,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           {hasBatches ? 'Replace Data with Test Batches' : 'Load Test Data (1 Month)'}
         </button>
       </div>
+      )}
 
       {/* Tray Settings */}
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
@@ -681,6 +693,37 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           </div>
         );
       })}
+
+      {/* About */}
+      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+          <Info className="w-4 h-4" />
+          About
+        </h3>
+        <div className="divide-y divide-gray-100 bg-white rounded-lg border border-gray-100">
+          {([
+            ['privacy', 'Privacy policy', ShieldCheck],
+            ['faq', 'Help & FAQ', HelpCircle],
+          ] as const).map(([kind, label, Icon]) => (
+            <button key={kind} onClick={() => onOpenInfo(kind)} className="w-full flex items-center gap-3 px-3 py-3 text-left">
+              <Icon className="w-4 h-4 text-emerald-600" />
+              <span className="flex-1 text-sm text-gray-900">{label}</span>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+          ))}
+          {isFilledIn(appInfo.supportEmail) && (
+            <a href={`mailto:${appInfo.supportEmail}`} className="w-full flex items-center gap-3 px-3 py-3">
+              <Mail className="w-4 h-4 text-emerald-600" />
+              <span className="flex-1 text-sm text-gray-900">Contact support</span>
+              <span className="text-xs text-gray-400 truncate max-w-[50%]">{appInfo.supportEmail}</span>
+            </a>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mt-3 text-center">
+          Microgreen Manager{version ? ` · version ${version}` : ''}
+          {isFilledIn(appInfo.developerName) && <><br />© {new Date().getFullYear()} {appInfo.developerName}</>}
+        </p>
+      </div>
     </div>
   );
 };

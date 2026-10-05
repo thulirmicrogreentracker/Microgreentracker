@@ -20,6 +20,7 @@ import PhotoCompare from './components/photos/PhotoCompare';
 import CropPhotos from './components/photos/CropPhotos';
 import LostTraySheet, { TrayLoss } from './components/LostTraySheet';
 import HarvestSheet from './components/HarvestSheet';
+import InfoPage, { InfoPageKind } from './components/InfoPage';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
@@ -47,6 +48,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [lossSheet, setLossSheet] = useState<{ batchId: string; trayIds: string[] } | null>(null);
   const [harvestBatchId, setHarvestBatchId] = useState<string | null>(null);
+  const [infoPage, setInfoPage] = useState<InfoPageKind | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRestoreSheet, setShowRestoreSheet] = useState(false);
   const [galleryBatchId, setGalleryBatchId] = useState<string | null>(null);
@@ -80,7 +82,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   // Android hardware back button: close the top-most screen instead of exiting the app.
   useEffect(() => {
     const handle = CapacitorApp.addListener('backButton', () => {
-      if (harvestBatchId) setHarvestBatchId(null);
+      if (infoPage) setInfoPage(null);
+      else if (harvestBatchId) setHarvestBatchId(null);
       else if (lossSheet) setLossSheet(null);
       else if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
       else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
@@ -94,7 +97,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       else CapacitorApp.exitApp();
     });
     return () => { handle.then(h => h.remove()); };
-  }, [harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
+  }, [infoPage, harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
 
   const availableSlots = useMemo(() => freeSlots(batches, config.totalTrays), [batches, config.totalTrays]);
 
@@ -563,6 +566,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             onUpdateConfig={setConfig}
             onRenameCategory={renameCategory}
             onAddStandardCrops={addStandardCrops}
+            onOpenInfo={setInfoPage}
             onDeleteCategory={deleteCategory}
             highestBatchNumber={highestBatchNumber(batches)}
             highestTrayNumber={highestTrayNumber(batches)}
@@ -581,6 +585,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       {activeTab === 'home' && (
         <button
           onClick={() => setIsModalOpen(true)}
+          aria-label="Add batch"
           className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 max-w-md:w-auto lg:max-w-lg:w-auto xl:max-w-xl:w-auto z-30 bg-emerald-600 text-white rounded-full p-4 shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
           style={{ right: 'max(1rem, calc((100vw - 100%) / 2 + 1rem))' }}
         >
@@ -766,6 +771,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         trayId={quickActionModal.trayId}
         onSave={handleQuickActionSave}
       />
+
+      {infoPage && <InfoPage kind={infoPage} onClose={() => setInfoPage(null)} />}
 
       {harvestBatchId && (() => {
         const harvesting = batches.find(b => b.id === harvestBatchId);
