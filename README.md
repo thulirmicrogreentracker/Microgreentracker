@@ -2,6 +2,8 @@
 
 Track microgreen batches from sowing to harvest: trays, watering, notes, photos, reminders, reports and daily backups.
 
+See [HANDOVER.md](HANDOVER.md) for the project status, architecture, known issues and next steps.
+
 The app is a React + Vite web app that also ships as native **Android** and **iOS** apps through [Capacitor](https://capacitorjs.com). All data is stored on the device; there is no server or account.
 
 ## Where data is stored

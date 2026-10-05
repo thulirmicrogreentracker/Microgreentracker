@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "cap:sync": "vite build && cap sync",
     "android": "vite build && cap sync android && cap open android",
-    "ios": "vite build && cap sync ios && cap open ios"
+    "ios": "vite build && cap sync ios && cap open ios",
+    "test:e2e": "node tests/e2e/storage-and-backup.cjs && node tests/e2e/photos.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -39,6 +40,7 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
+    "playwright": "^1.56.1",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
