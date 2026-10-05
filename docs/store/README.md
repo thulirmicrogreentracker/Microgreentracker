@@ -9,23 +9,22 @@ Everything needed for the store listings, and the steps to get there.
 | [store-listing.md](store-listing.md) | Names, descriptions, keywords, categories, privacy and content-rating answers | App Store Connect and Play Console |
 | [screenshots.md](screenshots.md) and [screenshots/](screenshots/) | Ready-made store screenshots (iPhone and Android, captioned and plain), the Play feature graphic and icon, and how to remake them | App Store Connect and Play Console |
 
-## 1. Fill in the placeholders
+## 1. Publisher details (done)
 
-Search these files and `src/data/appInfo.ts` for square brackets and replace them (the app shows the privacy policy
-and FAQ itself, with the values from `appInfo.ts`):
+| Detail | Value | Set in |
+|---|---|---|
+| Developer name | Rajeshkumar | `src/data/appInfo.ts`, the documents here |
+| Support email | thulirmicrogreentracker@gmail.com | same |
+| Privacy policy URL | https://universepdkt.github.io/Microgreentracker/store/privacy-policy | same |
+| Support URL | https://universepdkt.github.io/Microgreentracker/store/faq | same |
 
-| Placeholder | Example |
-|---|---|
-| `[DEVELOPER NAME]` | Your name or business name, as shown on the stores |
-| `[SUPPORT EMAIL]` | An address you check, for user questions and store reviews |
-| `[PRIVACY POLICY URL]` | Where privacy-policy.md is published (step 2) |
-| `[SUPPORT URL]` | Where faq.md is published, or any page with your contact details |
+To change one, edit `src/data/appInfo.ts` and the matching text in this folder.
 
 ## 2. Publish the privacy policy and FAQ
 
-Both stores need a public **https** address that opens without a login. A simple free option is GitHub Pages: make
-the repository (or a separate small one) public, enable Pages for the `docs` folder, and the files will be at
-`https://<github-user>.github.io/<repo>/store/privacy-policy` and `.../store/faq`. Any website you own works too.
+Both stores need a public **https** address that opens without a login. They are served by **GitHub Pages** from
+the `docs` folder on `main` (repository Settings → Pages → Deploy from a branch → `main` / `/docs`; only the owner,
+`universepdkt`, can change this setting). Every change to `docs/` on `main` updates the pages within a few minutes.
 
 ## 3. Changes still needed in the app
 
