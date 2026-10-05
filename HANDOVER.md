@@ -152,11 +152,11 @@ and gets a batch number in creation order.
 
 ## 6. Tests
 
-`tests/e2e/` holds 73 browser checks: migration, saving, crash recovery, photo compression, backup
+`tests/e2e/` holds 72 browser checks: migration, saving, crash recovery, photo compression, backup
 export/import, snapshot restore, clean-up, and every photo screen including swipe and pinch gestures. Run them like this:
 
 ```bash
-npx playwright install chromium      # once
+npx playwright install chromium      # once (or skip it and add E2E_CHANNEL=chrome below to use installed Chrome)
 npm run build && npx vite preview --port 4173 --strictPort &   # tests expect the built app on port 4173
 npm run test:e2e                     # prints PASS/FAIL per check, then ALL PASSED
 ```

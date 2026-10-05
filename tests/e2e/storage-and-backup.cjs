@@ -31,7 +31,8 @@ const dataFiles = async page => (await listDisc(page)).filter(e => /microgreen\/
 const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort((a, b) => b.env.seq - a.env.seq)[0].env;
 
 (async () => {
-  const browser = await chromium.launch();
+  // E2E_CHANNEL=chrome uses the installed Google Chrome instead of Playwright's own download.
+  const browser = await chromium.launch(process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {});
   const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 400, height: 860 } });
   const page = await context.newPage();
   page.on('dialog', d => { console.log(`  dialog: ${d.message().slice(0, 110)}`); d.accept(); });
@@ -73,7 +74,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   let env = await latestData(page);
   check(env.data.batches[0].photos[0].file === 'ph1abc.png' && !('url' in env.data.batches[0].photos[0]), 'migration: batch photo now references the file, no data URL');
   check(env.data.config.totalTrays === 15 && env.data.config.trayNumberPrefix === 'Rack', 'migration: config carried over');
-  check(env.data.cropTypes.length === 12, 'migration: missing crop types fall back to defaults');
+  check(env.data.cropTypes.length === 53, 'migration: missing crop types fall back to the 53 standard crops');
   const snaps = disc.filter(e => /microgreen\/snapshots\/snapshot-\d+\.json$/.test(e.path));
   check(snaps.some(e => e.path.includes(`snapshot-${Date.parse('2026-09-30T08:00:00.000Z')}`)), 'migration: old IndexedDB snapshot moved to a snapshot file');
   check(snaps.length === 2, `migration: old snapshot + today's daily snapshot (${snaps.length})`);

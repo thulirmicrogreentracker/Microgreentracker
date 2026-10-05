@@ -25,7 +25,8 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
 }, b64);
 
 (async () => {
-  const browser = await chromium.launch();
+  // E2E_CHANNEL=chrome uses the installed Google Chrome instead of Playwright's own download.
+  const browser = await chromium.launch(process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {});
   const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 400, height: 860 }, hasTouch: true });
   const page = await context.newPage();
   page.on('dialog', d => d.accept());
@@ -91,12 +92,14 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await radish.getByRole('button', { name: 'See all' }).click();
   await page.getByRole('heading', { name: 'B001 · Radish' }).waitFor();
   check(await page.locator('text=6 photos · Day 8').count() === 1, 'gallery: header shows 6 photos · Day 8');
-  const badges = await page.locator('main section > div:first-child > span:first-child').allInnerTexts();
+  // The photo screens open on top of the home screen, which has its own <main> and stage sections: check the top one.
+  const top = () => page.locator('main').last();
+  const badges = await top().locator('section > div:first-child > span:first-child').allInnerTexts();
   check(badges.join('|') === 'Sowing|Germination|Growing|Ready to Harvest', `gallery: grouped by stage (${badges.join('|')})`);
   check(await page.locator('text=Day 2–3 · 2 photos').count() === 1, 'gallery: section shows day range and count');
   check(await page.locator('main').getByText('No caption').count() === 1, 'gallery: empty caption shows "No caption"');
   await page.getByRole('button', { name: 'Growing', exact: true }).click();
-  check(await page.locator('main section').count() === 1 && await page.locator('main section button').count() === 2, 'gallery: stage filter shows only Growing (2 photos)');
+  check(await top().locator('section').count() === 1 && await top().locator('section button').count() === 2, 'gallery: stage filter shows only Growing (2 photos)');
   await page.getByRole('button', { name: 'All', exact: true }).click();
   await page.screenshot({ path: path.join(OUT, 'gallery.png') });
 
@@ -161,10 +164,10 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
 
   // share (browser = download)
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Share' }).click()]);
-  check(dl.suggestedFilename() === 'Radish-T1-day-6.jpg', `viewer: share gives ${dl.suggestedFilename()}`);
+  check(dl.suggestedFilename() === 'Radish-B001-day-6.jpg', `viewer: share gives ${dl.suggestedFilename()}`);
 
   // delete → moves to next photo
-  await page.getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
   await page.locator('text=5 of 5').waitFor();
   const details = await page.locator('section[aria-label="Photo details"]').innerText();
   check(/Day 8 · /.test(details), `viewer: after delete shows the next photo (5 of 5): ${details.replace(/\n/g, ' | ')}`);
@@ -187,7 +190,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   check(true, 'compare: both photos load');
   await page.getByRole('tab', { name: 'Another batch' }).click();
   const summary = await page.locator('main').last().locator('> div.bg-white').innerText();
-  check(/Day 8 of T1 next to day 8 of T4/.test(summary) && /harvested .* · 120 g/.test(summary), `compare: other batch matched by day (${summary})`);
+  check(/Day 8 of B001 next to day 8 of B002/.test(summary) && /harvested .* · 120 g/.test(summary), `compare: other batch matched by day (${summary})`);
   await page.screenshot({ path: path.join(OUT, 'compare.png') });
   await page.getByRole('button', { name: 'Back' }).last().click();
   await page.getByRole('button', { name: 'Back' }).last().click();
@@ -200,11 +203,11 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await row.click();
   await page.getByRole('heading', { name: 'Radish photos' }).waitFor();
   check(await page.getByText('2 batches · 8 photos').count() === 1, 'crop photos: header counts');
-  const trays = await page.locator('main section h3').allInnerTexts();
+  const trays = await top().locator('section h3').allInnerTexts();
   check(trays.join(',') === 'B001,B002', `crop photos: newest batch first (${trays.join(',')})`);
-  check(await page.getByText(/harvested .* · 120 grams/).count() === 1, 'crop photos: harvested batch shows yield');
+  check(await page.getByText(/harvested .* · 120 g/).count() === 1, 'crop photos: harvested batch shows yield');
   await page.screenshot({ path: path.join(OUT, 'crop.png') });
-  await page.locator('main section').nth(1).getByRole('button', { name: 'Open', exact: true }).click();
+  await top().locator('section').nth(1).getByRole('button', { name: 'Open', exact: true }).click();
   await page.getByRole('heading', { name: 'B002 · Radish' }).waitFor();
   check(await page.getByText('3 photos · Completed').count() === 1, 'crop photos: Open goes to that batch gallery');
 
