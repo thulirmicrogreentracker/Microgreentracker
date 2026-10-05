@@ -33,12 +33,20 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
   const [photoStage, setPhotoStage] = useState<Batch['stage']>('sowing');
   const [preview, setPreview] = useState<string | null>(null);
 
-  // Each time the form opens, photos default to the whole batch and its current stage.
+  // Start every opening with an empty form. This component stays mounted while closed, so without
+  // this a photo taken and then cancelled for one batch was still selected (and saved) for the next.
   useEffect(() => {
     if (!isOpen || !batch) return;
+    setWaterAmount('');
+    setWaterUnit('ml');
+    setWaterNotes('');
+    setNoteContent('');
+    setNoteType('general');
+    setPhotoFile(null);
+    setPhotoCaption('');
     setPhotoTrayId(trayId ?? '');
     setPhotoStage(batch.stage);
-  }, [isOpen, batch?.id, trayId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, batch?.id, actionType, trayId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!photoFile) return setPreview(null);
@@ -94,13 +102,6 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
       }
     }
 
-    setWaterAmount('');
-    setWaterUnit('ml');
-    setWaterNotes('');
-    setNoteContent('');
-    setNoteType('general');
-    setPhotoFile(null);
-    setPhotoCaption('');
     onClose();
   };
 
