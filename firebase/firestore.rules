@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Firestore security rules for Microgreen Manager. Paste into Firebase console → Firestore Database → Rules.
+// Firestore security rules for Thulir MicroGreen Tracker. Paste into Firebase console → Firestore Database → Rules.
 // The database holds only free-trial start dates, keyed by SHA-256 fingerprints (64 lower-case hex characters);
 // no growing data, emails or device IDs.
 service cloud.firestore {

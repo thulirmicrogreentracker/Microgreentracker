@@ -1,4 +1,4 @@
-# Microgreen Manager: Frequently Asked Questions
+# Thulir MicroGreen Tracker: Frequently Asked Questions
 
 ## Getting started
 
@@ -97,7 +97,7 @@ between phones.
 ## Subscription
 
 **Is the app free?**
-Everything is free for the first 30 days. After that, starting new batches needs Microgreen Manager Pro: monthly,
+Everything is free for the first 30 days. After that, starting new batches needs Thulir MicroGreen Tracker Pro: monthly,
 yearly, or a one-time lifetime purchase. Everything you've already recorded (batches, photos, harvests, reports and
 backups) stays available whether or not you subscribe.
 

@@ -1,4 +1,4 @@
-# Microgreen Manager: Handover
+# Thulir MicroGreen Tracker: Handover
 
 The state of the project as of 5 October 2026, for continuing work on a local machine.
 
@@ -31,7 +31,7 @@ Decisions made with the owner along the way:
 - Data stays on the phone. Backup to Google Drive works **through the share sheet for now** (no Google sign-in).
 - A **Google Drive connection** (each user signs in with their own Google account) is planned as **the next phase**.
   See §8.
-- App id: `com.universepdkt.microgreentracker`. App name: "Microgreen Manager".
+- App id: `com.universepdkt.microgreentracker`. App name: "Thulir MicroGreen Tracker" (until 6 Oct 2026 "Microgreen Manager"; internal names such as the storage folder `microgreen/` and the backup format `microgreen-manager-backup` keep the old wording on purpose).
 
 ## 3. Set up locally
 
@@ -76,7 +76,7 @@ Run `npm run ios`. Then, in Xcode, select the **App** target → **Signing & Cap
 ### Getting an APK without Android Studio
 
 Every push runs `.github/workflows/android-apk.yml`. On GitHub, go to **Actions → Android APK → latest run →
-Artifacts** and download `microgreen-manager-debug-apk`. It is a zip containing `app-debug.apk`.
+Artifacts** and download `thulir-microgreen-tracker-debug-apk`. It is a zip containing `app-debug.apk`.
 
 ## 4. Gotchas
 

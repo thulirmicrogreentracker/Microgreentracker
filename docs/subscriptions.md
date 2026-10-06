@@ -1,6 +1,6 @@
 # Subscriptions with RevenueCat
 
-This branch (`feature/subscriptions`) adds Microgreen Manager Pro. It is kept separate from `main` until it is ready.
+This branch (`feature/subscriptions`) adds Thulir MicroGreen Tracker Pro. It is kept separate from `main` until it is ready.
 
 ## How it works
 
@@ -36,7 +36,7 @@ Use the same product IDs on both stores so they're easy to match in RevenueCat.
 
 | Product | Google Play | App Store |
 |---|---|---|
-| `mm_pro_monthly` | Subscription with a monthly base plan (auto-renewing) | Auto-renewable subscription, 1 month, in a subscription group "Microgreen Manager Pro" |
+| `mm_pro_monthly` | Subscription with a monthly base plan (auto-renewing) | Auto-renewable subscription, 1 month, in a subscription group "Thulir MicroGreen Tracker Pro" |
 | `mm_pro_yearly` | Subscription with a yearly base plan (auto-renewing) | Auto-renewable subscription, 1 year, same group |
 | `mm_pro_lifetime` | In-app product (one-time) | Non-consumable |
 
@@ -50,7 +50,7 @@ Use the same product IDs on both stores so they're easy to match in RevenueCat.
 
 ### 2. RevenueCat
 
-1. Create a free account at revenuecat.com and a **project** "Microgreen Manager".
+1. Create a free account at revenuecat.com and a **project** "Thulir MicroGreen Tracker".
 2. Add the apps:
    - **Google Play**: package `com.universepdkt.microgreentracker`, plus a Google Cloud **service account** JSON key
      with access to Play Console's financial data (RevenueCat's setup page walks through it; it can take up to 36 hours

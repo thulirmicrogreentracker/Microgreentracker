@@ -1,6 +1,6 @@
 {
-  "name": "Microgreen Manager",
-  "short_name": "Microgreens",
+  "name": "Thulir MicroGreen Tracker",
+  "short_name": "Thulir",
   "description": "Professional microgreen batch tracking system",
   "start_url": "/",
   "display": "standalone",

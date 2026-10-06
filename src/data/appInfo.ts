@@ -1,6 +1,7 @@
 // Publisher details shown in the app (Config → About). Keep them in step with docs/store/*.md, which the app also
 // shows; any [PLACEHOLDER] left in those documents is replaced with these values.
 export const appInfo = {
+  appName: 'Thulir MicroGreen Tracker', // also in capacitor.config.ts, strings.xml, Info.plist, index.html, manifest.json
   developerName: 'Rajeshkumar',
   supportEmail: 'thulirmicrogreentracker@gmail.com',
   privacyPolicyUrl: 'https://universepdkt.github.io/Microgreentracker/store/privacy-policy',

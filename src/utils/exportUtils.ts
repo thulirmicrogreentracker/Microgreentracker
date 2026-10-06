@@ -101,5 +101,5 @@ export const exportAllBatchesToCSV = (batches: Batch[]): Promise<void> => {
     ].join(','))
   ].join('\n');
 
-  return saveFile(`microgreen_batches_${new Date().toISOString().split('T')[0]}.csv`, csvContent, 'text/csv');
+  return saveFile(`thulir_microgreen_batches_${new Date().toISOString().split('T')[0]}.csv`, csvContent, 'text/csv');
 };

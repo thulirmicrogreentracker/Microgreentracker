@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.universepdkt.microgreentracker',
-  appName: 'Microgreen Manager',
+  appName: 'Thulir MicroGreen Tracker',
   webDir: 'dist',
   ios: {
     // Google sign-in is Android-only (Apple would also require Sign in with Apple), so the social-login plugin and the

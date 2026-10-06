@@ -106,7 +106,7 @@ const Paywall: React.FC<PaywallProps> = ({ reason, subscription, account, onSign
           <div className="bg-emerald-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3">
             <Sprout className="w-7 h-7 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Microgreen Manager Pro</h2>
+          <h2 className="text-xl font-bold text-gray-900">Thulir MicroGreen Tracker Pro</h2>
           <p className="text-sm text-gray-500 mt-1">
             {reason === 'trial-ended'
               ? `Your ${TRIAL_DAYS}-day free trial has ended. Subscribe to start new batches; everything you've recorded stays available.`

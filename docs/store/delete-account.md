@@ -1,14 +1,14 @@
-# Delete your Microgreen Manager account
+# Delete your Thulir MicroGreen Tracker account
 
-- **App:** Microgreen Manager (Android and iOS)
+- **App:** Thulir MicroGreen Tracker (Android and iOS)
 - **Developer:** Rajeshkumar
 - **Contact:** thulirmicrogreentracker@gmail.com
 
-Signing in to Microgreen Manager is optional. If you created an account, you can delete it at any time.
+Signing in to Thulir MicroGreen Tracker is optional. If you created an account, you can delete it at any time.
 
 ## In the app
 
-1. Open Microgreen Manager.
+1. Open Thulir MicroGreen Tracker.
 2. Tap **Config** at the bottom, then go to **Account**.
 3. Tap **Delete account** and confirm.
 

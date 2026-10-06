@@ -57,7 +57,7 @@ Code:
 1. **Build → Authentication → Get started**.
 2. **Sign-in method → Email/Password → Enable** (leave "Email link" off) → Save.
 3. **Sign-in method → Add new provider → Google → Enable**.
-   - Set the project's public name to "Microgreen Manager".
+   - Set the project's public name to "Thulir MicroGreen Tracker".
    - Set the support email to thulirmicrogreentracker@gmail.com.
    - Save.
    - Open the **Web SDK configuration** panel on the same page and copy the **Web client ID** (it ends in
@@ -80,7 +80,7 @@ Code:
 **Web app (this gives the config the app uses):**
 
 1. Project settings (gear icon) → **Your apps → Add app → Web** (</>).
-2. Use the nickname "Microgreen Manager app". Don't turn on Hosting.
+2. Use the nickname "Thulir MicroGreen Tracker app". Don't turn on Hosting.
 3. Copy `apiKey`, `authDomain`, `projectId` and `appId` into `.env.local`. These values are not secret: they identify
    the project, and the security rules protect the data.
 

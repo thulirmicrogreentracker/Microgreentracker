@@ -1,7 +1,7 @@
 import { AppConfig, AppData, Batch, BatchPhoto, CropType, Tray } from '../types';
 import { defaultCategories, defaultCategoryIcons, defaultCropTypes, renamedCategories } from '../data/cropTypes';
 import { defaultLossReasons } from '../data/lossReasons';
-import { codeNumber, highestBatchNumber, syncCounters, trayCode } from '../utils/batches';
+import { codeNumber, highestBatchNumber, MAX_NUMBER, MAX_TRAY_POSITIONS, syncCounters, trayCode, wholeNumber } from '../utils/batches';
 import { isSafePhotoName } from './photos';
 
 // Before version 1 of the storage format, data lived in localStorage under these keys,
@@ -80,9 +80,10 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
   });
 
   // Number the batches and trays that have no number yet, oldest first, after the highest existing ones.
-  let nextBatch = Math.max(Number(rawConfig.lastBatchNumber) || 0, highestBatchNumber(batches));
+  // Out-of-range counters (e.g. 4e+123 typed into an older version) fall back to the highest number in use.
+  let nextBatch = Math.max(wholeNumber(rawConfig.lastBatchNumber, MAX_NUMBER), highestBatchNumber(batches));
   let nextTray = Math.max(
-    Number(rawConfig.lastTrayNumber) || 0,
+    wholeNumber(rawConfig.lastTrayNumber, MAX_NUMBER),
     ...batches.flatMap(b => b.trays.map(t => codeNumber(t.code))),
   );
   const byAge = [...batches].sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
@@ -98,6 +99,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     ...rawConfig,
     categories,
     categoryIcons,
+    totalTrays: wholeNumber(rawConfig.totalTrays, MAX_TRAY_POSITIONS, 0) || defaults.config.totalTrays,
     lossReasons: Array.isArray(rawConfig.lossReasons) && rawConfig.lossReasons.length > 0 ? rawConfig.lossReasons : defaultLossReasons,
     lastBatchNumber: nextBatch,
     lastTrayNumber: nextTray,
