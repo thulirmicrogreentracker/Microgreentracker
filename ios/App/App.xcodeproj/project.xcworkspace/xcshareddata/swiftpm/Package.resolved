@@ -1,5 +1,5 @@
 {
-  "originHash" : "741955f58f9664d810c26a93a9e9c21ad909cb3afcacd9bd24f30b8f86491caa",
+  "originHash" : "5861400715c790db3932c39e23a6e42015a60d9da46f67d3ce31c80dc8806396",
   "pins" : [
     {
       "identity" : "capacitor-swift-pm",
@@ -17,6 +17,24 @@
       "state" : {
         "revision" : "13848aab4f3447ff98dfdbe72ff8ef31bf333db0",
         "version" : "2.0.0"
+      }
+    },
+    {
+      "identity" : "purchases-hybrid-common",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RevenueCat/purchases-hybrid-common.git",
+      "state" : {
+        "revision" : "eee737f5d90ab332fed23104ea815466b2ecc290",
+        "version" : "19.5.0"
+      }
+    },
+    {
+      "identity" : "purchases-ios-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RevenueCat/purchases-ios-spm",
+      "state" : {
+        "revision" : "e45bb84b726885492ce4e7ee94ddb252d171a205",
+        "version" : "5.92.0"
       }
     }
   ],

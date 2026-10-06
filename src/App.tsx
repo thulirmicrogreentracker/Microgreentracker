@@ -23,6 +23,9 @@ import HarvestSheet from './components/HarvestSheet';
 import InfoPage, { InfoPageKind } from './components/InfoPage';
 import Paywall, { PaywallReason } from './components/Paywall';
 import { useSubscription } from './subscription/useSubscription';
+import AccountSheet from './components/AccountSheet';
+import { useAccount } from './account/useAccount';
+import { syncTrialStart } from './account/trial';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
@@ -53,6 +56,23 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [infoPage, setInfoPage] = useState<InfoPageKind | null>(null);
   const [paywall, setPaywall] = useState<PaywallReason | null>(null);
   const subscription = useSubscription(config.trialStartedAt);
+  const accountState = useAccount();
+  const { account } = accountState;
+  const [showAccount, setShowAccount] = useState(false);
+
+  // One free trial per person: compare this phone's trial start with the records kept online for the device and
+  // the signed-in email, and keep the earliest.
+  const trialStart = config.trialStartedAt;
+  useEffect(() => {
+    if (accountState.mode !== 'firebase' || !accountState.loaded) return;
+    let cancelled = false;
+    syncTrialStart(trialStart, account).then(start => {
+      if (cancelled || !start || !trialStart || start >= trialStart) return;
+      update(d => (d.config.trialStartedAt && start < d.config.trialStartedAt ? { ...d, config: { ...d.config, trialStartedAt: start } } : d));
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountState.mode, accountState.loaded, account?.uid, account?.verified, trialStart]);
 
   // After the free trial, a new batch needs Pro; everything else stays available.
   const startNewBatch = () => {
@@ -93,6 +113,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   useEffect(() => {
     const handle = CapacitorApp.addListener('backButton', () => {
       if (infoPage) setInfoPage(null);
+      else if (showAccount) setShowAccount(false);
       else if (paywall) setPaywall(null);
       else if (harvestBatchId) setHarvestBatchId(null);
       else if (lossSheet) setLossSheet(null);
@@ -108,7 +129,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       else CapacitorApp.exitApp();
     });
     return () => { handle.then(h => h.remove()); };
-  }, [infoPage, paywall, harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
+  }, [infoPage, showAccount, paywall, harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
 
   const availableSlots = useMemo(() => freeSlots(batches, config.totalTrays), [batches, config.totalTrays]);
 
@@ -598,6 +619,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             onOpenInfo={setInfoPage}
             subscription={subscription}
             onOpenPaywall={() => setPaywall(subscription.trialEnded ? 'trial-ended' : 'upgrade')}
+            accountState={accountState}
+            onOpenAccount={() => setShowAccount(true)}
             onDeleteCategory={deleteCategory}
             highestBatchNumber={highestBatchNumber(batches)}
             highestTrayNumber={highestTrayNumber(batches)}
@@ -804,8 +827,17 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       />
 
       {paywall && (
-        <Paywall reason={paywall} subscription={subscription} onClose={() => setPaywall(null)} onOpenPrivacy={() => setInfoPage('privacy')} />
+        <Paywall
+          reason={paywall}
+          subscription={subscription}
+          account={accountState.mode === 'off' ? undefined : account}
+          onSignIn={() => setShowAccount(true)}
+          onClose={() => setPaywall(null)}
+          onOpenPrivacy={() => setInfoPage('privacy')}
+        />
       )}
+
+      {showAccount && <AccountSheet account={account} onClose={() => setShowAccount(false)} onOpenPrivacy={() => setInfoPage('privacy')} />}
 
       {infoPage && <InfoPage kind={infoPage} onClose={() => setInfoPage(null)} />}
 

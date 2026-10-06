@@ -57,7 +57,7 @@ CROPS
 • Add your own crops and categories, and choose an icon for each category
 
 YOUR DATA STAYS YOURS
-• No account needed; everything is stored on your phone
+• No account needed (signing in is optional); everything is stored on your phone
 • Automatic daily copies on the device
 • Save a single backup file (data and photos) to Google Drive, Files or email, and restore it on a new phone
 • No ads, no tracking
@@ -90,9 +90,19 @@ First release: batches with multiple trays, per-tray photos and harvest weights,
 
 ## Privacy questionnaires
 
-With subscriptions, the only data that leaves the device is what RevenueCat needs to check purchases: a random
-per-install ID and the store's purchase information. Growing data and photos never leave the device (except when the
-user shares a backup file or photo through the share sheet, to a destination they pick).
+Data that leaves the device:
+
+- **RevenueCat** (purchases): the store's purchase information, with a random per-install ID, or the account ID, name
+  and email when the user has signed in.
+- **Firebase Authentication** (optional sign-in): name, email address and user ID.
+- **Cloud Firestore** (one free trial per person): the trial start date under a SHA-256 hash of the device ID and,
+  when signed in, of the email.
+
+Growing data and photos never leave the device (except when the user shares a backup file or photo through the share
+sheet, to a destination they pick).
+
+These answers apply to a build with sign-in turned on (Firebase settings filled in; see docs/accounts.md). A build
+without them collects only the purchase history, as before.
 
 Check these answers against RevenueCat's own guidance before submitting, in case the SDK has changed:
 [Apple App Privacy](https://www.revenuecat.com/docs/platform-resources/apple-platform-resources/apple-app-privacy) and
@@ -101,20 +111,35 @@ Check these answers against RevenueCat's own guidance before submitting, in case
 ### Apple: App Privacy ("nutrition label")
 
 - **Do you or your third-party partners collect data from this app?** Yes.
-- **Purchases → Purchase History**: collected; used for **App Functionality**; **not linked** to the user's identity;
-  **not used for tracking**.
+- **Contact Info → Name** and **Email Address**: collected; used for **App Functionality** (and **Customer Support**);
+  **linked** to the user's identity; not used for tracking.
+- **Identifiers → User ID**: collected; **App Functionality**; **linked**; not used for tracking.
+- **Identifiers → Device ID**: collected (as a one-way hash, for one free trial per device); **App Functionality**;
+  **not linked**; not used for tracking.
+- **Purchases → Purchase History**: collected; **App Functionality**; **linked** to the user's identity (when signed
+  in); not used for tracking.
 - No other data types. **Tracking:** No.
+- Sign in with Apple: the iPhone app offers only email sign-in (Google sign-in is Android-only), so Apple's rule
+  requiring Sign in with Apple alongside third-party logins does not apply. If Google sign-in is ever added on iPhone,
+  add Sign in with Apple too.
+- **Account deletion** (Apple guideline 5.1.1(v)): available in the app under Config → Account → Delete account.
 
 ### Google Play: Data safety
 
 - **Does your app collect or share any of the required user data types?** Yes (collected, not shared: RevenueCat is a
   service provider acting on the developer's behalf, which Play does not count as sharing).
+- **Personal info → Name** and **Email address**: collected; not processed ephemerally; **optional** (users can
+  choose not to sign in); purposes **App functionality** and **Account management**.
+- **Personal info → User IDs**: collected; **optional**; **App functionality**, **Account management**.
 - **Financial info → Purchase history**: collected; **processed ephemerally: No**; **required** (to use
   subscriptions); purpose **App functionality**.
+- **Device or other IDs**: collected (a one-way hash of the device ID, used to allow one free trial per device);
+  **required**; purposes **App functionality** and **Fraud prevention, security, and compliance**.
 - **Is all of the user data collected by your app encrypted in transit?** Yes (HTTPS).
-- **Do you provide a way for users to request that their data is deleted?** Yes: by email to the support address
-  (see the privacy policy).
-- **Account creation:** the app has no accounts, so no account-deletion URL is needed.
+- **Do you provide a way for users to request that their data is deleted?** Yes: in the app (Config → Account →
+  Delete account) or by email to the support address (see the privacy policy).
+- **Account creation:** Yes, **username and password** and **OAuth** (Google). Account-deletion URL:
+  https://universepdkt.github.io/Microgreentracker/store/delete-account
 - **In-app purchases:** declare that the app contains in-app purchases (subscriptions and a one-time purchase).
 
 ### Google Play: other declarations
@@ -122,7 +147,7 @@ Check these answers against RevenueCat's own guidance before submitting, in case
 | Declaration | Answer |
 |---|---|
 | Ads | No, the app contains no ads |
-| App access | All functionality is available without special access (no login) |
+| App access | All functionality is available without special access (sign-in is optional) |
 | Target audience | 18 and over (avoids the Families programme requirements; the app is for growers) |
 | News app | No |
 | COVID-19 contact tracing / status | No |
@@ -133,5 +158,5 @@ Check these answers against RevenueCat's own guidance before submitting, in case
 ### Content rating (IARC questionnaire, Google Play)
 
 Category: **Utility, Productivity, Communication or Other**. Answer **No** to every question (violence, sexual
-content, language, controlled substances, gambling, user interaction, sharing location, digital purchases). Expected
-rating: Everyone / PEGI 3 / 3+.
+content, language, controlled substances, gambling, user interaction, sharing location), except **digital purchases:
+Yes** (the Pro subscription). Expected rating: Everyone / PEGI 3 / 3+.

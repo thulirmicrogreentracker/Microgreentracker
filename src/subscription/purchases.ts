@@ -157,3 +157,26 @@ export const restorePurchases = async (): Promise<ProStatus> => {
   emit(status);
   return status;
 };
+
+// Links purchases to a signed-in customer: the RevenueCat customer ID becomes their account ID, so Pro follows them
+// to every device (Android and iPhone), and their name and email show in RevenueCat. Purchases made before signing
+// in move to the account.
+export const linkCustomer = async (uid: string, email: string, name: string): Promise<void> => {
+  if (purchasesMode !== 'store') return;
+  await initPurchases();
+  const { customerInfo } = await Purchases.logIn({ appUserID: uid });
+  emit(statusFrom(customerInfo));
+  await Purchases.setAttributes({ $email: email, $displayName: name || null });
+};
+
+// Back to an anonymous customer after signing out. With clearDetails (account deletion), the name and email are
+// removed from RevenueCat first.
+export const unlinkCustomer = async ({ clearDetails = false } = {}): Promise<void> => {
+  if (purchasesMode !== 'store') return;
+  await initPurchases();
+  const { isAnonymous } = await Purchases.isAnonymous();
+  if (isAnonymous) return;
+  if (clearDetails) await Purchases.setAttributes({ $email: null, $displayName: null });
+  const { customerInfo } = await Purchases.logOut();
+  emit(statusFrom(customerInfo));
+};

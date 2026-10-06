@@ -13,8 +13,9 @@ This branch (`feature/subscriptions`) adds Microgreen Manager Pro. It is kept se
   one-time **lifetime** purchase.
 - **Paywall:** Config → Subscription → See plans, the home-screen banner (last 7 days of the trial and after it), or
   tapping **+** after the trial. Prices come from the stores, in the user's currency.
-- Users are **anonymous**: RevenueCat creates a random ID per install. "Restore purchases" brings Pro back on a new
-  phone signed in to the same store account.
+- Users are **anonymous** unless they sign in: RevenueCat creates a random ID per install, and "Restore purchases"
+  brings Pro back on a new phone signed in to the same store account. A user who signs in (optional) is linked to
+  RevenueCat by their account, with name and email; see [accounts.md](accounts.md).
 
 | Mode | When | What happens |
 |---|---|---|

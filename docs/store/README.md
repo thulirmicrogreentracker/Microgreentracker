@@ -6,6 +6,7 @@ Everything needed for the store listings, and the steps to get there.
 |---|---|---|
 | [privacy-policy.md](privacy-policy.md) | Privacy policy | Publish at a public web address; link it in both stores and in the app |
 | [faq.md](faq.md) | Questions and answers for users | Your support page, and optionally in the app |
+| [delete-account.md](delete-account.md) | How to delete an account (needed once sign-in is on) | Play Console → Data safety → Delete account URL |
 | [store-listing.md](store-listing.md) | Names, descriptions, keywords, categories, privacy and content-rating answers | App Store Connect and Play Console |
 | [screenshots.md](screenshots.md) and [screenshots/](screenshots/) | Ready-made store screenshots (iPhone and Android, captioned and plain), the Play feature graphic and icon, and how to remake them | App Store Connect and Play Console |
 
@@ -63,15 +64,17 @@ the `docs` folder on `main` (repository Settings → Pages → Deploy from a bra
 1. In Xcode, select your paid team under Signing & Capabilities for the **App** target.
 2. App Store Connect → My Apps → New App: bundle ID `com.universepdkt.microgreentracker`, name, primary language.
 3. Xcode → Product → **Archive** → Distribute App → App Store Connect → Upload.
-4. In App Store Connect, fill in the listing (store-listing.md), screenshots (screenshots.md), App Privacy ("Data Not
-   Collected"), age rating (4+) and the privacy policy URL; choose the uploaded build and submit for review.
+4. In App Store Connect, fill in the listing (store-listing.md), screenshots (screenshots.md), App Privacy (see
+   store-listing.md), age rating (4+) and the privacy policy URL; choose the uploaded build and submit for review.
 5. Optional but recommended: test the build with TestFlight first.
 
 ## Facts the answers rely on
 
 If any of these change, update the privacy policy and the store questionnaires before releasing:
 
-- The app makes no network requests and has no account, analytics, ads or tracking SDKs.
+- The app has no analytics, ads or tracking SDKs. Its only network services are RevenueCat (purchases) and, when
+  sign-in is set up, Firebase (optional account, plus a hashed device/email record for the free trial). See
+  [../subscriptions.md](../subscriptions.md) and [../accounts.md](../accounts.md).
 - Data and photos are stored only in the app's private storage on the device.
 - Data leaves the device only when the user shares a backup file or photo through the share sheet, or through the
   phone's own backup (Google app backup excludes photos; iCloud Backup includes them).

@@ -3,7 +3,7 @@
 ## Getting started
 
 **Do I need an account or internet connection?**
-No. There is no sign-up or login, and the app works fully offline. Everything is saved on your phone.
+No. Signing in is optional, and the app works fully offline. Everything is saved on your phone.
 
 **What is a batch, and what is a tray?**
 A batch is one crop sown on one day, for example "Radish sown 5 October". A batch holds one or more trays. Each batch
@@ -105,7 +105,33 @@ backups) stays available whether or not you subscribe.
 Config → Subscription shows your trial or subscription and the plans.
 
 **I bought Pro on another phone. How do I get it back?**
-Sign in to the same Google Play or App Store account, then tap Config → Subscription → Restore purchases.
+If you were signed in when you bought it, sign in with the same account (Config → Account); Pro comes back
+automatically, even between Android and iPhone. Otherwise, sign in to the same Google Play or App Store account and
+tap Config → Subscription → Restore purchases.
+
+**Can I get a new free trial by reinstalling or making a new account?**
+No. There is one free trial per person: the trial is remembered for your phone and for your confirmed email.
+
+## Account
+
+**Why would I sign in?**
+It is optional. Signing in lets your Pro plan work on all your devices and helps us find your purchase if you contact
+support. Your batches and photos are not uploaded; they stay on your phone.
+
+**How do I sign in?**
+Config → Account → Sign in. On Android you can use your Google account. You can also use an email address and a
+password; we email you a link to confirm the address, then tap "I've confirmed my email" in the app.
+
+**I didn't get the confirmation email.**
+Check your spam folder, then tap "Send the email again". Make sure the address is spelled correctly.
+
+**I forgot my password.**
+On the email sign-in screen tap "Forgot password?" and we'll email you a link to choose a new one.
+
+**How do I delete my account?**
+Config → Account → Delete account. This removes your name and email from our sign-in service. Your batches and photos
+on the phone are kept, and a purchase stays with your store account. Without the app, email us from your account's
+address and we'll delete it. Details: https://universepdkt.github.io/Microgreentracker/store/delete-account
 
 **How do I cancel?**
 In Google Play (Play Store → Profile → Payments & subscriptions → Subscriptions) or on iPhone (Settings → your name →
@@ -115,8 +141,8 @@ Subscriptions). You keep Pro until the end of the period you paid for.
 
 **Do you see my data?**
 No. Your growing data and photos stay on your phone; they only leave it when you share a backup file or a photo
-yourself. To check subscriptions, the app sends our subscription service (RevenueCat) a random ID and your purchase
-details from the store, nothing else.
+yourself. To check subscriptions, the app sends our subscription service (RevenueCat) your purchase details from the
+store with a random ID, or with your account if you signed in. If you sign in, we keep your name and email.
 See the privacy policy: https://universepdkt.github.io/Microgreentracker/store/privacy-policy
 
 **Why does the app ask for the camera?**

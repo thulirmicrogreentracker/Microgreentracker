@@ -1,6 +1,6 @@
 # Privacy Policy for Microgreen Manager
 
-- **Effective date:** 5 October 2026
+- **Effective date:** 6 October 2026
 - **App:** Microgreen Manager (Android and iOS)
 - **Developer:** Rajeshkumar
 - **Contact:** thulirmicrogreentracker@gmail.com
@@ -10,12 +10,16 @@ stays on your own device. This policy explains what the app stores, where it is 
 
 ## Summary
 
-- **We do not collect any personal data.** The app has no account, no login and no server of ours.
+- **Signing in is optional.** If you choose to sign in (with Google or with an email and password), we keep your name
+  and email address so your subscription works on all your devices and we can support you. You can use the app
+  without signing in, and you can delete your account at any time.
 - **Everything you enter stays on your device**: your batches, trays, notes, watering records, harvest weights and
   photos.
 - **No advertising, analytics or tracking.** The app contains no ad networks, analytics or tracking tools.
 - **Subscriptions:** to check whether you have a subscription, the app contacts our subscription service, RevenueCat,
   using a random ID. Payments are handled by Google Play or the App Store. See "Subscriptions and purchases" below.
+- **One free trial per person:** the app records when the free trial started, against a one-way fingerprint of the
+  device (and of your email, if you sign in). See "Free trial" below.
 - **You decide when data leaves your device**, for example when you save a backup file to Google Drive or email it.
 
 ## Information the app stores on your device
@@ -47,6 +51,35 @@ lifetime purchase. Everything you have already recorded stays available either w
 - None of your growing data (batches, trays, notes, photos, harvests) is sent to RevenueCat or to us.
 - To cancel a subscription, use your Google Play or App Store account settings.
 
+## Optional sign-in (account)
+
+You can sign in from Config → Account or from the subscription screen. It is never required.
+
+- **What we keep:** your name, your email address, whether the email is confirmed, how you sign in (Google or
+  email and password), a user ID, and when the account was created and last used. If you sign in with Google, Google
+  shares your name and email with us; we do not get your Google password or contacts.
+- **Passwords** are handled by Google Firebase Authentication and are never visible to us.
+- **Who processes it:** Google Firebase (Google LLC) provides the sign-in service on our behalf. Firebase's privacy
+  information: https://firebase.google.com/support/privacy
+- **Why:** to identify you as a customer, so that your Pro subscription follows you to every device (including
+  between Android and iPhone), to allow one free trial per person, and to answer support requests.
+- **Subscriptions and accounts:** when you are signed in with a confirmed email, your account ID, name and email are
+  also shared with RevenueCat (see below), so your purchases are linked to your account instead of a random ID.
+- Your growing data (batches, trays, notes, photos, harvests) is **not** uploaded when you sign in; it stays on your
+  device.
+
+## Free trial
+
+To give each person one free trial, the app keeps the date your trial started in Google Firebase (Cloud Firestore),
+stored under:
+
+- a **one-way fingerprint (SHA-256 hash) of your device's ID**, made on your phone, and
+- if you sign in with a confirmed email, a **one-way fingerprint of your email address**.
+
+A fingerprint cannot be turned back into the device ID or email address. Each record holds only the trial start date.
+These records are kept after you delete the app or your account, so that the free trial isn't started again; they
+contain no name, email or other details.
+
 ## Permissions
 
 - **Camera**: only used when you tap "Take photo" to photograph a tray. Photos are saved inside the app.
@@ -73,24 +106,33 @@ Your data stays on your device until you delete it. You can delete individual ba
 Uninstalling the app removes all of its data from the device (copies in backup files or device backups that you
 made remain until you delete them).
 
-Because we do not hold your growing data, there is no account to delete. Purchase records kept by RevenueCat for a
-subscription are linked only to the random installation ID; to have them deleted, email us and include that you want
-your purchase records removed (we will ask RevenueCat to delete them).
+Because we do not hold your growing data, deleting the app is all you need to remove it.
+
+**Deleting your account:** if you signed in, open Config → Account → Delete account. This deletes your sign-in
+account (name, email and user ID) from Firebase straight away and removes your name and email from RevenueCat. Your
+batches and photos on the phone are not affected, and a purchase stays with your Google Play or App Store account
+(use Restore purchases). If you no longer have the app, email us from the address of your account and we will delete
+it within 30 days. Details: https://universepdkt.github.io/Microgreentracker/store/delete-account
+
+Purchase records kept by RevenueCat are needed for your subscription and for our tax and accounting duties; to have
+them deleted as well, email us (we will ask RevenueCat to delete them). The trial fingerprints described under "Free
+trial" are kept, as they do not identify you.
 
 ## Children
 
 The app is a general-purpose growing tool and is not directed at children. It does not knowingly collect information
-from anyone, including children.
+from children; the optional account is meant for adults running a growing business or hobby.
 
 ## Security
 
 Your data is stored in the app's private storage, which other apps cannot read, and is protected by your device's
-lock screen and encryption. Please keep your device and any backup files you make secure.
+lock screen and encryption. Account details and trial records are sent over encrypted connections (HTTPS) and
+protected by Firebase's access rules, so only you can read your account. Please keep your device and any backup files you make secure.
 
 ## Changes to this policy
 
 If this policy changes, we will update the effective date above and publish the new version at this address. If a
-future version of the app ever collects data, the policy will explain it before that version is released.
+future version of the app collects more data, the policy will explain it before that version is released.
 
 ## Contact
 

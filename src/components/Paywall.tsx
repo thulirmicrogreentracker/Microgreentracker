@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { getPlans, Plan, PurchaseCancelled, purchasePlan, purchasesMode, restorePurchases } from '../subscription/purchases';
 import { TERMS_OF_USE_URL, TRIAL_DAYS } from '../subscription/config';
 import type { SubscriptionState } from '../subscription/useSubscription';
+import type { Account } from '../account/account';
 import { openExternal } from '../utils/openExternal';
 
 export type PaywallReason = 'trial-ended' | 'upgrade';
@@ -11,6 +12,8 @@ export type PaywallReason = 'trial-ended' | 'upgrade';
 interface PaywallProps {
   reason: PaywallReason;
   subscription: SubscriptionState;
+  account?: Account | null; // undefined when sign-in is off
+  onSignIn: () => void;
   onClose: () => void;
   onOpenPrivacy: () => void;
 }
@@ -25,7 +28,7 @@ const benefits = [
   'Supports the development of the app',
 ];
 
-const Paywall: React.FC<PaywallProps> = ({ reason, subscription, onClose, onOpenPrivacy }) => {
+const Paywall: React.FC<PaywallProps> = ({ reason, subscription, account, onSignIn, onClose, onOpenPrivacy }) => {
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -169,6 +172,19 @@ const Paywall: React.FC<PaywallProps> = ({ reason, subscription, onClose, onOpen
         )}
 
         {message && <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 mt-3">{message}</p>}
+
+        {account === null && (
+          <button onClick={onSignIn} className="w-full mt-4 text-sm text-emerald-800 bg-emerald-50 rounded-lg p-3 text-left">
+            <span className="font-semibold">Sign in</span> to use Pro on all your devices (optional).
+          </button>
+        )}
+        {account && (
+          <p className="mt-4 text-xs text-gray-500 text-center truncate">
+            {account.verified ? `Signed in as ${account.email}` : (
+              <button onClick={onSignIn} className="underline">Confirm {account.email} to use Pro on all your devices</button>
+            )}
+          </p>
+        )}
       </div>
 
       <div className="shrink-0 border-t border-gray-100 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
