@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, Hash, HardDrive, History, Database, Upload, FolderOpen, ListPlus, ShieldCheck, HelpCircle, Mail, ChevronRight, Info } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, Hash, HardDrive, History, Database, Upload, FolderOpen, ListPlus, ShieldCheck, HelpCircle, Mail, ChevronRight, Info, Crown } from 'lucide-react';
+import { format } from 'date-fns';
+import type { SubscriptionState } from '../subscription/useSubscription';
+import { restorePurchases } from '../subscription/purchases';
+import { openExternal } from '../utils/openExternal';
 import { appInfo, isFilledIn } from '../data/appInfo';
 import type { InfoPageKind } from './InfoPage';
 import { CropType, AppConfig } from '../types';
@@ -16,6 +20,8 @@ interface ConfigPanelProps {
   onRenameCategory: (from: string, to: string) => void;
   onAddStandardCrops: () => void;
   onOpenInfo: (page: InfoPageKind) => void;
+  subscription: SubscriptionState;
+  onOpenPaywall: () => void;
   onDeleteCategory: (name: string) => void;
   highestBatchNumber: number;
   highestTrayNumber: number;
@@ -181,7 +187,7 @@ const NumberSetting: React.FC<{ value: number; min: number; onChange: (n: number
   );
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onOpenInfo, onDeleteCategory, highestBatchNumber, highestTrayNumber, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onOpenInfo, subscription, onOpenPaywall, onDeleteCategory, highestBatchNumber, highestTrayNumber, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [version, setVersion] = useState<string | null>(null);
 
@@ -234,8 +240,63 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
     setEditForm({ ...crop });
   };
 
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const restore = async () => {
+    setRestoreMessage('Checking…');
+    try {
+      const status = await restorePurchases();
+      setRestoreMessage(status.active ? 'Pro restored.' : 'No earlier purchase was found for this store account.');
+    } catch {
+      setRestoreMessage('Couldn\'t check right now. Please check your internet connection.');
+    }
+  };
+
+  const { pro } = subscription;
+  const planName = pro.plan === 'yearly' ? 'Yearly' : pro.plan === 'monthly' ? 'Monthly' : pro.plan === 'lifetime' ? 'Lifetime' : '';
+  const subscriptionLine = pro.active
+    ? pro.plan === 'lifetime' || !pro.expiresAt
+      ? `Pro${planName ? ` · ${planName}` : ''}. Thank you!`
+      : `Pro · ${planName} · ${pro.willRenew ? 'renews' : 'ends'} ${format(new Date(pro.expiresAt), 'MMM d, yyyy')}`
+    : subscription.trialEnded
+      ? 'Free trial ended. Subscribe to start new batches; everything else keeps working.'
+      : `Free trial · ${subscription.trialDaysLeft} day${subscription.trialDaysLeft === 1 ? '' : 's'} left${
+          subscription.trialEndsAt ? ` (until ${format(subscription.trialEndsAt, 'MMM d, yyyy')})` : ''
+        }`;
+
   return (
     <div className="space-y-6">
+      {/* Subscription (hidden when subscriptions are off, e.g. development builds without RevenueCat keys) */}
+      {subscription.mode !== 'off' && (
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide flex items-center gap-1.5">
+            <Crown className="w-4 h-4" />
+            Subscription
+          </h3>
+          <p className="text-sm text-gray-700 mb-3">{subscription.loaded ? subscriptionLine : 'Checking your subscription…'}</p>
+          <div className="flex gap-2">
+            {!pro.active && (
+              <button onClick={onOpenPaywall} className="flex-1 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+                See plans
+              </button>
+            )}
+            {pro.active && pro.managementURL && pro.plan !== 'lifetime' && (
+              <button onClick={() => openExternal(pro.managementURL!)} className="flex-1 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100">
+                Manage subscription
+              </button>
+            )}
+            {!pro.active && (
+              <button onClick={restore} className="flex-1 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100">
+                Restore purchases
+              </button>
+            )}
+          </div>
+          {restoreMessage && <p className="text-xs text-gray-500 mt-2">{restoreMessage}</p>}
+          {subscription.mode === 'test' && (
+            <p className="text-[11px] text-amber-700 mt-2">Test mode: plans are made up and nothing is charged.</p>
+          )}
+        </div>
+      )}
+
       {/* Backup & Restore */}
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">

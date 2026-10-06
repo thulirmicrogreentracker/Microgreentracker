@@ -94,10 +94,29 @@ All its data is removed from the phone. Save a backup file first if you want to 
 Not automatically; the data lives on one phone. You can move it with a backup file, but changes are not synced
 between phones.
 
+## Subscription
+
+**Is the app free?**
+Everything is free for the first 30 days. After that, starting new batches needs Microgreen Manager Pro: monthly,
+yearly, or a one-time lifetime purchase. Everything you've already recorded (batches, photos, harvests, reports and
+backups) stays available whether or not you subscribe.
+
+**How do I subscribe, or see how long my trial lasts?**
+Config → Subscription shows your trial or subscription and the plans.
+
+**I bought Pro on another phone. How do I get it back?**
+Sign in to the same Google Play or App Store account, then tap Config → Subscription → Restore purchases.
+
+**How do I cancel?**
+In Google Play (Play Store → Profile → Payments & subscriptions → Subscriptions) or on iPhone (Settings → your name →
+Subscriptions). You keep Pro until the end of the period you paid for.
+
 ## Privacy
 
 **Do you see my data?**
-No. Nothing is sent to us or anyone else. Data only leaves your phone when you share a backup file or a photo yourself.
+No. Your growing data and photos stay on your phone; they only leave it when you share a backup file or a photo
+yourself. To check subscriptions, the app sends our subscription service (RevenueCat) a random ID and your purchase
+details from the store, nothing else.
 See the privacy policy: https://universepdkt.github.io/Microgreentracker/store/privacy-policy
 
 **Why does the app ask for the camera?**

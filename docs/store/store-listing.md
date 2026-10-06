@@ -15,7 +15,7 @@ content-rating questionnaires. Character limits are in brackets; every field bel
 | Subtitle [30] | Tray tracker for growers |
 | Primary category | Productivity |
 | Secondary category | Food & Drink |
-| Promotional text [170] | Track every tray from sowing to harvest: auto-numbered batches, per-tray photos and harvest weights, lost-tray reasons and yield reports. No account needed. |
+| Promotional text [170] | Track every tray from sowing to harvest: auto-numbered batches, per-tray photos, harvest weights and yield reports. Free for 30 days. |
 | Keywords [100] | microgreens,tray,grow,harvest,yield,seed,sprouts,farm,garden,crop,log,tracker,batch,hydroponic |
 | Support URL | https://universepdkt.github.io/Microgreentracker/store/faq |
 | Privacy Policy URL | https://universepdkt.github.io/Microgreentracker/store/privacy-policy |
@@ -57,10 +57,16 @@ CROPS
 • Add your own crops and categories, and choose an icon for each category
 
 YOUR DATA STAYS YOURS
-• No account and no internet needed; everything is stored on your phone
+• No account needed; everything is stored on your phone
 • Automatic daily copies on the device
 • Save a single backup file (data and photos) to Google Drive, Files or email, and restore it on a new phone
 • No ads, no tracking
+
+FREE FOR 30 DAYS
+Try everything free for 30 days. After that, Microgreen Manager Pro (monthly, yearly or a one-time lifetime purchase) is needed to start new batches; everything you've recorded stays available. Subscriptions renew automatically until cancelled in your Google Play or App Store account settings.
+
+Terms of use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy policy: https://universepdkt.github.io/Microgreentracker/store/privacy-policy
 ```
 
 ### What's New (first release)
@@ -84,24 +90,32 @@ First release: batches with multiple trays, per-tray photos and harvest weights,
 
 ## Privacy questionnaires
 
-The app sends nothing off the device to the developer: no network requests, no analytics, ads or third-party SDKs
-that collect data. Files the user chooses to share through the system share sheet go to a destination they pick.
+With subscriptions, the only data that leaves the device is what RevenueCat needs to check purchases: a random
+per-install ID and the store's purchase information. Growing data and photos never leave the device (except when the
+user shares a backup file or photo through the share sheet, to a destination they pick).
+
+Check these answers against RevenueCat's own guidance before submitting, in case the SDK has changed:
+[Apple App Privacy](https://www.revenuecat.com/docs/platform-resources/apple-platform-resources/apple-app-privacy) and
+[Google Play Data safety](https://www.revenuecat.com/docs/platform-resources/google-platform-resources/google-plays-data-safety).
 
 ### Apple: App Privacy ("nutrition label")
 
-- **Do you or your third-party partners collect data from this app?** No.
-- Result shown on the store: **Data Not Collected**.
-- **Tracking:** No.
+- **Do you or your third-party partners collect data from this app?** Yes.
+- **Purchases → Purchase History**: collected; used for **App Functionality**; **not linked** to the user's identity;
+  **not used for tracking**.
+- No other data types. **Tracking:** No.
 
 ### Google Play: Data safety
 
-- **Does your app collect or share any of the required user data types?** No.
-  - Data stays on the device; user-initiated sharing of a backup file or photo through the share sheet, to a
-    destination the user picks, does not count as collection or sharing by the developer.
-- **Is all of the user data collected by your app encrypted in transit?** Not applicable (nothing is collected).
-- **Do you provide a way for users to request that their data is deleted?** Not applicable: no accounts and no data
-  held by the developer. (Uninstalling the app deletes its data.)
+- **Does your app collect or share any of the required user data types?** Yes (collected, not shared: RevenueCat is a
+  service provider acting on the developer's behalf, which Play does not count as sharing).
+- **Financial info → Purchase history**: collected; **processed ephemerally: No**; **required** (to use
+  subscriptions); purpose **App functionality**.
+- **Is all of the user data collected by your app encrypted in transit?** Yes (HTTPS).
+- **Do you provide a way for users to request that their data is deleted?** Yes: by email to the support address
+  (see the privacy policy).
 - **Account creation:** the app has no accounts, so no account-deletion URL is needed.
+- **In-app purchases:** declare that the app contains in-app purchases (subscriptions and a one-time purchase).
 
 ### Google Play: other declarations
 

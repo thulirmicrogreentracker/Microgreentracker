@@ -107,6 +107,8 @@ export interface AppConfig {
   // lower than the numbers already in use, so new batches and trays keep counting up after a restore.
   lastBatchNumber: number;
   lastTrayNumber: number;
+  // When the free trial started (first launch). Saved with the data so it carries over in backups.
+  trialStartedAt?: string;
 }
 
 export interface AppData {

@@ -2,7 +2,11 @@ import { StrictMode } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { initPurchases } from './subscription/purchases';
 import './index.css';
+
+// Start RevenueCat early so the subscription status is ready by the time it's needed (no-op without API keys).
+initPurchases().catch(e => console.warn('RevenueCat setup failed:', e));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

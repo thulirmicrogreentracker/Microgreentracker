@@ -101,6 +101,10 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     lossReasons: Array.isArray(rawConfig.lossReasons) && rawConfig.lossReasons.length > 0 ? rawConfig.lossReasons : defaultLossReasons,
     lastBatchNumber: nextBatch,
     lastTrayNumber: nextTray,
+    // Data from before subscriptions starts its free trial now.
+    trialStartedAt: typeof rawConfig.trialStartedAt === 'string' && !Number.isNaN(Date.parse(rawConfig.trialStartedAt))
+      ? rawConfig.trialStartedAt
+      : new Date().toISOString(),
   }, batches);
 
   return {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown } from 'lucide-react';
+import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown, Crown } from 'lucide-react';
 import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto } from './types';
 import { useAppData, UpdateAppData } from './hooks/useAppData';
 import { useReminders } from './hooks/useReminders';
@@ -21,6 +21,8 @@ import CropPhotos from './components/photos/CropPhotos';
 import LostTraySheet, { TrayLoss } from './components/LostTraySheet';
 import HarvestSheet from './components/HarvestSheet';
 import InfoPage, { InfoPageKind } from './components/InfoPage';
+import Paywall, { PaywallReason } from './components/Paywall';
+import { useSubscription } from './subscription/useSubscription';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
@@ -49,6 +51,14 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [lossSheet, setLossSheet] = useState<{ batchId: string; trayIds: string[] } | null>(null);
   const [harvestBatchId, setHarvestBatchId] = useState<string | null>(null);
   const [infoPage, setInfoPage] = useState<InfoPageKind | null>(null);
+  const [paywall, setPaywall] = useState<PaywallReason | null>(null);
+  const subscription = useSubscription(config.trialStartedAt);
+
+  // After the free trial, a new batch needs Pro; everything else stays available.
+  const startNewBatch = () => {
+    if (subscription.locked) setPaywall('trial-ended');
+    else setIsModalOpen(true);
+  };
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRestoreSheet, setShowRestoreSheet] = useState(false);
   const [galleryBatchId, setGalleryBatchId] = useState<string | null>(null);
@@ -83,6 +93,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   useEffect(() => {
     const handle = CapacitorApp.addListener('backButton', () => {
       if (infoPage) setInfoPage(null);
+      else if (paywall) setPaywall(null);
       else if (harvestBatchId) setHarvestBatchId(null);
       else if (lossSheet) setLossSheet(null);
       else if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
@@ -97,7 +108,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       else CapacitorApp.exitApp();
     });
     return () => { handle.then(h => h.remove()); };
-  }, [infoPage, harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
+  }, [infoPage, paywall, harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
 
   const availableSlots = useMemo(() => freeSlots(batches, config.totalTrays), [batches, config.totalTrays]);
 
@@ -392,7 +403,9 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   // Replaces all app data, keeping the current data as an on-phone snapshot first so it can be undone.
   const replaceData = async (next: AppData) => {
     await createSnapshot(data);
-    update(() => next);
+    // Restoring a backup never restarts the free trial: keep whichever trial started first.
+    const starts = [data.config.trialStartedAt, next.config.trialStartedAt].filter((s): s is string => !!s).sort();
+    update(() => ({ ...next, config: { ...next.config, trialStartedAt: starts[0] } }));
     setExpandedIds(new Set());
     setActiveTab('home');
   };
@@ -487,6 +500,22 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         {activeTab === 'home' && (
           <div className="space-y-4">
             <Dashboard stats={stats} />
+            {subscription.mode !== 'off' && subscription.loaded && !subscription.pro.active && (subscription.trialEnded || subscription.trialDaysLeft <= 7) && (
+              <button
+                onClick={() => setPaywall(subscription.trialEnded ? 'trial-ended' : 'upgrade')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left ${
+                  subscription.trialEnded ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                }`}
+              >
+                <Crown className="w-4 h-4 shrink-0" />
+                <span className="flex-1 text-xs">
+                  {subscription.trialEnded
+                    ? 'Your free trial has ended. Subscribe to start new batches.'
+                    : `Free trial: ${subscription.trialDaysLeft} day${subscription.trialDaysLeft === 1 ? '' : 's'} left`}
+                </span>
+                <span className="text-xs font-semibold underline">See plans</span>
+              </button>
+            )}
             {batches.length === 0 ? (
               <div className="text-center py-12">
                 <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
@@ -495,7 +524,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No batches yet</h3>
                 <p className="text-sm text-gray-500 mb-6">Start by adding your first microgreen batch</p>
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={startNewBatch}
                   className="bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition-colors font-medium inline-flex items-center"
                 >
                   <Plus className="w-5 h-5 mr-2" />
@@ -567,6 +596,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             onRenameCategory={renameCategory}
             onAddStandardCrops={addStandardCrops}
             onOpenInfo={setInfoPage}
+            subscription={subscription}
+            onOpenPaywall={() => setPaywall(subscription.trialEnded ? 'trial-ended' : 'upgrade')}
             onDeleteCategory={deleteCategory}
             highestBatchNumber={highestBatchNumber(batches)}
             highestTrayNumber={highestTrayNumber(batches)}
@@ -584,7 +615,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       {/* Floating Action Button */}
       {activeTab === 'home' && (
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={startNewBatch}
           aria-label="Add batch"
           className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 max-w-md:w-auto lg:max-w-lg:w-auto xl:max-w-xl:w-auto z-30 bg-emerald-600 text-white rounded-full p-4 shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
           style={{ right: 'max(1rem, calc((100vw - 100%) / 2 + 1rem))' }}
@@ -771,6 +802,10 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         trayId={quickActionModal.trayId}
         onSave={handleQuickActionSave}
       />
+
+      {paywall && (
+        <Paywall reason={paywall} subscription={subscription} onClose={() => setPaywall(null)} onOpenPrivacy={() => setInfoPage('privacy')} />
+      )}
 
       {infoPage && <InfoPage kind={infoPage} onClose={() => setInfoPage(null)} />}
 

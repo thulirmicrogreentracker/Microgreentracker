@@ -20,6 +20,7 @@
     "@capacitor/filesystem": "^8.1.4",
     "@capacitor/ios": "^8.5.2",
     "@capacitor/share": "^8.0.3",
+    "@revenuecat/purchases-capacitor": "^13.7.0",
     "date-fns": "^3.0.0",
     "fflate": "^0.8.3",
     "html2canvas": "^1.4.1",

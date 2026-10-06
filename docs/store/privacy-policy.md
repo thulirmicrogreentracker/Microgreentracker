@@ -13,8 +13,9 @@ stays on your own device. This policy explains what the app stores, where it is 
 - **We do not collect any personal data.** The app has no account, no login and no server of ours.
 - **Everything you enter stays on your device**: your batches, trays, notes, watering records, harvest weights and
   photos.
-- **No advertising, analytics or tracking.** The app contains no ad networks, analytics or tracking tools, and it
-  does not send data over the internet.
+- **No advertising, analytics or tracking.** The app contains no ad networks, analytics or tracking tools.
+- **Subscriptions:** to check whether you have a subscription, the app contacts our subscription service, RevenueCat,
+  using a random ID. Payments are handled by Google Play or the App Store. See "Subscriptions and purchases" below.
 - **You decide when data leaves your device**, for example when you save a backup file to Google Drive or email it.
 
 ## Information the app stores on your device
@@ -28,6 +29,23 @@ When you use the app, it saves the following in the app's private storage on you
 - Automatic daily copies ("snapshots") of this data, kept on the device so you can go back to an earlier day.
 
 This information is never sent to us, and we cannot see it.
+
+## Subscriptions and purchases
+
+The app is free for 30 days; after that, starting new batches needs a subscription (monthly or yearly) or a one-time
+lifetime purchase. Everything you have already recorded stays available either way.
+
+- **Payments** are made through Google Play or the App Store. We never see your card or payment details.
+- **RevenueCat** (RevenueCat, Inc.) is the service the app uses to check and restore your purchases. When the app
+  starts, and when you buy or restore, it sends RevenueCat:
+  - a random identifier created for this installation of the app (not linked to your name, email or store account);
+  - the purchase and subscription information from Google Play or the App Store (which product, when it was bought,
+    when it renews or expires);
+  - technical details needed for this: app version, operating system, device model, country and currency.
+- RevenueCat processes this on our behalf only to provide the subscription; it is not used for advertising or
+  tracking. RevenueCat's privacy policy: https://www.revenuecat.com/privacy
+- None of your growing data (batches, trays, notes, photos, harvests) is sent to RevenueCat or to us.
+- To cancel a subscription, use your Google Play or App Store account settings.
 
 ## Permissions
 
@@ -55,7 +73,9 @@ Your data stays on your device until you delete it. You can delete individual ba
 Uninstalling the app removes all of its data from the device (copies in backup files or device backups that you
 made remain until you delete them).
 
-Because we do not collect or hold your data, there is no account to delete and nothing for us to remove on our side.
+Because we do not hold your growing data, there is no account to delete. Purchase records kept by RevenueCat for a
+subscription are linked only to the random installation ID; to have them deleted, email us and include that you want
+your purchase records removed (we will ask RevenueCat to delete them).
 
 ## Children
 
