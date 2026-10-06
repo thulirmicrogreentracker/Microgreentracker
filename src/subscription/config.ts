@@ -12,8 +12,9 @@ export const revenueCatKeys = {
 // For checking the paywall without a store account; never set it for a store build.
 export const subscriptionTestMode = import.meta.env.VITE_SUBSCRIPTION_TEST_MODE === '1';
 
-// The RevenueCat entitlement that the monthly, yearly and lifetime products all grant.
-export const PRO_ENTITLEMENT = 'pro';
+// The RevenueCat entitlement that the monthly, yearly and lifetime products all grant (its identifier in RevenueCat →
+// Product catalog → Entitlements).
+export const PRO_ENTITLEMENT = 'thulir_microgreen_tracker_pro';
 
 // Free period from the first launch, during which everything works without a subscription.
 export const TRIAL_DAYS = 30;

@@ -9,7 +9,8 @@ This branch (`feature/subscriptions`) adds Microgreen Manager Pro. It is kept se
   restoring a backup keeps the earlier of the two dates, so it can't restart the trial.
 - **After the trial**, starting a **new batch** needs Pro. Everything else keeps working without Pro: existing
   batches (watering, notes, photos, harvests, losses, edits), reports, backups and restore. Nobody's data is locked.
-- **Pro** is one RevenueCat entitlement, `pro`, granted by any of three products: **monthly**, **yearly** and a
+- **Pro** is one RevenueCat entitlement, `thulir_microgreen_tracker_pro` (`PRO_ENTITLEMENT` in
+  `src/subscription/config.ts`), granted by any of three products: **monthly**, **yearly** and a
   one-time **lifetime** purchase.
 - **Paywall:** Config → Subscription → See plans, the home-screen banner (last 7 days of the trial and after it), or
   tapping **+** after the trial. Prices come from the stores, in the user's currency.
@@ -57,7 +58,8 @@ Use the same product IDs on both stores so they're easy to match in RevenueCat.
    - **App Store**: bundle ID `com.universepdkt.microgreentracker`, plus an **In-App Purchase key** (.p8) from App
      Store Connect → Users and Access → Integrations.
 3. **Products**: import or add the three product IDs for each app.
-4. **Entitlements**: create `pro` and attach all six products (three per store).
+4. **Entitlements**: attach all the store products to `thulir_microgreen_tracker_pro`, which RevenueCat created with
+   the project (three per store).
 5. **Offerings**: create `default`, mark it **current**, and add three packages: **Monthly** → `mm_pro_monthly`,
    **Annual** → `mm_pro_yearly`, **Lifetime** → `mm_pro_lifetime` (each with both stores' product).
 6. **API keys**: copy the public SDK key of each app (`goog_…` and `appl_…`).
@@ -79,7 +81,7 @@ makes it easy to build test and release versions with different settings.
   subscriptions renew every few minutes.
 - **iOS:** use a **Sandbox** account (App Store Connect → Users and Access → Sandbox) or TestFlight. Sandbox
   subscriptions also renew quickly.
-- RevenueCat → Customers shows each test purchase and the `pro` entitlement.
+- RevenueCat → Customers shows each test purchase and the Pro entitlement.
 
 ## Before releasing
 
