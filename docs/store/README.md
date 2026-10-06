@@ -50,12 +50,12 @@ the `docs` folder on `main` (repository Settings → Pages → Deploy from a bra
 
 ## 5. Google Play steps
 
-1. Create a release **upload key** (`keytool -genkey -v -keystore upload.jks -alias upload -keyalg RSA -keysize 2048
-   -validity 10000`). Keep the file and passwords safe and out of git; losing them means asking Google to reset it.
-2. In Android Studio: Build → Generate Signed App Bundle → **Android App Bundle (.aab)**, release, with the upload key.
-3. Play Console → Create app → fill in the store listing (store-listing.md), graphics (screenshots.md), Data safety,
+1. Create the **upload key** and build the signed **.aab** with `npm run android:release`: see
+   [../release.md](../release.md). Keep the key file and password safe and out of git; losing them means asking
+   Google to reset the key.
+2. Play Console → Create app → fill in the store listing (store-listing.md), graphics (screenshots.md), Data safety,
    content rating, target audience and other declarations (store-listing.md).
-4. Turn on **Play App Signing** (default) and upload the .aab to the closed test track; after 14 days with 12 testers,
+3. Turn on **Play App Signing** (default) and upload the .aab to the closed test track; after 14 days with 12 testers,
    promote it to production.
 
 ## 6. App Store steps
