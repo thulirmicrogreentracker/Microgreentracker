@@ -61,6 +61,9 @@ YOUR DATA STAYS YOURS
 • Automatic daily copies on the device
 • Save a single backup file (data and photos) to Google Drive, Files or email, and restore it on a new phone
 • No ads, no tracking
+
+FREE DURING LAUNCH
+Microgreen Manager is free while we launch. An optional Pro plan is planned for later. When it arrives you'll get a free trial first, and everything you've already recorded stays yours and stays available.
 ```
 
 ### What's New (first release)
