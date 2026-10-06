@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Release signing: the upload key's location and passwords are read from android/keystore.properties, which is
+// git-ignored. See docs/release.md. Debug builds don't need it.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.universepdkt.microgreentracker"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +24,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystorePropertiesFile.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -51,4 +70,13 @@ try {
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+// A release build without the upload key would be unsigned, which Google Play rejects; stop with a clear message.
+tasks.matching { it.name in ['bundleRelease', 'assembleRelease'] }.configureEach {
+    doFirst {
+        if (!keystorePropertiesFile.exists()) {
+            throw new GradleException('Release builds need android/keystore.properties with the upload key. See docs/release.md.')
+        }
+    }
 }
