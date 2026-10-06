@@ -5,7 +5,8 @@ content-rating questionnaires. Character limits are in brackets; every field bel
 
 ## App name
 
-**Thulir MicroGreen Tracker** (both stores)
+**Thulir MicroGreen Tracker** (both stores). Under the icon on the phone's home screen the app is labelled **Thulir MGT**,
+because the full name would be cut off there.
 
 ## Apple App Store
 
