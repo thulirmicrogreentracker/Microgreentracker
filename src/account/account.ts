@@ -85,8 +85,14 @@ export const onAccountChange = (listener: (a: Account | null) => void): (() => v
   loadFirebase()
     .then(({ auth, authFns }) => {
       if (stopped) return;
-      unsubscribe = authFns.onAuthStateChanged(auth, user => {
+      // onIdTokenChanged, not onAuthStateChanged: only this one also fires when refreshAccount() picks up a newly
+      // confirmed email. It fires on every hourly token refresh too, so unchanged accounts are skipped.
+      let last: string | undefined;
+      unsubscribe = authFns.onIdTokenChanged(auth, user => {
         const account = toAccount(user);
+        const key = JSON.stringify(account);
+        if (key === last) return;
+        last = key;
         listener(account);
         void syncCustomer(account);
       });
@@ -181,9 +187,7 @@ export const refreshAccount = async (): Promise<Account | null> => {
   try {
     await user.reload();
     await user.getIdToken(true); // so the database sees the verified email too
-    const account = toAccount(auth.currentUser);
-    void syncCustomer(account);
-    return account;
+    return toAccount(auth.currentUser); // the getIdToken(true) above also updates onAccountChange listeners
   } catch (e) {
     throw explain(e);
   }
