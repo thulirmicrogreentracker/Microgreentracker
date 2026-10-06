@@ -20,6 +20,7 @@ import PhotoCompare from './components/photos/PhotoCompare';
 import CropPhotos from './components/photos/CropPhotos';
 import LostTraySheet, { TrayLoss } from './components/LostTraySheet';
 import HarvestSheet from './components/HarvestSheet';
+import AppLogo from './components/AppLogo';
 import InfoPage, { InfoPageKind } from './components/InfoPage';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
@@ -449,9 +450,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       {/* App Header */}
       <header className="flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] bg-white border-b border-gray-100 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="bg-emerald-100 p-2 rounded-lg">
-            <Sprout className="w-5 h-5 text-emerald-600" />
-          </div>
+          <AppLogo className="w-9 h-9 shrink-0" />
           <div>
             <h1 className="text-base font-bold text-gray-900 leading-tight">{appInfo.appName}</h1>
             {lastBackup && (
@@ -844,7 +843,7 @@ function App() {
   if (!data) {
     return (
       <div className="fixed inset-0 bg-gray-50 flex items-center justify-center">
-        <Sprout className="w-10 h-10 text-emerald-600" />
+        <AppLogo className="w-16 h-16" />
       </div>
     );
   }
