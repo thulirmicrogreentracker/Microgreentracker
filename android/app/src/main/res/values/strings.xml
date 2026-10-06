@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Thulir MicroGreen Tracker</string>
-    <string name="title_activity_main">Thulir MicroGreen Tracker</string>
+    <string name="app_name">Thulir MGT</string>
+    <string name="title_activity_main">Thulir MGT</string>
     <string name="package_name">com.universepdkt.microgreentracker</string>
     <string name="custom_url_scheme">com.universepdkt.microgreentracker</string>
 </resources>

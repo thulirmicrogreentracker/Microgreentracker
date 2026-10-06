@@ -31,7 +31,7 @@ Decisions made with the owner along the way:
 - Data stays on the phone. Backup to Google Drive works **through the share sheet for now** (no Google sign-in).
 - A **Google Drive connection** (each user signs in with their own Google account) is planned as **the next phase**.
   See §8.
-- App id: `com.universepdkt.microgreentracker`. App name: "Thulir MicroGreen Tracker" (until 6 Oct 2026 "Microgreen Manager"; internal names such as the storage folder `microgreen/` and the backup format `microgreen-manager-backup` keep the old wording on purpose).
+- App id: `com.universepdkt.microgreentracker`. App name: "Thulir MicroGreen Tracker", shown under the home-screen icon as "Thulir MGT" (until 6 Oct 2026 "Microgreen Manager"; internal names such as the storage folder `microgreen/` and the backup format `microgreen-manager-backup` keep the old wording on purpose).
 
 ## 3. Set up locally
 
