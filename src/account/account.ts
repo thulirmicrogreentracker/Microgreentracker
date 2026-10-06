@@ -118,7 +118,8 @@ export const signInWithGoogle = async (): Promise<Account> => {
   try {
     if (!googleReady) googleReady = SocialLogin.initialize({ google: { webClientId: googleWebClientId, mode: 'online' } });
     await googleReady;
-    const res = await SocialLogin.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
+    // No extra scopes: the ID token already carries the name and email (asking for scopes needs native changes).
+    const res = await SocialLogin.login({ provider: 'google', options: {} });
     const idToken = res.result.responseType === 'online' ? res.result.idToken : null;
     if (!idToken) throw new AccountError('Google sign-in didn\'t return an account. Please try again.');
     const { auth, authFns } = await loadFirebase();
