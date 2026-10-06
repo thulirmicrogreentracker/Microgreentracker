@@ -9,7 +9,7 @@ October 2026; App Store Connect and the Play Console show the current ones when 
 | Folder / file | Use it for | Size |
 |---|---|---|
 | `screenshots/ios-store/01…08.jpg` | **App Store** iPhone screenshots (captioned) | 1320 × 2868 |
-| `screenshots/android-store/01…08.jpg` | **Google Play** phone screenshots (captioned) | 1080 × 2160 |
+| `screenshots/android-store/01…08.jpg` | **Google Play** phone screenshots (captioned) | 1080 × 1920 (9:16) |
 | `screenshots/feature-graphic-1024x500.jpg` | **Google Play** feature graphic (required) | 1024 × 500 |
 | `screenshots/play-icon-512.png` | **Google Play** app icon | 512 × 512 |
 | `screenshots/ios/`, `screenshots/android/` | The same screens without captions, if you prefer plain screenshots or want to design your own frames | as above |
@@ -42,7 +42,7 @@ few tray photos in the app on your phone, then capture the gallery with headline
 | Asset | Store | Size |
 |---|---|---|
 | iPhone screenshots (1–10) | App Store | 1320 × 2868 portrait (6.9" display); smaller iPhones are scaled from it |
-| Phone screenshots (2–8; 4+ recommended) | Google Play | Each side 320–3840 px and the long side at most **2× the short side**. A Pixel's native 1080 × 2400 is too tall, so these are 1080 × 2160 |
+| Phone screenshots (2–8; 4+ recommended) | Google Play | PNG or JPEG up to 8 MB, **9:16 or 16:9**, each side 320–3840 px (Play Console's rule as of October 2026; earlier it allowed up to 2:1). The captioned images are 1080 × 1920; the plain captures in `screenshots/android/` are 1080 × 2160 and go inside them |
 | Feature graphic | Google Play | 1024 × 500 PNG or JPG, no transparency |
 | App icon | Google Play | 512 × 512 PNG |
 
@@ -71,7 +71,7 @@ The tools are in [`screenshots/tools/`](screenshots/tools/).
    `captions.txt`), using ImageMagick:
    ```bash
    ./compose.sh ../ios/01-home.png ../ios-store/01-home.jpg 1320 2868 1060 "Every tray at a glance" "Batches grouped by stage, ready for 50+ trays"
-   ./compose.sh ../android/01-home.png ../android-store/01-home.jpg 1080 2160 820 "Every tray at a glance" "Batches grouped by stage, ready for 50+ trays"
+   ./compose.sh ../android/01-home.png ../android-store/01-home.jpg 1080 1920 740 "Every tray at a glance" "Batches grouped by stage, ready for 50+ trays"
    ```
 
 4. **Feature graphic** (Google Play, 1024 × 500), from the app icon and the plain Android home screen, run from the
