@@ -5,10 +5,20 @@ export const newId = (): string => Date.now().toString() + Math.random().toStrin
 export const batchCode = (n: number): string => `B${String(n).padStart(3, '0')}`;
 export const trayCode = (n: number): string => `T${String(n).padStart(3, '0')}`;
 
-// The number at the end of a tray code ("T014" → 14, "Rack-7" → 7); 0 when there is none.
+// Batch and tray numbers go up to B99999 / T99999.
+export const MAX_NUMBER = 99999;
+export const MAX_TRAY_POSITIONS = 2000;
+
+// A whole number from 0 to max, or the fallback for anything else (text, decimals, 4e+123, negative).
+export const wholeNumber = (value: unknown, max: number, fallback = 0): number => {
+  const n = typeof value === 'string' && /^\s*\d+\s*$/.test(value) ? Number(value) : value;
+  return typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= max ? n : fallback;
+};
+
+// The number at the end of a tray code ("T014" → 14, "Rack-7" → 7); 0 when there is none or it is out of range.
 export const codeNumber = (code: string): number => {
   const match = /(\d+)\s*$/.exec(code);
-  return match ? Number(match[1]) : 0;
+  return match ? wholeNumber(Number(match[1]), MAX_NUMBER) : 0;
 };
 
 // Code of the tray a photo shows ("T003"), or undefined for a whole-batch photo or a tray since removed.
@@ -42,7 +52,7 @@ export const isBatchLost = (batch: Batch): boolean => batch.trays.length > 0 && 
 export const isBatchGrowing = (batch: Batch): boolean => batch.stage !== 'completed' && !isBatchLost(batch);
 
 export const highestBatchNumber = (batches: Batch[]): number =>
-  batches.reduce((max, b) => Math.max(max, b.batchNumber || 0), 0);
+  batches.reduce((max, b) => Math.max(max, wholeNumber(b.batchNumber, MAX_NUMBER)), 0);
 
 export const highestTrayNumber = (batches: Batch[]): number =>
   batches.reduce((max, b) => b.trays.reduce((m, t) => Math.max(m, codeNumber(t.code)), max), 0);
@@ -50,8 +60,8 @@ export const highestTrayNumber = (batches: Batch[]): number =>
 // Counters never go below the numbers already in the data, e.g. after restoring a backup or loading test data.
 export const syncCounters = (config: AppConfig, batches: Batch[]): AppConfig => ({
   ...config,
-  lastBatchNumber: Math.max(config.lastBatchNumber || 0, highestBatchNumber(batches)),
-  lastTrayNumber: Math.max(config.lastTrayNumber || 0, highestTrayNumber(batches)),
+  lastBatchNumber: Math.max(wholeNumber(config.lastBatchNumber, MAX_NUMBER), highestBatchNumber(batches)),
+  lastTrayNumber: Math.max(wholeNumber(config.lastTrayNumber, MAX_NUMBER), highestTrayNumber(batches)),
 });
 
 // Positions held by trays that are still growing.

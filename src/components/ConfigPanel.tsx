@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, Chev
 import { appInfo, isFilledIn } from '../data/appInfo';
 import type { InfoPageKind } from './InfoPage';
 import { CropType, AppConfig } from '../types';
-import { batchCode, trayCode } from '../utils/batches';
+import { batchCode, MAX_NUMBER, MAX_TRAY_POSITIONS, trayCode, wholeNumber } from '../utils/batches';
 import { categoryIcon, categoryIconOptions } from '../data/categoryIcons';
 import { defaultCategories, defaultCropTypes } from '../data/cropTypes';
 
@@ -158,22 +158,24 @@ const NameListEditor: React.FC<{
 };
 
 // A whole number that is applied when the field loses focus, so typing isn't fought mid-way.
-const NumberSetting: React.FC<{ value: number; min: number; onChange: (n: number) => void; label: string }> = ({ value, min, onChange, label }) => {
+// A whole number from min to max. Only digits can be typed; anything out of range goes back to the saved value.
+const NumberSetting: React.FC<{ value: number; min: number; max: number; onChange: (n: number) => void; label: string }> = ({ value, min, max, onChange, label }) => {
   const [text, setText] = useState(String(value));
   React.useEffect(() => setText(String(value)), [value]);
   const commit = () => {
-    const n = Math.round(Number(text));
-    if (Number.isFinite(n) && n >= min) onChange(n);
+    const n = wholeNumber(text, max, -1);
+    if (n >= min) onChange(n);
     else setText(String(value));
   };
   return (
     <input
-      type="number"
+      type="text"
       inputMode="numeric"
+      pattern="[0-9]*"
+      maxLength={String(max).length}
       aria-label={label}
       value={text}
-      min={min}
-      onChange={e => setText(e.target.value)}
+      onChange={e => setText(e.target.value.replace(/\D/g, ''))}
       onBlur={commit}
       onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -319,7 +321,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
               label="Tray positions"
               value={config.totalTrays}
               min={1}
-              onChange={n => onUpdateConfig({ ...config, totalTrays: Math.min(n, 2000) })}
+              max={MAX_TRAY_POSITIONS}
+              onChange={n => onUpdateConfig({ ...config, totalTrays: n })}
             />
             <p className="text-xs text-gray-500 mt-1">
               {usedTrayCount} in use, {config.totalTrays - usedTrayCount} available
@@ -355,6 +358,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
               label="Next batch number"
               value={config.lastBatchNumber + 1}
               min={highestBatchNumber + 1}
+              max={MAX_NUMBER}
               onChange={n => onUpdateConfig({ ...config, lastBatchNumber: n - 1 })}
             />
           </div>
@@ -364,12 +368,14 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
               label="Next tray number"
               value={config.lastTrayNumber + 1}
               min={highestTrayNumber + 1}
+              max={MAX_NUMBER}
               onChange={n => onUpdateConfig({ ...config, lastTrayNumber: n - 1 })}
             />
           </div>
         </div>
         <p className="text-[11px] text-gray-400 mt-2">
-          Can't go below {batchCode(highestBatchNumber + 1)} / {trayCode(highestTrayNumber + 1)}, so numbers are never reused.
+          Can't go below {batchCode(highestBatchNumber + 1)} / {trayCode(highestTrayNumber + 1)}, so numbers are never reused,
+          or above {batchCode(MAX_NUMBER)} / {trayCode(MAX_NUMBER)}.
         </p>
       </div>
 
