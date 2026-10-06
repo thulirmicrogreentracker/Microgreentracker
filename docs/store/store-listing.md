@@ -5,13 +5,13 @@ content-rating questionnaires. Character limits are in brackets; every field bel
 
 ## App name
 
-**Microgreen Manager** (both stores)
+**Thulir MicroGreen Tracker** (both stores)
 
 ## Apple App Store
 
 | Field | Text |
 |---|---|
-| Name [30] | Microgreen Manager |
+| Name [30] | Thulir MicroGreen Tracker |
 | Subtitle [30] | Tray tracker for growers |
 | Primary category | Productivity |
 | Secondary category | Food & Drink |
@@ -25,7 +25,7 @@ content-rating questionnaires. Character limits are in brackets; every field bel
 ### Description [4000] (same text for Google Play's full description)
 
 ```
-Microgreen Manager helps growers track every tray from sowing to harvest, so you always know what is growing, what needs attention and how much each crop really yields.
+Thulir MicroGreen Tracker helps growers track every tray from sowing to harvest, so you always know what is growing, what needs attention and how much each crop really yields.
 
 BATCHES AND TRAYS
 • Sow a batch of many trays in one step: batch numbers (B001…) and tray numbers (T001…) are created for you and never reused
@@ -63,7 +63,7 @@ YOUR DATA STAYS YOURS
 • No ads, no tracking
 
 FREE DURING LAUNCH
-Microgreen Manager is free while we launch. An optional Pro plan is planned for later. When it arrives you'll get a free trial first, and everything you've already recorded stays yours and stays available.
+Thulir MicroGreen Tracker is free while we launch. An optional Pro plan is planned for later. When it arrives you'll get a free trial first, and everything you've already recorded stays yours and stays available.
 ```
 
 ### What's New (first release)
@@ -76,7 +76,7 @@ First release: batches with multiple trays, per-tray photos and harvest weights,
 
 | Field | Text |
 |---|---|
-| App name [30] | Microgreen Manager |
+| App name [30] | Thulir MicroGreen Tracker |
 | Short description [80] | Track microgreen trays from sowing to harvest, with photos and yield reports. |
 | Full description [4000] | Same as the App Store description above |
 | App category | Productivity |

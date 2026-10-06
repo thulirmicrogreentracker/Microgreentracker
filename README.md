@@ -1,4 +1,4 @@
-# Microgreen Manager
+# Thulir MicroGreen Tracker
 
 Track microgreen batches from sowing to harvest: trays, watering, notes, photos, reminders, reports and daily backups.
 
@@ -21,7 +21,7 @@ is moved over automatically the first time the new version opens.
 
 ### Backup files
 
-**Config → Save File** creates `microgreen-backup-YYYY-MM-DD.zip` (all data plus photos) and opens the
+**Config → Save File** creates `thulir-microgreen-backup-YYYY-MM-DD.zip` (all data plus photos) and opens the
 phone's share sheet, so it can be saved to Google Drive, Files, or emailed. **Config → Restore File** (or
 *Restore from a backup file* on a fresh install) opens it again; the data that gets replaced is kept as a
 snapshot first. On Android, Auto Backup additionally copies the data (not photos) to the user's Google
@@ -49,7 +49,7 @@ npm run build    # production build into dist/
 
 **Quickest way to get an installable APK (no Android Studio needed):** every push to GitHub runs the
 **Android APK** workflow. Open the repo on GitHub → **Actions** → the latest *Android APK* run →
-download `microgreen-manager-debug-apk`, unzip it and copy `app-debug.apk` to your phone. Allow
+download `thulir-microgreen-tracker-debug-apk`, unzip it and copy `app-debug.apk` to your phone. Allow
 "install unknown apps" when Android asks.
 
 **With Android Studio** (needed for Play Store releases):

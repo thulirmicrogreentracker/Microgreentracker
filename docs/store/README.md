@@ -1,4 +1,4 @@
-# Publishing Microgreen Manager to the App Store and Google Play
+# Publishing Thulir MicroGreen Tracker to the App Store and Google Play
 
 Everything needed for the store listings, and the steps to get there.
 
