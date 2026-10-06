@@ -726,7 +726,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           )}
         </div>
         <p className="text-xs text-gray-400 mt-3 text-center">
-          Microgreen Manager{version ? ` · version ${version}` : ''}
+          {appInfo.appName}{version ? ` · version ${version}` : ''}
           {isFilledIn(appInfo.developerName) && <><br />© {new Date().getFullYear()} {appInfo.developerName}</>}
         </p>
       </div>

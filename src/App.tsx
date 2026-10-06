@@ -26,6 +26,7 @@ import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTra
 import { stageConfig } from './data/stages';
 import { defaultCategories, defaultCategoryIcons, defaultCropTypes } from './data/cropTypes';
 import { generateTestBatches } from './utils/generateTestData';
+import { appInfo } from './data/appInfo';
 
 type Tab = 'home' | 'reports' | 'config';
 
@@ -452,7 +453,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             <Sprout className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-gray-900 leading-tight">Microgreen Manager</h1>
+            <h1 className="text-base font-bold text-gray-900 leading-tight">{appInfo.appName}</h1>
             {lastBackup && (
               <p className="text-[10px] text-gray-400 leading-tight">
                 Backup: {new Date(lastBackup).toLocaleDateString()} {new Date(lastBackup).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

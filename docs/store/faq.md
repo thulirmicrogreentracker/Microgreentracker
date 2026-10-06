@@ -1,4 +1,4 @@
-# Microgreen Manager: Frequently Asked Questions
+# Thulir MicroGreen Tracker: Frequently Asked Questions
 
 ## Getting started
 

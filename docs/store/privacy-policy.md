@@ -1,11 +1,11 @@
-# Privacy Policy for Microgreen Manager
+# Privacy Policy for Thulir MicroGreen Tracker
 
-- **Effective date:** 5 October 2026
-- **App:** Microgreen Manager (Android and iOS)
+- **Effective date:** 6 October 2026
+- **App:** Thulir MicroGreen Tracker (Android and iOS)
 - **Developer:** Rajeshkumar
 - **Contact:** thulirmicrogreentracker@gmail.com
 
-Microgreen Manager is a tool for tracking microgreen batches and trays. It is designed so that your information
+Thulir MicroGreen Tracker is a tool for tracking microgreen batches and trays. It is designed so that your information
 stays on your own device. This policy explains what the app stores, where it is kept, and the choices you have.
 
 ## Summary

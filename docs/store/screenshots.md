@@ -74,6 +74,22 @@ The tools are in [`screenshots/tools/`](screenshots/tools/).
    ./compose.sh ../android/01-home.png ../android-store/01-home.jpg 1080 2160 820 "Every tray at a glance" "Batches grouped by stage, ready for 50+ trays"
    ```
 
+4. **Feature graphic** (Google Play, 1024 × 500), from the app icon and the plain Android home screen, run from the
+   project folder:
+   ```bash
+   S=docs/store/screenshots; BOLD="/System/Library/Fonts/Supplemental/Arial Bold.ttf"; REG="/System/Library/Fonts/Supplemental/Arial.ttf"; T=$(mktemp -d)
+   magick assets/icon-only.png -resize 120x120 \( -size 120x120 xc:none -fill white -draw "roundrectangle 0,0 119,119 28,28" \) -compose DstIn -composite $T/icon.png
+   magick $S/android/01-home.png -resize x470 \( -size 235x470 xc:none -fill white -draw "roundrectangle 0,0 234,469 20,20" \) -compose DstIn -composite $T/phone.png
+   magick $T/phone.png -background none -rotate -7 \( +clone -background '#00000070' -shadow 50x12+0+10 \) +swap -background none -layers merge +repage $T/phone-r.png
+   magick -size 1024x500 gradient:'#10b981-#065f46' $T/icon.png -gravity northwest -geometry +64+56 -composite \
+     -font "$BOLD" -pointsize 50 -fill white -annotate +64+200 "Thulir" -annotate +64+258 "MicroGreen Tracker" \
+     -font "$REG" -pointsize 28 -fill '#d1fae5' -annotate +66+340 "Track every tray, from seed to harvest." \
+     $T/phone-r.png -gravity northeast -geometry +36+44 -composite -flatten -quality 92 $S/feature-graphic-1024x500.jpg
+   ```
+
+Use a US-English device region (Settings → General → Language & Region on the simulator, or
+`xcrun simctl spawn booted defaults write -g AppleLocale en_US`) so dates read month/day as in the other screenshots.
+
 ## Optional: App Store preview video
 
 15–30 seconds at 1320 × 2868: add a batch with several trays → mark a stage → take a tray photo → harvest and weigh →

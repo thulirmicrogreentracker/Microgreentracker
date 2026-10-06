@@ -123,7 +123,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Save File' }).click()]);
   const zipPath = path.join(OUT, download.suggestedFilename());
   await download.saveAs(zipPath);
-  check(/^microgreen-backup-\d{4}-\d{2}-\d{2}\.zip$/.test(download.suggestedFilename()), `export: file name ${download.suggestedFilename()}`);
+  check(/^thulir-microgreen-backup-\d{4}-\d{2}-\d{2}\.zip$/.test(download.suggestedFilename()), `export: file name ${download.suggestedFilename()}`);
   const listing = execSync(`unzip -l ${zipPath}`).toString();
   console.log(listing.split('\n').filter(l => /backup|photos/.test(l)).map(l => '  ' + l.trim()).join('\n'));
   check(listing.includes('backup.json') && listing.includes('photos/ph1abc.png') && listing.includes('photos/' + photoName), 'export: zip has backup.json and both photos');

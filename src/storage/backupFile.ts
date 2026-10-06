@@ -5,6 +5,7 @@ import { SCHEMA_VERSION } from './appData';
 import { base64ToBytes, bytesToBase64 } from './fs';
 import { fromLegacy, isLegacyRecord, normalizeAppData } from './legacy';
 import { isSafePhotoName, photoNamesIn, readPhotoBase64, savePhotoBase64 } from './photos';
+import { appInfo } from '../data/appInfo';
 
 // A backup file is a .zip holding backup.json (all records) and photos/<name> for every photo.
 const FORMAT = 'microgreen-manager-backup';
@@ -31,7 +32,7 @@ export const exportBackupFile = async (data: AppData): Promise<void> => {
       // photo file missing on this device; the record is still backed up
     }
   }
-  await saveFile(`microgreen-backup-${localDateStamp()}.zip`, zipSync(files), 'application/zip');
+  await saveFile(`thulir-microgreen-backup-${localDateStamp()}.zip`, zipSync(files), 'application/zip');
 };
 
 // Reads a backup chosen by the user without changing anything yet.
@@ -44,9 +45,9 @@ export const parseBackupFile = async (file: File): Promise<ParsedBackup> => {
     try {
       raw = JSON.parse(strFromU8(bytes));
     } catch {
-      throw new Error('This file is not a Microgreen Manager backup.');
+      throw new Error(`This file is not a ${appInfo.appName} backup.`);
     }
-    if (!isLegacyRecord(raw)) throw new Error('This file is not a Microgreen Manager backup.');
+    if (!isLegacyRecord(raw)) throw new Error(`This file is not a ${appInfo.appName} backup.`);
     return fromLegacy(raw);
   }
 
@@ -54,12 +55,12 @@ export const parseBackupFile = async (file: File): Promise<ParsedBackup> => {
   try {
     entries = unzipSync(bytes);
   } catch {
-    throw new Error('This file is not a Microgreen Manager backup.');
+    throw new Error(`This file is not a ${appInfo.appName} backup.`);
   }
   const manifestBytes = entries[MANIFEST];
-  if (!manifestBytes) throw new Error('This file is not a Microgreen Manager backup.');
+  if (!manifestBytes) throw new Error(`This file is not a ${appInfo.appName} backup.`);
   const manifest = JSON.parse(strFromU8(manifestBytes));
-  if (manifest.format !== FORMAT || !manifest.data) throw new Error('This file is not a Microgreen Manager backup.');
+  if (manifest.format !== FORMAT || !manifest.data) throw new Error(`This file is not a ${appInfo.appName} backup.`);
   if (manifest.schemaVersion > SCHEMA_VERSION) {
     throw new Error('This backup was made by a newer version of the app. Please update the app first.');
   }
