@@ -35,6 +35,11 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   const browser = await chromium.launch(process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {});
   const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 400, height: 860 } });
   const page = await context.newPage();
+  // Taps a tab in the bottom navigation (Home, Shelves, Batches, Insights, Settings).
+  const tab = name => page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true }).click();
+  // Settings → Backup & restore, which opens as its own page; closePage goes back from it.
+  const backupPage = async () => { await tab('Settings'); await page.getByRole('button', { name: /^Backup & restore/ }).click(); };
+  const closePage = () => page.locator('.swipe-page').getByRole('button', { name: 'Back', exact: true }).click();
   page.on('dialog', d => { console.log(`  dialog: ${d.message().slice(0, 110)}`); d.accept(); });
   page.on('pageerror', e => { console.log(`  PAGE ERROR: ${e.message}`); failures++; });
 
@@ -66,6 +71,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
 
   // ---------- 2. First launch of the new version migrates it ----------
   await page.goto(URL);
+  await tab('Batches');
   await page.getByText('Radish').first().waitFor();
   check(await page.getByText('Basil').count() > 0, 'migration: both legacy batches shown');
   await page.waitForFunction(() => /Backup:/.test(document.body.innerText)); // daily snapshot runs after data loads
@@ -82,7 +88,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
 
   // ---------- 3. Changes persist across restarts ----------
   const seqBefore = env.seq;
-  await page.locator('button.fixed').click(); // floating add button
+  await page.getByRole('button', { name: 'Add batch' }).click();
   await page.locator('select').first().selectOption('Kale');
   await page.getByRole('button', { name: /^Add \d+ tray/ }).click(); // tray ID and number are automatic
   await page.getByText('Kale').first().waitFor();
@@ -90,6 +96,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   env = await latestData(page);
   check(env.seq > seqBefore && env.data.batches.some(b => b.cropType === 'Kale'), 'save: new batch written to data file');
   await page.reload();
+  await tab('Batches');
   await page.getByText('Radish').first().waitFor();
   check(await page.getByText('Kale').count() > 0, 'save: new batch still there after restart');
   check(await page.evaluate(() => !localStorage.getItem('microgreen-batches').includes('Kale')), 'save: old localStorage no longer written');
@@ -119,7 +126,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   check(dims[0] === 1600 && dims[1] === 1600, `photo: resized to ${dims.join('x')} (max 1600)`);
 
   // ---------- 6. Export backup file ----------
-  await page.getByRole('button', { name: 'Config' }).click();
+  await backupPage();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Save File' }).click()]);
   const zipPath = path.join(OUT, download.suggestedFilename());
   await download.saveAs(zipPath);
@@ -129,9 +136,10 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   check(listing.includes('backup.json') && listing.includes('photos/ph1abc.png') && listing.includes('photos/' + photoName), 'export: zip has backup.json and both photos');
   const manifest = JSON.parse(execSync(`unzip -p ${zipPath} backup.json`).toString());
   check(manifest.format === 'microgreen-manager-backup' && manifest.schemaVersion === 2 && manifest.data.batches.length === 3, 'export: manifest has format, version and 3 batches');
+  await closePage();
 
   // ---------- 7. Wipe data, then restore from the file ----------
-  await page.getByRole('button', { name: 'Home' }).click();
+  await tab('Batches');
   for (const crop of ['Radish', 'Basil', 'Kale']) {
     const c = page.locator('[data-batch-card]', { hasText: crop }).first();
     if (await c.locator('button[aria-expanded="false"]').count()) await c.locator('button[aria-expanded]').click();
@@ -151,39 +159,44 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   }));
   await page.getByRole('button', { name: 'Restore from a backup file' }).click();
   await page.locator('input[type=file][accept^=".zip"]').setInputFiles(zipPath);
+  await tab('Batches');
   await page.getByText('Kale').first().waitFor({ timeout: 10000 });
   check(await page.getByText('Radish').count() > 0 && await page.getByText('Basil').count() > 0, 'restore: all 3 batches back');
   await page.waitForTimeout(500);
   disc = await listDisc(page);
   check(disc.some(e => e.path.endsWith('/photos/ph1abc.png')) && disc.some(e => e.path.endsWith('/photos/' + photoName)), 'restore: photo files written back');
   await page.reload();
+  await tab('Batches');
   await page.getByText('Kale').first().waitFor();
   check(true, 'restore: survives restart');
 
   // ---------- 8. Old .json downloads can still be restored ----------
   const legacyJson = path.join(OUT, 'microgreen-backup-legacy.json');
   fs.writeFileSync(legacyJson, JSON.stringify({ 'microgreen-batches': [{ id: 'j1', cropType: 'Sunflower', trayId: 'T5', trayNumber: 5, sowingDate: '2026-09-01', expectedHarvestDate: '2026-09-11', stage: 'completed', notes: [], photos: [], watering: [], lighting: [], createdAt: 'x', updatedAt: 'x' }] }));
-  await page.getByRole('button', { name: 'Config' }).click();
+  await backupPage();
   await page.getByRole('button', { name: 'Restore File' }).click();
   await page.locator('input[type=file][accept^=".zip"]').setInputFiles(legacyJson);
+  await tab('Batches');
   await page.getByText('Sunflower').first().waitFor({ timeout: 10000 });
   check(await page.getByText('Kale').count() === 0, 'legacy json: restored, replacing current data');
 
   // ---------- 9. Not-a-backup file is rejected without changing data ----------
   const junk = path.join(OUT, 'junk.zip');
   fs.writeFileSync(junk, 'hello');
-  await page.getByRole('button', { name: 'Config' }).click();
+  await backupPage();
   await page.getByRole('button', { name: 'Restore File' }).click();
   await page.locator('input[type=file][accept^=".zip"]').setInputFiles(junk);
   await page.waitForTimeout(800);
-  await page.getByRole('button', { name: 'Home' }).click();
+  await closePage();
+  await tab('Batches');
   check(await page.getByText('Sunflower').count() > 0, 'junk file: rejected, data unchanged');
 
   // ---------- 10. On-phone snapshot restore (undo the legacy import) ----------
-  await page.getByRole('button', { name: 'Config' }).click();
+  await backupPage();
   await page.getByRole('button', { name: /^Restore$/ }).click();
   await page.getByText('Daily Backups').waitFor();
   await page.locator('div.rounded-t-2xl').getByRole('button', { name: 'Restore' }).first().click(); // newest = copy taken right before the .json import
+  await tab('Batches');
   await page.getByText('Kale').first().waitFor({ timeout: 10000 });
   check(await page.getByText('Sunflower').count() === 0, 'snapshot: restoring the pre-import copy brings back the 3 batches');
 
@@ -194,7 +207,8 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   const all = await page.evaluate(p => new Promise(r => { const q = indexedDB.open('Disc'); q.onsuccess = () => { const g = q.result.transaction('FileStorage').objectStore('FileStorage').get(p); g.onsuccess = () => r(g.result); }; }), newest.path);
   await putDisc(page, { ...all, content: all.content.slice(0, 50) }); // truncated, like a crash mid-write
   await page.reload();
-  await page.locator('h1').waitFor();
+  await tab('Batches');
+  await page.locator('h1').first().waitFor();
   await page.waitForTimeout(800);
   const olderBatches = older.env.data.batches.map(b => b.cropType).sort().join(',');
   const shown = [];
@@ -205,7 +219,8 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   await putDisc(page, { path: '/DATA/microgreen/photos/orphan-old.jpg', folder: '/DATA/microgreen/photos', type: 'file', size: 4, ctime: 1, mtime: 1, content: 'AAAA' });
   await putDisc(page, { path: '/DATA/microgreen/photos/orphan-new.jpg', folder: '/DATA/microgreen/photos', type: 'file', size: 4, ctime: Date.now() + 60000, mtime: Date.now() + 60000, content: 'AAAA' });
   await page.reload();
-  await page.locator('h1').waitFor();
+  await tab('Batches');
+  await page.locator('h1').first().waitFor();
   await page.waitForTimeout(1500);
   disc = await listDisc(page);
   check(!disc.some(e => e.path.endsWith('orphan-old.jpg')), 'cleanup: unused old photo deleted');
@@ -213,7 +228,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   check(disc.some(e => e.path.endsWith('ph1abc.png')), 'cleanup: photo used by data/snapshots kept');
 
   await page.screenshot({ path: path.join(OUT, 'home.png') });
-  await page.getByRole('button', { name: 'Config' }).click();
+  await tab('Settings');
   await page.screenshot({ path: path.join(OUT, 'config.png') });
   await browser.close();
   console.log(failures === 0 ? '\nALL PASSED' : `\n${failures} FAILURE(S)`);

@@ -1,25 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { App as CapacitorApp } from '@capacitor/app';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, Hash, HardDrive, History, Database, Upload, FolderOpen, ListPlus, ShieldCheck, HelpCircle, Mail, ChevronRight, Info } from 'lucide-react';
-import { appInfo, isFilledIn } from '../data/appInfo';
-import type { InfoPageKind } from './InfoPage';
+import React, { useState } from 'react';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, HardDrive, History, Database, Upload, FolderOpen, ListPlus } from 'lucide-react';
 import { CropType, AppConfig } from '../types';
-import { batchCode, MAX_NUMBER, MAX_TRAY_POSITIONS, trayCode, wholeNumber } from '../utils/batches';
+import { batchCode, MAX_NUMBER, trayCode, wholeNumber } from '../utils/batches';
 import { categoryIcon, categoryIconOptions } from '../data/categoryIcons';
 import { defaultCategories, defaultCropTypes } from '../data/cropTypes';
 
+// The settings pages this panel draws (the rack layout and the About links are elsewhere).
+export type ConfigSection = 'backup' | 'testData' | 'numbering' | 'crops' | 'lossReasons';
+
 interface ConfigPanelProps {
+  section: ConfigSection;
   cropTypes: CropType[];
   onUpdateCropTypes: (crops: CropType[]) => void;
   config: AppConfig;
   onUpdateConfig: (config: AppConfig) => void;
   onRenameCategory: (from: string, to: string) => void;
   onAddStandardCrops: () => void;
-  onOpenInfo: (page: InfoPageKind) => void;
   onDeleteCategory: (name: string) => void;
   highestBatchNumber: number;
   highestTrayNumber: number;
-  usedTrayCount: number;
   onBackupNow: () => void;
   onShowRestore: () => void;
   onExportBackup: () => void;
@@ -183,14 +182,8 @@ const NumberSetting: React.FC<{ value: number; min: number; max: number; onChang
   );
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onOpenInfo, onDeleteCategory, highestBatchNumber, highestTrayNumber, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ section, cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onDeleteCategory, highestBatchNumber, highestTrayNumber, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
-  const [version, setVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    // The installed app's version and build number (not available in a browser).
-    CapacitorApp.getInfo().then(i => setVersion(`${i.version} (${i.build})`)).catch(() => setVersion(null));
-  }, []);
   const [isAdding, setIsAdding] = useState(false);
   const fallbackCategory = config.categories.includes('Other') ? 'Other' : config.categories[0];
   const [newCrop, setNewCrop] = useState<CropType>({
@@ -239,11 +232,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
   return (
     <div className="space-y-6">
       {/* Backup & Restore */}
+      {section === 'backup' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
-          <HardDrive className="w-4 h-4" />
-          Backup & Restore
-        </h3>
+        <h4 className="text-xs font-semibold text-gray-900 mb-1">On this phone</h4>
         <p className="text-xs text-gray-500 mb-3">
           A copy of your data is saved on this phone automatically every day. You can also save one now or go back to an earlier copy.
         </p>
@@ -287,14 +278,11 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           </div>
         </div>
       </div>
+      )}
 
       {/* Test Data: development builds only, so a store build can't replace a grower's data by accident. */}
-      {import.meta.env.DEV && (
+      {import.meta.env.DEV && section === 'testData' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
-          <Database className="w-4 h-4" />
-          Test Data
-        </h3>
         <p className="text-xs text-gray-500 mb-3">
           Populate the app with a full month of sample batches across all growth stages, complete with watering records and notes.
         </p>
@@ -308,45 +296,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
       </div>
       )}
 
-      {/* Tray Settings */}
-      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Tray Settings</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-              <Hash className="w-3 h-3 inline mr-1" />
-              Tray Positions (racks / shelf spots)
-            </label>
-            <NumberSetting
-              label="Tray positions"
-              value={config.totalTrays}
-              min={1}
-              max={MAX_TRAY_POSITIONS}
-              onChange={n => onUpdateConfig({ ...config, totalTrays: n })}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {usedTrayCount} in use, {config.totalTrays - usedTrayCount} available
-            </p>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Tray Label Prefix</label>
-            <input
-              type="text"
-              value={config.trayNumberPrefix}
-              onChange={e => onUpdateConfig({ ...config, trayNumberPrefix: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="e.g., Tray, Rack, Shelf"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Shown as "{config.trayNumberPrefix || 'Tray'} #1", "{config.trayNumberPrefix || 'Tray'} #2", etc.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Numbering */}
+      {section === 'numbering' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Numbering</h3>
         <p className="text-xs text-gray-500 mb-3">
           New batches and trays are numbered automatically, carrying on from the last number used, also after restoring a backup.
           Change the next number if you already label trays on paper.
@@ -378,7 +330,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           or above {batchCode(MAX_NUMBER)} / {trayCode(MAX_NUMBER)}.
         </p>
       </div>
+      )}
 
+      {section === 'crops' && (<>
       {/* Crop categories */}
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Crop Categories</h3>
@@ -402,38 +356,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
             Add standard microgreens ({missingCrops} crop{missingCrops === 1 ? '' : 's'}{missingCategories > 0 ? `, ${missingCategories} categor${missingCategories === 1 ? 'y' : 'ies'}` : ''})
           </button>
         )}
-      </div>
-
-      {/* Loss reasons */}
-      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Loss Reasons</h3>
-        <p className="text-xs text-gray-500 mb-3">Offered when you report a lost tray. Trays already marked keep their reason.</p>
-        <NameListEditor
-          items={config.lossReasons}
-          placeholder="New reason, e.g. Seed quality"
-          onAdd={name => onUpdateConfig({ ...config, lossReasons: [...config.lossReasons, name] })}
-          onRename={(from, to) => onUpdateConfig({ ...config, lossReasons: config.lossReasons.map(r => (r === from ? to : r)) })}
-          onDelete={name => onUpdateConfig({ ...config, lossReasons: config.lossReasons.filter(r => r !== name) })}
-        />
-      </div>
-
-      {/* General settings section */}
-      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">General Settings</h3>
-        <div className="space-y-3 text-sm text-gray-600">
-          <div className="flex items-center justify-between py-2">
-            <span>Date Format</span>
-            <span className="font-medium text-gray-900">MMM dd, yyyy</span>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span>Default Yield Unit</span>
-            <span className="font-medium text-gray-900">Grams</span>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span>Total Crop Types</span>
-            <span className="font-medium text-gray-900">{cropTypes.length}</span>
-          </div>
-        </div>
       </div>
 
       {/* Add crop button */}
@@ -700,36 +622,21 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
         );
       })}
 
-      {/* About */}
+      </>)}
+
+      {/* Loss reasons */}
+      {section === 'lossReasons' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
-          <Info className="w-4 h-4" />
-          About
-        </h3>
-        <div className="divide-y divide-gray-100 bg-white rounded-lg border border-gray-100">
-          {([
-            ['privacy', 'Privacy policy', ShieldCheck],
-            ['faq', 'Help & FAQ', HelpCircle],
-          ] as const).map(([kind, label, Icon]) => (
-            <button key={kind} onClick={() => onOpenInfo(kind)} className="w-full flex items-center gap-3 px-3 py-3 text-left">
-              <Icon className="w-4 h-4 text-emerald-600" />
-              <span className="flex-1 text-sm text-gray-900">{label}</span>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </button>
-          ))}
-          {isFilledIn(appInfo.supportEmail) && (
-            <a href={`mailto:${appInfo.supportEmail}`} className="w-full flex items-center gap-3 px-3 py-3">
-              <Mail className="w-4 h-4 text-emerald-600" />
-              <span className="flex-1 text-sm text-gray-900">Contact support</span>
-              <span className="text-xs text-gray-400 truncate max-w-[50%]">{appInfo.supportEmail}</span>
-            </a>
-          )}
-        </div>
-        <p className="text-xs text-gray-400 mt-3 text-center">
-          {appInfo.appName}{version ? ` · version ${version}` : ''}
-          {isFilledIn(appInfo.developerName) && <><br />© {new Date().getFullYear()} {appInfo.developerName}</>}
-        </p>
+        <p className="text-xs text-gray-500 mb-3">Offered when you report a lost tray. Trays already marked keep their reason.</p>
+        <NameListEditor
+          items={config.lossReasons}
+          placeholder="New reason, e.g. Seed quality"
+          onAdd={name => onUpdateConfig({ ...config, lossReasons: [...config.lossReasons, name] })}
+          onRename={(from, to) => onUpdateConfig({ ...config, lossReasons: config.lossReasons.map(r => (r === from ? to : r)) })}
+          onDelete={name => onUpdateConfig({ ...config, lossReasons: config.lossReasons.filter(r => r !== name) })}
+        />
       </div>
+      )}
     </div>
   );
 };

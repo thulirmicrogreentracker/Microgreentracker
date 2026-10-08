@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Minus, CreditCard as Edit3, Hash, ChevronLeft, Trash2 } from 'lucide-react';
 import { AppConfig, Batch, CropType, Tray } from '../types';
 import { addDaysToDate, formatDate, todayLocal } from '../utils/dateUtils';
-import { batchCode, newId, slotLabel, trayCode } from '../utils/batches';
+import { batchCode, newId, trayCode } from '../utils/batches';
+import { locationLabel } from '../utils/farmLayout';
 
 interface AddBatchModalProps {
   isOpen: boolean;
@@ -142,7 +143,6 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatc
   const codeFor = (t: Tray) => t.code || trayCode(firstNewCode + newTrays.indexOf(t));
   const activeDrafts = trays.filter(t => t.status === 'active');
   const withoutPosition = activeDrafts.filter(t => t.slot == null).length;
-  const prefix = config.trayNumberPrefix;
   const selectedCrop = cropTypes.find(crop => crop.name === cropType);
   const categories = [...new Set(cropTypes.map(c => c.category))];
 
@@ -219,7 +219,7 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatc
                       <option value="">No position</option>
                       {selectableSlots
                         .filter(s => s === t.slot || !trays.some(o => o.id !== t.id && o.status === 'active' && o.slot === s))
-                        .map(s => <option key={s} value={s}>{slotLabel(prefix, s)}</option>)}
+                        .map(s => <option key={s} value={s}>{locationLabel(s, config)}</option>)}
                     </select>
                   )}
                   <button

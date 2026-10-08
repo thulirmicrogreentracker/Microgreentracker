@@ -1,17 +1,19 @@
 import React from 'react';
-import { CreditCard as Edit3, Trash2, Camera, FileText, Droplets, AlertCircle, ChevronDown, AlertTriangle, X, Scale } from 'lucide-react';
-import { Batch } from '../types';
+import { CreditCard as Edit3, Trash2, Camera, FileText, Droplets, AlertCircle, ChevronDown, AlertTriangle, X, Scale, MapPin } from 'lucide-react';
+import { AppConfig, Batch } from '../types';
 import { formatDate, getDaysSince, getRelativeTimeString } from '../utils/dateUtils';
-import { activeTrays, batchCode, batchSeedGrams, batchYieldGrams, formatGrams, isBatchGrowing, isBatchLost, lostTrays, slotLabel } from '../utils/batches';
+import { activeTrays, batchCode, batchSeedGrams, batchYieldGrams, formatGrams, isBatchGrowing, isBatchLost, lostTrays, trayRange } from '../utils/batches';
+import { locationLabel, rackShelves, shortLocation } from '../utils/farmLayout';
 import { categoryIcon } from '../data/categoryIcons';
 import { STAGE_ORDER, stageConfig } from '../data/stages';
+import TrayArt from './farm/TrayArt';
 import PhotoStrip from './photos/PhotoStrip';
 
 interface BatchCardProps {
   batch: Batch;
   expanded: boolean;
   onToggle: () => void;
-  slotPrefix: string;
+  config: AppConfig; // for the rack and shelf of each tray
   onEdit: (batch: Batch) => void;
   onDelete: (id: string) => void;
   onStageChange: (id: string, stage: Batch['stage']) => void;
@@ -22,6 +24,7 @@ interface BatchCardProps {
   onReportLoss: (batchId: string) => void;
   onDeleteNote: (batchId: string, noteId: string) => void;
   onHarvest: (batchId: string) => void;
+  onOpenTray?: (trayId: string) => void; // opens the tray's own screen
   iconKey?: string; // icon of the crop's category
 }
 
@@ -37,7 +40,7 @@ const BatchCard: React.FC<BatchCardProps> = ({
   batch,
   expanded,
   onToggle,
-  slotPrefix,
+  config,
   onEdit,
   onDelete,
   onStageChange,
@@ -48,14 +51,15 @@ const BatchCard: React.FC<BatchCardProps> = ({
   onReportLoss,
   onDeleteNote,
   onHarvest,
+  onOpenTray,
   iconKey,
 }) => {
   const CropIcon = categoryIcon(iconKey);
   const allLost = isBatchLost(batch);
   const growing = isBatchGrowing(batch);
-  const config = stageConfig[batch.stage];
-  const StageIcon = config.icon;
-  const nextStage = allLost ? null : config.next;
+  const stage = stageConfig[batch.stage];
+  const StageIcon = stage.icon;
+  const nextStage = allLost ? null : stage.next;
 
   const active = activeTrays(batch);
   const lost = lostTrays(batch);
@@ -74,6 +78,9 @@ const BatchCard: React.FC<BatchCardProps> = ({
   const weighedTrays = active.filter(t => t.harvestWeight != null);
   const seedGrams = batchSeedGrams(batch);
 
+  // Where the batch is (or was, once harvested or lost) in the racks.
+  const where = rackShelves((growing ? active : batch.trays).map(t => t.slot), config);
+
   const summary = [
     `${batch.trays.length} tray${batch.trays.length === 1 ? '' : 's'}`,
     harvested ? null : `Day ${daysSinceSowing}`,
@@ -86,6 +93,29 @@ const BatchCard: React.FC<BatchCardProps> = ({
     // No box-shadow here: Android WebViews (at least with software rendering) left stale fragments of
     // shadowed cards on screen at startup until something was repainted.
     <div data-batch-card className={`bg-white rounded-xl border overflow-hidden ${allLost ? 'border-red-100' : 'border-gray-100'}`}>
+      <div className="batch-visual-cover">
+        <TrayArt stage={allLost ? 'lost' : batch.stage} />
+        <div className="batch-location">
+          <span className={`stage-badge stage-${allLost ? 'lost' : batch.stage}`}>{allLost ? 'Lost' : stage.label}</span>
+          {where.length === 0 && <b><MapPin aria-hidden />No rack position</b>}
+          {where.map(({ rack, shelves }, i) => (
+            <b key={rack}>
+              <MapPin aria-hidden className={i > 0 ? 'invisible' : ''} />
+              {!growing && i === 0 ? 'Was on ' : ''}{rack} · {shelves}
+            </b>
+          ))}
+          <small>{trayRange(batch.trays)}</small>
+        </div>
+      </div>
+      {expanded && onOpenTray && (
+        <div className="tray-chip-list">
+          {batch.trays.map(t => (
+            <button key={t.id} onClick={() => onOpenTray(t.id)} className={t.status === 'lost' ? 'lost' : ''}>
+              {t.code} · {t.status === 'lost' ? 'Lost' : 'View tray'} →
+            </button>
+          ))}
+        </div>
+      )}
       {/* Summary row: always visible, tap to open or close the card */}
       <button
         onClick={onToggle}
@@ -121,8 +151,8 @@ const BatchCard: React.FC<BatchCardProps> = ({
                 <AlertTriangle className="w-3 h-3 mr-1" />All trays lost
               </span>
             ) : (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${config.color}`}>
-                <StageIcon className="w-3 h-3 mr-1" />{config.label}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${stage.color}`}>
+                <StageIcon className="w-3 h-3 mr-1" />{stage.label}
               </span>
             )}
           </div>
@@ -154,13 +184,13 @@ const BatchCard: React.FC<BatchCardProps> = ({
               {active.map(t => (
                 <span
                   key={t.id}
-                  title={t.slot != null ? slotLabel(slotPrefix, t.slot) : 'No position'}
+                  title={locationLabel(t.slot, config)}
                   className="text-[11px] font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded-md"
                 >
                   {t.code}
                   {harvested && t.harvestWeight != null
                     ? <span className="text-emerald-700"> · {formatGrams(t.harvestWeight)}</span>
-                    : t.slot != null && <span className="text-gray-400"> · #{t.slot}</span>}
+                    : shortLocation(t.slot, config) && <span className="text-gray-400"> · {shortLocation(t.slot, config)}</span>}
                 </span>
               ))}
               {lost.map(t => (

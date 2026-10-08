@@ -58,7 +58,7 @@ The tools are in [`screenshots/tools/`](screenshots/tools/).
    - Android emulator: `adb push data-sample.json /data/local/tmp/` then
      `adb shell run-as com.universepdkt.microgreentracker sh -c 'cp /data/local/tmp/data-sample.json files/microgreen/data-b.json; rm -f files/microgreen/data-a.json'`.
      Back up the emulator's own data first if you want to keep it.
-   (Config → Load Test Data also works, but only in development builds, `npm run dev`; store builds don't show it.)
+   (Settings → Test data also works, but only in development builds, `npm run dev`; store builds don't show it.)
 2. **Devices.**
    - iPhone: the **iPhone 17 Pro Max** simulator gives exactly 1320 × 2868. Tidy the status bar with
      `xcrun simctl status_bar booted override --time 9:41 --batteryLevel 100 --batteryState discharging --cellularBars 4 --wifiBars 3`,

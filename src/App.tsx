@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown } from 'lucide-react';
+import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown, LayoutGrid, Layers, Search } from 'lucide-react';
 import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto } from './types';
 import { useAppData, UpdateAppData } from './hooks/useAppData';
 import { useReminders } from './hooks/useReminders';
@@ -9,10 +9,17 @@ import { createSnapshot, deleteSnapshot, listSnapshots, readSnapshot, SnapshotIn
 import { exportBackupFile, parseBackupFile, writeBackupPhotos } from './storage/backupFile';
 import BatchCard from './components/BatchCard';
 import AddBatchModal from './components/AddBatchModal';
-import Dashboard from './components/Dashboard';
+import FarmHome, { AllTasks, StageFilter } from './components/farm/FarmHome';
+import ShelvesPanel from './components/farm/ShelvesPanel';
+import TrayDetail from './components/farm/TrayDetail';
+import LayoutSettings from './components/farm/LayoutSettings';
+import ReportExport from './components/farm/ReportExport';
+import './components/farm/farm.css';
 import NotificationPanel from './components/NotificationPanel';
 import QuickActionModal from './components/QuickActionModal';
 import ConfigPanel from './components/ConfigPanel';
+import SettingsMenu, { SettingsPage, settingsTitles } from './components/SettingsMenu';
+import SwipePage, { attachSwipeBack } from './components/SwipePage';
 import ReportsPanel from './components/ReportsPanel';
 import BatchGallery from './components/photos/BatchGallery';
 import PhotoViewer from './components/photos/PhotoViewer';
@@ -29,7 +36,7 @@ import { defaultCategories, defaultCategoryIcons, defaultCropTypes } from './dat
 import { generateTestBatches } from './utils/generateTestData';
 import { appInfo } from './data/appInfo';
 
-type Tab = 'home' | 'reports' | 'config';
+type Tab = 'home' | 'shelves' | 'batches' | 'reports' | 'config';
 
 interface TrackerAppProps {
   data: AppData;
@@ -42,9 +49,24 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const { batches, cropTypes, config, reminders } = data;
   const setBatches = (fn: (prev: Batch[]) => Batch[]) => update(d => ({ ...d, batches: fn(d.batches) }));
   const setCropTypes = (next: CropType[]) => update(d => ({ ...d, cropTypes: next }));
-  const setConfig = (next: AppConfig) => update(d => ({ ...d, config: next }));
+  const setConfig = (next: AppConfig) => {
+    // The number of positions can't drop below a position that a growing tray is in.
+    const highestSlot = Math.max(0, ...batches.filter(isBatchGrowing).flatMap(b => activeTrays(b).map(t => t.slot ?? 0)));
+    if (next.totalTrays < highestSlot) {
+      window.alert(`Position ${highestSlot} is in use. Move its tray before reducing the number of positions.`);
+      return;
+    }
+    // A rack layout is kept only while it covers exactly the tray positions.
+    const layout = next.farmLayout;
+    const fits = layout && layout.rackCount * layout.shelvesPerRack * layout.traysPerShelf === next.totalTrays;
+    update(d => ({ ...d, config: { ...next, farmLayout: fits ? layout : undefined } }));
+  };
   const setReminders = (fn: (prev: Reminder[]) => Reminder[]) => update(d => ({ ...d, reminders: fn(d.reminders) }));
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [stageFilter, setStageFilter] = useState<StageFilter>('all');
+  const [batchSearch, setBatchSearch] = useState('');
+  const [selectedTray, setSelectedTray] = useState<{ batchId: string; trayId: string } | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editBatch, setEditBatch] = useState<Batch | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -57,6 +79,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [viewerPhoto, setViewerPhoto] = useState<{ batchId: string; photoId: string } | null>(null);
   const [compareBatchId, setCompareBatchId] = useState<string | null>(null);
   const [cropPhotos, setCropPhotos] = useState<string | null>(null);
+  const [settingsPage, setSettingsPage] = useState<SettingsPage | null>(null);
+  const [showTasks, setShowTasks] = useState(false);
 
   const [quickActionModal, setQuickActionModal] = useState<{
     isOpen: boolean;
@@ -81,29 +105,44 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     }
   }, [showRestoreSheet]);
 
-  // Android hardware back button: close the top-most screen instead of exiting the app.
+  // Back (Android back button or gesture, or a swipe from the left edge): close the top-most screen; on a tab other
+  // than Home go to Home; on Home leave the app.
+  const goBack = () => {
+    if (infoPage) setInfoPage(null);
+    else if (harvestBatchId) setHarvestBatchId(null);
+    else if (lossSheet) setLossSheet(null);
+    else if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
+    else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
+    else if (viewerPhoto) setViewerPhoto(null);
+    else if (compareBatchId) setCompareBatchId(null);
+    else if (galleryBatchId) setGalleryBatchId(null);
+    else if (cropPhotos) setCropPhotos(null);
+    else if (showRestoreSheet) setShowRestoreSheet(false);
+    else if (showNotifications) setShowNotifications(false);
+    else if (selectedTray) setSelectedTray(null);
+    else if (showTasks) setShowTasks(false);
+    else if (settingsPage) setSettingsPage(null);
+    else if (activeTab !== 'home') setActiveTab('home');
+    else CapacitorApp.exitApp();
+  };
+  const goBackRef = useRef(goBack);
+  goBackRef.current = goBack;
+
   useEffect(() => {
-    const handle = CapacitorApp.addListener('backButton', () => {
-      if (infoPage) setInfoPage(null);
-      else if (harvestBatchId) setHarvestBatchId(null);
-      else if (lossSheet) setLossSheet(null);
-      else if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
-      else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
-      else if (viewerPhoto) setViewerPhoto(null);
-      else if (compareBatchId) setCompareBatchId(null);
-      else if (galleryBatchId) setGalleryBatchId(null);
-      else if (cropPhotos) setCropPhotos(null);
-      else if (showRestoreSheet) setShowRestoreSheet(false);
-      else if (showNotifications) setShowNotifications(false);
-      else if (activeTab !== 'home') setActiveTab('home');
-      else CapacitorApp.exitApp();
-    });
+    const handle = CapacitorApp.addListener('backButton', () => goBackRef.current());
     return () => { handle.then(h => h.remove()); };
-  }, [infoPage, harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, activeTab]);
+  }, []);
+
+  // A swipe from the left edge on a tab other than Home goes back to Home (pushed screens handle their own swipe).
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  useEffect(() => attachSwipeBack(mainRef.current!, () => goBackRef.current(), {
+    slideOut: false,
+    enabled: () => activeTabRef.current !== 'home',
+  }), []);
 
   const availableSlots = useMemo(() => freeSlots(batches, config.totalTrays), [batches, config.totalTrays]);
 
-  const usedTrayCount = config.totalTrays - availableSlots.length;
 
   const stats: BatchStats = useMemo(() => {
     const s = {
@@ -375,9 +414,35 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
 
   const tabs: { key: Tab; label: string; icon: React.FC<{ className?: string }> }[] = [
     { key: 'home', label: 'Home', icon: Home },
-    { key: 'reports', label: 'Reports', icon: BarChart3 },
-    { key: 'config', label: 'Config', icon: Settings },
+    { key: 'shelves', label: 'Shelves', icon: LayoutGrid },
+    { key: 'batches', label: 'Batches', icon: Layers },
+    { key: 'reports', label: 'Insights', icon: BarChart3 },
+    { key: 'config', label: 'Settings', icon: Settings },
   ];
+
+  // Opens the Batches tab with one batch expanded and scrolled into view.
+  const openBatch = (id: string) => {
+    setActiveTab('batches');
+    setSelectedTray(null);
+    setShowTasks(false);
+    setStageFilter('all');
+    setBatchSearch('');
+    setExpandedIds(new Set([id]));
+    requestAnimationFrame(() => document.getElementById(`batch-${id}`)?.scrollIntoView({ block: 'start' }));
+  };
+  const openTray = (batchId: string, trayId: string) => setSelectedTray({ batchId, trayId });
+  const trayBatch = batches.find(b => b.id === selectedTray?.batchId);
+  const tray = trayBatch?.trays.find(t => t.id === selectedTray?.trayId);
+  const matchesSearch = (b: Batch) =>
+    !batchSearch ||
+    `${b.cropType} B${String(b.batchNumber).padStart(3, '0')} ${b.trays.map(t => t.code).join(' ')}`
+      .toLowerCase()
+      .includes(batchSearch.toLowerCase());
+  const matchesStage = (b: Batch, stage: StageFilter) =>
+    stage === 'all' || (stage === 'lost' ? lostTrays(b).length > 0 : b.stage === stage && !isBatchLost(b));
+  const visibleSections = batchSections
+    .map(section => ({ ...section, batches: section.batches.filter(b => matchesSearch(b) && matchesStage(b, stageFilter)) }))
+    .filter(section => section.batches.length > 0);
 
   const runBusy = async (message: string, task: () => Promise<void>) => {
     setBusyMessage(message);
@@ -397,6 +462,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     update(() => next);
     setExpandedIds(new Set());
     setActiveTab('home');
+    setSettingsPage(null);
   };
 
   const handleSnapshotNow = () => runBusy('Saving a copy…', async () => {
@@ -426,7 +492,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     const backup = await parseBackupFile(file);
     const when = backup.createdAt ? ` from ${new Date(backup.createdAt).toLocaleString()}` : '';
     const count = backup.data.batches.length;
-    if (!window.confirm(`Restore this backup${when}? It has ${count} batch${count === 1 ? '' : 'es'}. Your current data will be replaced (a copy of it is kept under Config → Restore).`)) return;
+    if (!window.confirm(`Restore this backup${when}? It has ${count} batch${count === 1 ? '' : 'es'}. Your current data will be replaced (a copy of it is kept under Settings → Backup & restore → Restore).`)) return;
     setBusyMessage('Restoring…');
     await writeBackupPhotos(backup);
     await replaceData(backup.data);
@@ -443,12 +509,13 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     });
     setExpandedIds(new Set());
     setActiveTab('home');
+    setSettingsPage(null);
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-50 flex flex-col max-w-md mx-auto lg:max-w-lg xl:max-w-xl">
+    <div className="farm-app fixed inset-0 flex flex-col max-w-md mx-auto lg:max-w-lg xl:max-w-xl">
       {/* App Header */}
-      <header className="flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] bg-white border-b border-gray-100 shrink-0">
+      <header className="farm-app-header flex items-center justify-between px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] shrink-0">
         <div className="flex items-center gap-2.5">
           <AppLogo className="w-9 h-9 shrink-0" />
           <div>
@@ -483,10 +550,68 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 pb-28">
+      <main ref={mainRef} className="farm-main flex-1 overflow-y-auto no-scrollbar px-5 py-4 pb-8">
         {activeTab === 'home' && (
+          <>
+            <FarmHome
+              batches={batches}
+              cropTypes={cropTypes}
+              onStage={stage => {
+                setStageFilter(stage);
+                setActiveTab('batches');
+              }}
+              onNew={() => setIsModalOpen(true)}
+              onWater={id => handleQuickAction(id, 'watering')}
+              onShelves={() => setActiveTab('shelves')}
+              onBatch={openBatch}
+              onAllTasks={() => setShowTasks(true)}
+            />
+            {batches.length === 0 && (
+              <button className="farm-restore-link" onClick={() => importInputRef.current?.click()}>
+                Restore from a backup file
+              </button>
+            )}
+          </>
+        )}
+
+        {activeTab === 'shelves' && (
+          <ShelvesPanel
+            batches={batches}
+            config={config}
+            onTray={openTray}
+            onNew={() => setIsModalOpen(true)}
+            onConfig={() => {
+              setActiveTab('config');
+              setSettingsPage('layout');
+            }}
+            onBatch={openBatch}
+          />
+        )}
+
+        {activeTab === 'batches' && (
           <div className="space-y-4">
-            <Dashboard stats={stats} />
+            <div className="farm-heading">
+              <div>
+                <p className="eyebrow">FROM SEED TO HARVEST</p>
+                <h1>Your batches</h1>
+                <p>One variety. Every tray together.</p>
+              </div>
+              <button className="farm-icon-button" onClick={() => setIsModalOpen(true)} aria-label="Add batch">
+                <Plus />
+              </button>
+            </div>
+            <label className="batch-search">
+              <Search size={18} />
+              <input placeholder="Search crop, batch or tray" value={batchSearch} onChange={e => setBatchSearch(e.target.value)} />
+            </label>
+            <div className="batch-filter-row" role="group" aria-label="Show batches">
+              {(['all', 'sowing', 'germination', 'growth', 'harvest', 'completed', 'lost'] as const).map(stage => (
+                <button key={stage} aria-pressed={stageFilter === stage} onClick={() => setStageFilter(stage)}>
+                  {stage === 'all' ? 'All' : stage === 'lost' ? 'Lost' : stage === 'harvest' ? 'Ready' : stageConfig[stage].label}
+                  <span>{batches.filter(b => matchesSearch(b) && matchesStage(b, stage)).length}</span>
+                </button>
+              ))}
+            </div>
             {batches.length === 0 ? (
               <div className="text-center py-12">
                 <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
@@ -520,31 +645,34 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
                     {allExpanded ? 'Collapse all' : 'Expand all'}
                   </button>
                 </div>
-                {batchSections.map(section => (
+                {visibleSections.length === 0 && <p className="farm-help">No batches match this search or stage.</p>}
+                {visibleSections.map(section => (
                   <section key={section.key}>
                     <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">
                       {section.label} · {section.batches.length}
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-3">
                       {section.batches.map(batch => (
-                        <BatchCard
-                          key={batch.id}
-                          batch={batch}
-                          expanded={expandedIds.has(batch.id)}
-                          onToggle={() => toggleExpanded(batch.id)}
-                          slotPrefix={config.trayNumberPrefix}
-                          onEdit={handleEdit}
-                          onDelete={deleteBatch}
-                          onStageChange={updateBatchStage}
-                          onAddPhoto={(batchId) => handleQuickAction(batchId, 'photo')}
-                          onAddNote={(batchId) => handleQuickAction(batchId, 'note')}
-                          onAddWatering={(batchId) => handleQuickAction(batchId, 'watering')}
-                          onOpenGallery={setGalleryBatchId}
-                          onReportLoss={(batchId) => setLossSheet({ batchId, trayIds: [] })}
-                          onDeleteNote={deleteNote}
-                          onHarvest={setHarvestBatchId}
-                          iconKey={config.categoryIcons[cropTypes.find(c => c.name === batch.cropType)?.category ?? '']}
-                        />
+                        <div id={`batch-${batch.id}`} key={batch.id}>
+                          <BatchCard
+                            batch={batch}
+                            expanded={expandedIds.has(batch.id)}
+                            onToggle={() => toggleExpanded(batch.id)}
+                            config={config}
+                            onEdit={handleEdit}
+                            onDelete={deleteBatch}
+                            onStageChange={updateBatchStage}
+                            onAddPhoto={(batchId) => handleQuickAction(batchId, 'photo')}
+                            onAddNote={(batchId) => handleQuickAction(batchId, 'note')}
+                            onAddWatering={(batchId) => handleQuickAction(batchId, 'watering')}
+                            onOpenGallery={setGalleryBatchId}
+                            onReportLoss={(batchId) => setLossSheet({ batchId, trayIds: [] })}
+                            onDeleteNote={deleteNote}
+                            onHarvest={setHarvestBatchId}
+                            iconKey={config.categoryIcons[cropTypes.find(c => c.name === batch.cropType)?.category ?? '']}
+                            onOpenTray={trayId => openTray(batch.id, trayId)}
+                          />
+                        </div>
                       ))}
                     </div>
                   </section>
@@ -555,63 +683,111 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         )}
 
         {activeTab === 'reports' && (
-          <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
+          <div className="farm-stack">
+            <div className="farm-heading">
+              <div>
+                <p className="eyebrow">GROW WITH CONFIDENCE</p>
+                <h1>Farm insights</h1>
+                <p>Your harvest, in perspective.</p>
+              </div>
+            </div>
+            <ReportExport batches={batches} />
+            <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
+          </div>
         )}
 
         {activeTab === 'config' && (
-          <ConfigPanel
-            cropTypes={cropTypes}
-            onUpdateCropTypes={setCropTypes}
-            config={config}
-            onUpdateConfig={setConfig}
-            onRenameCategory={renameCategory}
-            onAddStandardCrops={addStandardCrops}
-            onOpenInfo={setInfoPage}
-            onDeleteCategory={deleteCategory}
-            highestBatchNumber={highestBatchNumber(batches)}
-            highestTrayNumber={highestTrayNumber(batches)}
-            usedTrayCount={usedTrayCount}
-            onBackupNow={handleSnapshotNow}
-            onShowRestore={() => setShowRestoreSheet(true)}
-            onExportBackup={handleExportBackup}
-            onImportBackup={() => importInputRef.current?.click()}
-            onLoadTestData={handleLoadTestData}
-            hasBatches={batches.length > 0}
-          />
+          <div className="farm-stack">
+            <div className="farm-heading">
+              <div>
+                <p className="eyebrow">MAKE IT YOUR FARM</p>
+                <h1>Settings</h1>
+                <p>Your space, crops and preferences.</p>
+              </div>
+            </div>
+            <SettingsMenu config={config} cropTypes={cropTypes} lastBackup={lastBackup} onOpen={setSettingsPage} onOpenInfo={setInfoPage} />
+          </div>
         )}
       </main>
 
-      {/* Floating Action Button */}
-      {activeTab === 'home' && (
-        <button
-          onClick={() => setIsModalOpen(true)}
-          aria-label="Add batch"
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 max-w-md:w-auto lg:max-w-lg:w-auto xl:max-w-xl:w-auto z-30 bg-emerald-600 text-white rounded-full p-4 shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
-          style={{ right: 'max(1rem, calc((100vw - 100%) / 2 + 1rem))' }}
-        >
-          <Plus className="w-6 h-6" />
-        </button>
-      )}
-
       {/* Bottom Navigation */}
-      <nav className="shrink-0 bg-white border-t border-gray-100 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex flex-col items-center justify-center py-2 px-4 rounded-lg transition-colors ${
-                isActive ? 'text-emerald-600' : 'text-gray-400'
-              }`}
-            >
-              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'stroke-[2.5]' : ''}`} />
-              <span className="text-[10px] font-medium">{tab.label}</span>
-            </button>
-          );
-        })}
+      <nav aria-label="Main navigation" className="farm-nav shrink-0">
+        {/* A floating bar; the active tab sits in a circle in a notch that slides between tabs. */}
+        <div className="farm-nav-bar" style={{ '--tab': tabs.findIndex(t => t.key === activeTab) } as React.CSSProperties}>
+          <span className="farm-nav-indicator" aria-hidden="true" />
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setSelectedTray(null);
+                  mainRef.current?.scrollTo(0, 0);
+                }}
+                aria-current={activeTab === tab.key ? 'page' : undefined}
+                className="farm-nav-item"
+              >
+                <Icon />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
+
+      {/* Screens pushed on top of the tabs; each slides in and goes back with a swipe from the left edge. */}
+      {showTasks && (
+        <SwipePage title="Today's care" onBack={() => setShowTasks(false)}>
+          <AllTasks
+            batches={batches}
+            cropTypes={cropTypes}
+            onWater={id => handleQuickAction(id, 'watering')}
+            onBatch={openBatch}
+          />
+        </SwipePage>
+      )}
+      {settingsPage && (
+        <SwipePage title={settingsTitles[settingsPage]} onBack={() => setSettingsPage(null)}>
+          {settingsPage === 'layout' ? (
+            <LayoutSettings key={JSON.stringify(config.farmLayout)} config={config} batches={batches} onSave={setConfig} />
+          ) : (
+            <ConfigPanel
+              section={settingsPage}
+              cropTypes={cropTypes}
+              onUpdateCropTypes={setCropTypes}
+              config={config}
+              onUpdateConfig={setConfig}
+              onRenameCategory={renameCategory}
+              onAddStandardCrops={addStandardCrops}
+              onDeleteCategory={deleteCategory}
+              highestBatchNumber={highestBatchNumber(batches)}
+              highestTrayNumber={highestTrayNumber(batches)}
+              onBackupNow={handleSnapshotNow}
+              onShowRestore={() => setShowRestoreSheet(true)}
+              onExportBackup={handleExportBackup}
+              onImportBackup={() => importInputRef.current?.click()}
+              onLoadTestData={handleLoadTestData}
+              hasBatches={batches.length > 0}
+            />
+          )}
+        </SwipePage>
+      )}
+      {trayBatch && tray && (
+        <SwipePage onBack={() => setSelectedTray(null)}>
+          <TrayDetail
+            batch={trayBatch}
+            tray={tray}
+            config={config}
+            onClose={() => setSelectedTray(null)}
+            onBatch={() => openBatch(trayBatch.id)}
+            onWater={() => handleQuickAction(trayBatch.id, 'watering')}
+            onNote={() => handleQuickAction(trayBatch.id, 'note')}
+            onPhoto={() => handleQuickAction(trayBatch.id, 'photo', tray.id)}
+            onLoss={() => setLossSheet({ batchId: trayBatch.id, trayIds: [tray.id] })}
+          />
+        </SwipePage>
+      )}
 
       {/* Notifications Sheet */}
       {showNotifications && (
@@ -725,9 +901,12 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
 
       {/* Photo screens, back to front */}
       {cropPhotos && (
-        <CropPhotos crop={cropPhotos} batches={batches} onClose={() => setCropPhotos(null)} onOpenGallery={setGalleryBatchId} />
+        <SwipePage bare onBack={() => setCropPhotos(null)}>
+          <CropPhotos crop={cropPhotos} batches={batches} onClose={() => setCropPhotos(null)} onOpenGallery={setGalleryBatchId} />
+        </SwipePage>
       )}
       {galleryBatch && (
+        <SwipePage bare onBack={() => setGalleryBatchId(null)}>
         <BatchGallery
           batch={galleryBatch}
           canCompare={canCompare(galleryBatch)}
@@ -736,11 +915,15 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           onAddPhoto={(trayId) => handleQuickAction(galleryBatch.id, 'photo', trayId)}
           onCompare={() => setCompareBatchId(galleryBatch.id)}
         />
+        </SwipePage>
       )}
       {compareBatch && (
-        <PhotoCompare batch={compareBatch} batches={batches} onClose={() => setCompareBatchId(null)} />
+        <SwipePage bare onBack={() => setCompareBatchId(null)}>
+          <PhotoCompare batch={compareBatch} batches={batches} onClose={() => setCompareBatchId(null)} />
+        </SwipePage>
       )}
       {viewerBatch && viewerPhoto && (
+        <SwipePage bare onBack={() => setViewerPhoto(null)}>
         <PhotoViewer
           key={viewerPhoto.photoId}
           batch={viewerBatch}
@@ -749,6 +932,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           onUpdateCaption={(photoId, caption) => updatePhotoCaption(viewerBatch.id, photoId, caption)}
           onDelete={(photoId) => deletePhoto(viewerBatch.id, photoId)}
         />
+        </SwipePage>
       )}
 
       {/* Add/Edit Modal */}
@@ -772,7 +956,11 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         onSave={handleQuickActionSave}
       />
 
-      {infoPage && <InfoPage kind={infoPage} onClose={() => setInfoPage(null)} />}
+      {infoPage && (
+        <SwipePage bare onBack={() => setInfoPage(null)}>
+          <InfoPage kind={infoPage} onClose={() => setInfoPage(null)} />
+        </SwipePage>
+      )}
 
       {harvestBatchId && (() => {
         const harvesting = batches.find(b => b.id === harvestBatchId);
