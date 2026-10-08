@@ -18,8 +18,8 @@ because the full name would be cut off there.
 | Secondary category | Food & Drink |
 | Promotional text [170] | Track every tray from sowing to harvest: auto-numbered batches, per-tray photos, harvest weights and yield reports. Free for 30 days. |
 | Keywords [100] | microgreens,tray,grow,harvest,yield,seed,sprouts,farm,garden,crop,log,tracker,batch,hydroponic |
-| Support URL | https://universepdkt.github.io/Microgreentracker/store/faq |
-| Privacy Policy URL | https://universepdkt.github.io/Microgreentracker/store/privacy-policy |
+| Support URL | https://thulirmicrogreentracker.github.io/Microgreentracker/store/faq |
+| Privacy Policy URL | https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy |
 | Copyright | 2026 Rajeshkumar |
 | Age rating | 4+ (answer "None" to every content question) |
 
@@ -30,9 +30,15 @@ Thulir MicroGreen Tracker helps growers track every tray from sowing to harvest,
 
 BATCHES AND TRAYS
 • Sow a batch of many trays in one step: batch numbers (B001…) and tray numbers (T001…) are created for you and never reused
-• Assign each tray to a rack or shelf position, picked automatically from the free ones
-• Collapsible batch cards grouped by stage keep 50+ trays easy to scan
+• Each tray gets a spot on your racks, picked automatically from the free ones
+• Batches grouped by stage, with stage filters, search and the rack each one is on
 • Edit batches and trays at any time
+
+RACKS AND SHELVES
+• Set up your racks, shelves and trays per shelf
+• See each rack drawn shelf by shelf, with every tray's batch and stage
+• Open any tray for its location, growth progress, photo and notes
+• Today's care on the home screen: what to water and what to harvest
 
 FROM SOWING TO HARVEST
 • Move batches through Sowing, Germination, Growing, Ready to Harvest and Completed
@@ -52,6 +58,7 @@ HARVEST AND REPORTS
 • Weigh each tray at harvest and see the batch total in grams
 • Yield per tray and seed-to-yield ratio
 • Reports by crop and by month, crop performance, tray survival, watering and harvest timeline
+• Export a PDF or CSV report for any crop and date range
 
 CROPS
 • 53 common microgreens in 10 categories, from brassicas and pulses to herbs and alliums
@@ -67,7 +74,19 @@ FREE FOR 30 DAYS
 Try everything free for 30 days. After that, Thulir MicroGreen Tracker Pro (monthly, yearly or a one-time lifetime purchase) is needed to start new batches; everything you've recorded stays available. Subscriptions renew automatically until cancelled in your Google Play or App Store account settings.
 
 Terms of use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Privacy policy: https://universepdkt.github.io/Microgreentracker/store/privacy-policy
+Privacy policy: https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy
+```
+
+### What's New (version 1.1)
+
+```
+A fresh new look:
+• Home shows your farm at a glance and today's care tasks
+• Shelves draws your racks shelf by shelf, with every tray's batch and stage
+• Every tray has its own page
+• Batches show the rack and shelves they are on, with stage filters
+• PDF and CSV reports
+• Settings in clear sections, and swipe back from any screen
 ```
 
 ### What's New (first release)
@@ -86,8 +105,8 @@ First release: batches with multiple trays, per-tray photos and harvest weights,
 | App category | Productivity |
 | Tags | Productivity, Gardening, Agriculture (pick the closest ones offered) |
 | Email | thulirmicrogreentracker@gmail.com |
-| Website | https://universepdkt.github.io/Microgreentracker/store/faq |
-| Privacy policy | https://universepdkt.github.io/Microgreentracker/store/privacy-policy |
+| Website | https://thulirmicrogreentracker.github.io/Microgreentracker/store/faq |
+| Privacy policy | https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy |
 
 ## Privacy questionnaires
 
@@ -140,7 +159,7 @@ Check these answers against RevenueCat's own guidance before submitting, in case
 - **Do you provide a way for users to request that their data is deleted?** Yes: in the app (Settings → Account →
   Delete account) or by email to the support address (see the privacy policy).
 - **Account creation:** Yes, **username and password** and **OAuth** (Google). Account-deletion URL:
-  https://universepdkt.github.io/Microgreentracker/store/delete-account
+  https://thulirmicrogreentracker.github.io/Microgreentracker/store/delete-account
 - **In-app purchases:** declare that the app contains in-app purchases (subscriptions and a one-time purchase).
 
 ### Google Play: other declarations

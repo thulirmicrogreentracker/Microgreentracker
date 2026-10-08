@@ -140,7 +140,7 @@ On the email sign-in screen tap "Forgot password?" and we'll email you a link to
 **How do I delete my account?**
 Settings → Account → Delete account. This removes your name and email from our sign-in service. Your batches and photos
 on the phone are kept, and a purchase stays with your store account. Without the app, email us from your account's
-address and we'll delete it. Details: https://universepdkt.github.io/Microgreentracker/store/delete-account
+address and we'll delete it. Details: https://thulirmicrogreentracker.github.io/Microgreentracker/store/delete-account
 
 **How do I cancel?**
 In Google Play (Play Store → Profile → Payments & subscriptions → Subscriptions) or on iPhone (Settings → your name →
@@ -152,7 +152,7 @@ Subscriptions). You keep Pro until the end of the period you paid for.
 No. Your growing data and photos stay on your phone; they only leave it when you share a backup file or a photo
 yourself. To check subscriptions, the app sends our subscription service (RevenueCat) your purchase details from the
 store with a random ID, or with your account if you signed in. If you sign in, we keep your name and email.
-See the privacy policy: https://universepdkt.github.io/Microgreentracker/store/privacy-policy
+See the privacy policy: https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy
 
 **Why does the app ask for the camera?**
 Only to take photos of your trays when you tap "Take photo".

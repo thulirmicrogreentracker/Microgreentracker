@@ -112,7 +112,7 @@ Because we do not hold your growing data, deleting the app is all you need to re
 account (name, email and user ID) from Firebase straight away and removes your name and email from RevenueCat. Your
 batches and photos on the phone are not affected, and a purchase stays with your Google Play or App Store account
 (use Restore purchases). If you no longer have the app, email us from the address of your account and we will delete
-it within 30 days. Details: https://universepdkt.github.io/Microgreentracker/store/delete-account
+it within 30 days. Details: https://thulirmicrogreentracker.github.io/Microgreentracker/store/delete-account
 
 Purchase records kept by RevenueCat are needed for your subscription and for our tax and accounting duties; to have
 them deleted as well, email us (we will ask RevenueCat to delete them). The trial fingerprints described under "Free

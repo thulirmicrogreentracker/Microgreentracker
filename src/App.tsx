@@ -1015,6 +1015,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         isOpen={quickActionModal.isOpen}
         onClose={() => setQuickActionModal({ isOpen: false, batch: null, actionType: null })}
         batch={quickActionModal.batch}
+        config={config}
         actionType={quickActionModal.actionType}
         trayId={quickActionModal.trayId}
         onSave={handleQuickActionSave}
@@ -1050,6 +1051,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         return harvesting ? (
           <HarvestSheet
             batch={harvesting}
+            config={config}
             onSave={(weights, date) => harvestBatch(harvesting.id, weights, date)}
             onClose={() => setHarvestBatchId(null)}
           />
@@ -1061,6 +1063,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         return lossBatch ? (
           <LostTraySheet
             batch={lossBatch}
+            config={config}
             initialTrayIds={lossSheet.trayIds}
             reasons={config.lossReasons}
             onSave={(trayIds, loss) => markTraysLost(lossBatch.id, trayIds, loss)}

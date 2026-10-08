@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Minus, CreditCard as Edit3, Hash, ChevronLeft, Trash2 } from 'lucide-react';
+import { Plus, Minus, CreditCard as Edit3, MapPin, ChevronLeft, Trash2 } from 'lucide-react';
 import { AppConfig, Batch, CropType, Tray } from '../types';
 import { addDaysToDate, formatDate, todayLocal } from '../utils/dateUtils';
 import { batchCode, newId, trayCode } from '../utils/batches';
-import { locationLabel } from '../utils/farmLayout';
+import { locationLabel, rackShelves } from '../utils/farmLayout';
 
 interface AddBatchModalProps {
   isOpen: boolean;
@@ -271,9 +271,9 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatc
               </div>
               <div className="flex items-start justify-between gap-2">
                 <span>
-                  <Hash className="w-3 h-3 inline mr-0.5" />
+                  <MapPin className="w-3 h-3 inline mr-0.5" />
                   Positions: <span className="font-semibold text-gray-900">
-                    {trays.filter(t => t.slot != null).map(t => `#${t.slot}`).join(', ') || 'none'}
+                    {rackShelves(trays.map(t => t.slot), config).map(r => `${r.rack} · ${r.shelves}`).join(', ') || 'none'}
                   </span>
                 </span>
                 <button type="button" onClick={() => setShowPositions(v => !v)} className="text-emerald-700 font-medium shrink-0">
@@ -283,7 +283,7 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatc
               {withoutPosition > 0 && (
                 <div className="text-amber-700">
                   {withoutPosition} tray{withoutPosition === 1 ? ' has' : 's have'} no position: only {selectableSlots.length} of {config.totalTrays} are free.
-                  You can raise the number of positions in Config.
+                  Add racks or shelves under Settings → Racks & shelves.
                 </div>
               )}
             </div>
@@ -300,7 +300,7 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatc
                       <option value="">None</option>
                       {selectableSlots
                         .filter(s => s === t.slot || !trays.some(o => o.id !== t.id && o.slot === s))
-                        .map(s => <option key={s} value={s}>#{s}</option>)}
+                        .map(s => <option key={s} value={s}>{locationLabel(s, config)}</option>)}
                     </select>
                   </label>
                 ))}

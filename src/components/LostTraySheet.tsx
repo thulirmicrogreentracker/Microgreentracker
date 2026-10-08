@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, Check } from 'lucide-react';
-import { Batch } from '../types';
+import { AppConfig, Batch } from '../types';
+import { shortLocation } from '../utils/farmLayout';
 import { activeTrays, batchCode } from '../utils/batches';
 import { todayLocal } from '../utils/dateUtils';
 
@@ -12,13 +13,14 @@ export interface TrayLoss {
 
 interface LostTraySheetProps {
   batch: Batch;
+  config: AppConfig; // for each tray's rack and shelf
   initialTrayIds: string[];
   reasons: string[];
   onSave: (trayIds: string[], loss: TrayLoss) => void;
   onClose: () => void;
 }
 
-const LostTraySheet: React.FC<LostTraySheetProps> = ({ batch, initialTrayIds, reasons, onSave, onClose }) => {
+const LostTraySheet: React.FC<LostTraySheetProps> = ({ batch, config, initialTrayIds, reasons, onSave, onClose }) => {
   const trays = activeTrays(batch);
   const [selected, setSelected] = useState<Set<string>>(new Set(initialTrayIds));
   const [reason, setReason] = useState('');
@@ -74,7 +76,7 @@ const LostTraySheet: React.FC<LostTraySheetProps> = ({ batch, initialTrayIds, re
                     }`}
                   >
                     {on && <Check className="w-3 h-3 inline mr-1" />}
-                    {t.code}{t.slot != null && <span className="text-gray-400"> · #{t.slot}</span>}
+                    {t.code}{shortLocation(t.slot, config) && <span className="text-gray-400"> · {shortLocation(t.slot, config)}</span>}
                   </button>
                 );
               })}

@@ -34,4 +34,4 @@ account". We will delete it within 30 days and reply to confirm.
 - **The free-trial record:** the trial start date, stored under a one-way fingerprint of your email. It contains no
   email address or other details and is kept so that the free trial is not started again.
 
-Privacy policy: https://universepdkt.github.io/Microgreentracker/store/privacy-policy
+Privacy policy: https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy

@@ -16,8 +16,8 @@ Everything needed for the store listings, and the steps to get there.
 |---|---|---|
 | Developer name | Rajeshkumar | `src/data/appInfo.ts`, the documents here |
 | Support email | thulirmicrogreentracker@gmail.com | same |
-| Privacy policy URL | https://universepdkt.github.io/Microgreentracker/store/privacy-policy | same |
-| Support URL | https://universepdkt.github.io/Microgreentracker/store/faq | same |
+| Privacy policy URL | https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy | same |
+| Support URL | https://thulirmicrogreentracker.github.io/Microgreentracker/store/faq | same |
 
 To change one, edit `src/data/appInfo.ts` and the matching text in this folder.
 
@@ -25,7 +25,7 @@ To change one, edit `src/data/appInfo.ts` and the matching text in this folder.
 
 Both stores need a public **https** address that opens without a login. They are served by **GitHub Pages** from
 the `docs` folder on `main` (repository Settings → Pages → Deploy from a branch → `main` / `/docs`; only the owner,
-`universepdkt`, can change this setting). Every change to `docs/` on `main` updates the pages within a few minutes.
+`thulirmicrogreentracker`, can change this setting). Every change to `docs/` on `main` updates the pages within a few minutes.
 
 ## 3. Changes still needed in the app
 
