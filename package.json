@@ -12,7 +12,7 @@
     "android": "vite build && cap sync android && cap open android",
     "ios": "vite build && cap sync ios && cap open ios",
     "android:release": "vite build && cap sync android && cd android && ./gradlew bundleRelease",
-    "test:e2e": "node tests/e2e/storage-and-backup.cjs && node tests/e2e/photos.cjs"
+    "test:e2e": "node tests/e2e/farm-layout.cjs && node tests/e2e/storage-and-backup.cjs && node tests/e2e/photos.cjs && node tests/e2e/visual-ui.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

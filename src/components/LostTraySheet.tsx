@@ -97,7 +97,7 @@ const LostTraySheet: React.FC<LostTraySheetProps> = ({ batch, initialTrayIds, re
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-gray-400 mt-1.5">Edit this list under Config → Loss Reasons.</p>
+            <p className="text-[11px] text-gray-400 mt-1.5">Edit this list under Settings → Loss reasons.</p>
           </div>
 
           <div>

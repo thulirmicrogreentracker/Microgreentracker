@@ -59,7 +59,7 @@ upload).
 ## Notes
 
 - **Phones that have a debug build** (installed from this Mac or from GitHub): a release build is signed with a
-  different key, so Android refuses to install it over the debug app. Save a backup file first (Config → Save File),
+  different key, so Android refuses to install it over the debug app. Save a backup file first (Settings → Backup & restore → Save File),
   uninstall, install the release build, then Restore File. People who install from Google Play never meet this.
 - **Google sign-in** (`feature/subscriptions` branch): add the **App signing key** and **Upload key** SHA-1
   fingerprints from Play Console → Test and release → App integrity to the Android app in Firebase, or Google sign-in

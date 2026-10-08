@@ -6,7 +6,7 @@ no monthly fee.
 
 ## How it works
 
-- **Signing in is optional.** Config → Account, or "Sign in to use Pro on all your devices" on the subscription
+- **Signing in is optional.** Settings → Account, or "Sign in to use Pro on all your devices" on the subscription
   screen. The app works exactly the same without it.
 - **Sign-in methods:**
   - **Google** (Android only, using the Google account already on the phone).
@@ -23,7 +23,7 @@ no monthly fee.
   The app uses the earliest start it finds. Only these fingerprints and dates are stored, never an email or device
   ID. The security rules make each record write-once, with a date that can't be in the future.
 - **Growing data is not uploaded.** Batches, photos and harvests stay on the phone, as before.
-- **Deleting an account:** Config → Account → Delete account. This removes the Firebase account and the name and
+- **Deleting an account:** Settings → Account → Delete account. This removes the Firebase account and the name and
   email in RevenueCat. Batches stay on the phone, and Pro stays with the store account (Restore purchases).
 
 | Mode | When | What happens |
@@ -121,7 +121,7 @@ npm run build && npx cap sync
 
 ### 6. Test it
 
-1. Config → Account → **Continue with email → Create an account**. Check that the email arrives, tap the link, then
+1. Settings → Account → **Continue with email → Create an account**. Check that the email arrives, tap the link, then
    tap **I've confirmed my email**. The Account section shows the name, the email and "Verified".
 2. Firebase → Authentication → **Users**: the account is listed. Firestore → Data: there's a `deviceTrials` record
    and, after confirming, an `accountTrials` record.

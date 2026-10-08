@@ -12,7 +12,7 @@ This branch (`feature/subscriptions`) adds Thulir MicroGreen Tracker Pro. It is 
 - **Pro** is one RevenueCat entitlement, `thulir_microgreen_tracker_pro` (`PRO_ENTITLEMENT` in
   `src/subscription/config.ts`), granted by any of three products: **monthly**, **yearly** and a
   one-time **lifetime** purchase.
-- **Paywall:** Config → Subscription → See plans, the home-screen banner (last 7 days of the trial and after it), or
+- **Paywall:** Settings → Pro plan → See plans, the home-screen banner (last 7 days of the trial and after it), or
   tapping **+** after the trial. Prices come from the stores, in the user's currency.
 - Users are **anonymous** unless they sign in: RevenueCat creates a random ID per install, and "Restore purchases"
   brings Pro back on a new phone signed in to the same store account. A user who signs in (optional) is linked to

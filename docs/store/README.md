@@ -29,7 +29,7 @@ the `docs` folder on `main` (repository Settings → Pages → Deploy from a bra
 
 ## 3. Changes still needed in the app
 
-- [x] **Privacy policy and FAQ inside the app** (App Store guideline 5.1.1): Config → About opens both, from the same
+- [x] **Privacy policy and FAQ inside the app** (App Store guideline 5.1.1): Settings → Help & FAQ and Privacy policy open them, from the same
       text as this folder, so they work offline. A "Contact support" link appears once `supportEmail` is filled in.
 - [x] **Export compliance (iOS):** `ITSAppUsesNonExemptEncryption` = `NO` is set in `ios/App/App/Info.plist`.
 - [x] **iPhone-only** (`TARGETED_DEVICE_FAMILY = 1`), so no iPad screenshots or iPad review. To support iPad later,

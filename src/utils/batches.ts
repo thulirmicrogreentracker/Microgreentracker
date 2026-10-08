@@ -78,8 +78,6 @@ export const freeSlots = (batches: Batch[], totalTrays: number): number[] => {
   return Array.from({ length: totalTrays }, (_, i) => i + 1).filter(n => !used.has(n));
 };
 
-export const slotLabel = (prefix: string, slot: number): string => `${prefix || 'Tray'} #${slot}`;
-
 // "T014–T018" for consecutive codes, otherwise "T014, T016".
 export const trayRange = (trays: Tray[]): string => {
   const codes = trays.map(t => t.code).filter(Boolean);

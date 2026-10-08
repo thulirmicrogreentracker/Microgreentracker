@@ -14,15 +14,15 @@ Everything stays on the phone, in the app's private storage (`src/storage/`):
   the two files, so if the app is killed mid-save the previous copy is still intact.
 - `microgreen/photos/`: one compressed JPEG per photo (longest side 1600 px).
 - `microgreen/snapshots/`: an automatic copy of the data taken each day (last 30 kept), shown under
-  **Config → Restore**.
+  **Settings → Backup & restore → Restore**.
 
 In a browser the same files live in IndexedDB. Data from older versions of the app (browser localStorage)
 is moved over automatically the first time the new version opens.
 
 ### Backup files
 
-**Config → Save File** creates `thulir-microgreen-backup-YYYY-MM-DD.zip` (all data plus photos) and opens the
-phone's share sheet, so it can be saved to Google Drive, Files, or emailed. **Config → Restore File** (or
+**Settings → Backup & restore → Save File** creates `thulir-microgreen-backup-YYYY-MM-DD.zip` (all data plus photos) and opens the
+phone's share sheet, so it can be saved to Google Drive, Files, or emailed. **Settings → Backup & restore → Restore File** (or
 *Restore from a backup file* on a fresh install) opens it again; the data that gets replaced is kept as a
 snapshot first. On Android, Auto Backup additionally copies the data (not photos) to the user's Google
 account.

@@ -1,35 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { App as CapacitorApp } from '@capacitor/app';
-import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, Hash, HardDrive, History, Database, Upload, FolderOpen, ListPlus, ShieldCheck, HelpCircle, Mail, ChevronRight, Info, Crown, UserRound, BadgeCheck, LogOut, UserX } from 'lucide-react';
-import { format } from 'date-fns';
-import type { SubscriptionState } from '../subscription/useSubscription';
-import { restorePurchases } from '../subscription/purchases';
-import type { AccountState } from '../account/useAccount';
-import { AccountError, deleteAccount, signOut } from '../account/account';
-import { openExternal } from '../utils/openExternal';
-import { appInfo, isFilledIn } from '../data/appInfo';
-import type { InfoPageKind } from './InfoPage';
+import React, { useState } from 'react';
+import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, ChevronUp, HardDrive, History, Database, Upload, FolderOpen, ListPlus } from 'lucide-react';
 import { CropType, AppConfig } from '../types';
-import { batchCode, MAX_NUMBER, MAX_TRAY_POSITIONS, trayCode, wholeNumber } from '../utils/batches';
+import { batchCode, MAX_NUMBER, trayCode, wholeNumber } from '../utils/batches';
 import { categoryIcon, categoryIconOptions } from '../data/categoryIcons';
 import { defaultCategories, defaultCropTypes } from '../data/cropTypes';
 
+// The settings pages this panel draws (the rack layout and the About links are elsewhere).
+export type ConfigSection = 'backup' | 'testData' | 'numbering' | 'crops' | 'lossReasons';
+
 interface ConfigPanelProps {
+  section: ConfigSection;
   cropTypes: CropType[];
   onUpdateCropTypes: (crops: CropType[]) => void;
   config: AppConfig;
   onUpdateConfig: (config: AppConfig) => void;
   onRenameCategory: (from: string, to: string) => void;
   onAddStandardCrops: () => void;
-  onOpenInfo: (page: InfoPageKind) => void;
-  subscription: SubscriptionState;
-  onOpenPaywall: () => void;
-  accountState: AccountState;
-  onOpenAccount: () => void;
   onDeleteCategory: (name: string) => void;
   highestBatchNumber: number;
   highestTrayNumber: number;
-  usedTrayCount: number;
   onBackupNow: () => void;
   onShowRestore: () => void;
   onExportBackup: () => void;
@@ -193,14 +182,8 @@ const NumberSetting: React.FC<{ value: number; min: number; max: number; onChang
   );
 };
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onOpenInfo, subscription, onOpenPaywall, accountState, onOpenAccount, onDeleteCategory, highestBatchNumber, highestTrayNumber, usedTrayCount, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ section, cropTypes, onUpdateCropTypes, config, onUpdateConfig, onRenameCategory, onAddStandardCrops, onDeleteCategory, highestBatchNumber, highestTrayNumber, onBackupNow, onShowRestore, onExportBackup, onImportBackup, onLoadTestData, hasBatches }) => {
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
-  const [version, setVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    // The installed app's version and build number (not available in a browser).
-    CapacitorApp.getInfo().then(i => setVersion(`${i.version} (${i.build})`)).catch(() => setVersion(null));
-  }, []);
   const [isAdding, setIsAdding] = useState(false);
   const fallbackCategory = config.categories.includes('Other') ? 'Other' : config.categories[0];
   const [newCrop, setNewCrop] = useState<CropType>({
@@ -246,138 +229,12 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
     setEditForm({ ...crop });
   };
 
-  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
-  const restore = async () => {
-    setRestoreMessage('Checking…');
-    try {
-      const status = await restorePurchases();
-      setRestoreMessage(status.active ? 'Pro restored.' : 'No earlier purchase was found for this store account.');
-    } catch {
-      setRestoreMessage('Couldn\'t check right now. Please check your internet connection.');
-    }
-  };
-
-  const [accountMessage, setAccountMessage] = useState('');
-  const { account } = accountState;
-
-  const removeAccount = async () => {
-    if (!window.confirm('Delete your account? Your name and email are removed from our sign-in service. Your batches and photos on this phone are kept, and a Pro purchase stays with your store account (use Restore purchases).')) return;
-    setAccountMessage('Deleting…');
-    try {
-      await deleteAccount();
-      setAccountMessage('Your account has been deleted.');
-    } catch (e) {
-      setAccountMessage(e instanceof AccountError ? e.message : 'Couldn\'t delete the account right now. Please try again.');
-    }
-  };
-
-  const { pro } = subscription;
-  const planName = pro.plan === 'yearly' ? 'Yearly' : pro.plan === 'monthly' ? 'Monthly' : pro.plan === 'lifetime' ? 'Lifetime' : '';
-  const subscriptionLine = pro.active
-    ? pro.plan === 'lifetime' || !pro.expiresAt
-      ? `Pro${planName ? ` · ${planName}` : ''}. Thank you!`
-      : `Pro · ${planName} · ${pro.willRenew ? 'renews' : 'ends'} ${format(new Date(pro.expiresAt), 'MMM d, yyyy')}`
-    : subscription.trialEnded
-      ? 'Free trial ended. Subscribe to start new batches; everything else keeps working.'
-      : `Free trial · ${subscription.trialDaysLeft} day${subscription.trialDaysLeft === 1 ? '' : 's'} left${
-          subscription.trialEndsAt ? ` (until ${format(subscription.trialEndsAt, 'MMM d, yyyy')})` : ''
-        }`;
-
   return (
     <div className="space-y-6">
-      {/* Account (optional sign-in; hidden when accounts are off, e.g. builds without Firebase settings) */}
-      {accountState.mode !== 'off' && (
-        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide flex items-center gap-1.5">
-            <UserRound className="w-4 h-4" />
-            Account
-          </h3>
-          {!accountState.loaded ? (
-            <p className="text-sm text-gray-700">Checking…</p>
-          ) : !account ? (
-            <>
-              <p className="text-sm text-gray-700 mb-3">Optional. Sign in so your Pro plan works on all your devices.</p>
-              <button onClick={onOpenAccount} className="w-full py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
-                Sign in or create account
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="mb-3 min-w-0">
-                {account.name && <p className="text-sm font-semibold text-gray-900 truncate">{account.name}</p>}
-                <p className="text-sm text-gray-700 truncate">{account.email}</p>
-                <p className={`text-xs mt-0.5 flex items-center gap-1 ${account.verified ? 'text-emerald-700' : 'text-amber-700'}`}>
-                  <BadgeCheck className="w-3.5 h-3.5" />
-                  {account.verified
-                    ? `Verified${account.provider === 'google' ? ' · Google' : ''}`
-                    : 'Email not confirmed yet'}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {!account.verified && (
-                  <button onClick={onOpenAccount} className="flex-1 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
-                    Confirm email
-                  </button>
-                )}
-                <button
-                  onClick={() => { setAccountMessage(''); signOut().catch(() => setAccountMessage('Couldn\'t sign out. Please try again.')); }}
-                  className="flex-1 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 flex items-center justify-center gap-1.5"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign out
-                </button>
-              </div>
-              <button onClick={removeAccount} className="mt-3 text-xs text-red-600 flex items-center gap-1">
-                <UserX className="w-3.5 h-3.5" />
-                Delete account
-              </button>
-            </>
-          )}
-          {accountMessage && <p className="text-xs text-gray-500 mt-2">{accountMessage}</p>}
-          {accountState.mode === 'test' && (
-            <p className="text-[11px] text-amber-700 mt-2">Test mode: sign-in is simulated on this phone and no email is sent.</p>
-          )}
-        </div>
-      )}
-
-      {/* Subscription (hidden when subscriptions are off, e.g. development builds without RevenueCat keys) */}
-      {subscription.mode !== 'off' && (
-        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide flex items-center gap-1.5">
-            <Crown className="w-4 h-4" />
-            Subscription
-          </h3>
-          <p className="text-sm text-gray-700 mb-3">{subscription.loaded ? subscriptionLine : 'Checking your subscription…'}</p>
-          <div className="flex gap-2">
-            {!pro.active && (
-              <button onClick={onOpenPaywall} className="flex-1 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
-                See plans
-              </button>
-            )}
-            {pro.active && pro.managementURL && pro.plan !== 'lifetime' && (
-              <button onClick={() => openExternal(pro.managementURL!)} className="flex-1 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100">
-                Manage subscription
-              </button>
-            )}
-            {!pro.active && (
-              <button onClick={restore} className="flex-1 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100">
-                Restore purchases
-              </button>
-            )}
-          </div>
-          {restoreMessage && <p className="text-xs text-gray-500 mt-2">{restoreMessage}</p>}
-          {subscription.mode === 'test' && (
-            <p className="text-[11px] text-amber-700 mt-2">Test mode: plans are made up and nothing is charged.</p>
-          )}
-        </div>
-      )}
-
       {/* Backup & Restore */}
+      {section === 'backup' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
-          <HardDrive className="w-4 h-4" />
-          Backup & Restore
-        </h3>
+        <h4 className="text-xs font-semibold text-gray-900 mb-1">On this phone</h4>
         <p className="text-xs text-gray-500 mb-3">
           A copy of your data is saved on this phone automatically every day. You can also save one now or go back to an earlier copy.
         </p>
@@ -421,14 +278,11 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           </div>
         </div>
       </div>
+      )}
 
       {/* Test Data: development builds only, so a store build can't replace a grower's data by accident. */}
-      {import.meta.env.DEV && (
+      {import.meta.env.DEV && section === 'testData' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
-          <Database className="w-4 h-4" />
-          Test Data
-        </h3>
         <p className="text-xs text-gray-500 mb-3">
           Populate the app with a full month of sample batches across all growth stages, complete with watering records and notes.
         </p>
@@ -442,45 +296,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
       </div>
       )}
 
-      {/* Tray Settings */}
-      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Tray Settings</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-              <Hash className="w-3 h-3 inline mr-1" />
-              Tray Positions (racks / shelf spots)
-            </label>
-            <NumberSetting
-              label="Tray positions"
-              value={config.totalTrays}
-              min={1}
-              max={MAX_TRAY_POSITIONS}
-              onChange={n => onUpdateConfig({ ...config, totalTrays: n })}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {usedTrayCount} in use, {config.totalTrays - usedTrayCount} available
-            </p>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Tray Label Prefix</label>
-            <input
-              type="text"
-              value={config.trayNumberPrefix}
-              onChange={e => onUpdateConfig({ ...config, trayNumberPrefix: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="e.g., Tray, Rack, Shelf"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Shown as "{config.trayNumberPrefix || 'Tray'} #1", "{config.trayNumberPrefix || 'Tray'} #2", etc.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Numbering */}
+      {section === 'numbering' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Numbering</h3>
         <p className="text-xs text-gray-500 mb-3">
           New batches and trays are numbered automatically, carrying on from the last number used, also after restoring a backup.
           Change the next number if you already label trays on paper.
@@ -512,7 +330,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
           or above {batchCode(MAX_NUMBER)} / {trayCode(MAX_NUMBER)}.
         </p>
       </div>
+      )}
 
+      {section === 'crops' && (<>
       {/* Crop categories */}
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Crop Categories</h3>
@@ -536,38 +356,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
             Add standard microgreens ({missingCrops} crop{missingCrops === 1 ? '' : 's'}{missingCategories > 0 ? `, ${missingCategories} categor${missingCategories === 1 ? 'y' : 'ies'}` : ''})
           </button>
         )}
-      </div>
-
-      {/* Loss reasons */}
-      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-1 uppercase tracking-wide">Loss Reasons</h3>
-        <p className="text-xs text-gray-500 mb-3">Offered when you report a lost tray. Trays already marked keep their reason.</p>
-        <NameListEditor
-          items={config.lossReasons}
-          placeholder="New reason, e.g. Seed quality"
-          onAdd={name => onUpdateConfig({ ...config, lossReasons: [...config.lossReasons, name] })}
-          onRename={(from, to) => onUpdateConfig({ ...config, lossReasons: config.lossReasons.map(r => (r === from ? to : r)) })}
-          onDelete={name => onUpdateConfig({ ...config, lossReasons: config.lossReasons.filter(r => r !== name) })}
-        />
-      </div>
-
-      {/* General settings section */}
-      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">General Settings</h3>
-        <div className="space-y-3 text-sm text-gray-600">
-          <div className="flex items-center justify-between py-2">
-            <span>Date Format</span>
-            <span className="font-medium text-gray-900">MMM dd, yyyy</span>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span>Default Yield Unit</span>
-            <span className="font-medium text-gray-900">Grams</span>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span>Total Crop Types</span>
-            <span className="font-medium text-gray-900">{cropTypes.length}</span>
-          </div>
-        </div>
       </div>
 
       {/* Add crop button */}
@@ -834,36 +622,21 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ cropTypes, onUpdateCropTypes,
         );
       })}
 
-      {/* About */}
+      </>)}
+
+      {/* Loss reasons */}
+      {section === 'lossReasons' && (
       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center gap-1.5">
-          <Info className="w-4 h-4" />
-          About
-        </h3>
-        <div className="divide-y divide-gray-100 bg-white rounded-lg border border-gray-100">
-          {([
-            ['privacy', 'Privacy policy', ShieldCheck],
-            ['faq', 'Help & FAQ', HelpCircle],
-          ] as const).map(([kind, label, Icon]) => (
-            <button key={kind} onClick={() => onOpenInfo(kind)} className="w-full flex items-center gap-3 px-3 py-3 text-left">
-              <Icon className="w-4 h-4 text-emerald-600" />
-              <span className="flex-1 text-sm text-gray-900">{label}</span>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </button>
-          ))}
-          {isFilledIn(appInfo.supportEmail) && (
-            <a href={`mailto:${appInfo.supportEmail}`} className="w-full flex items-center gap-3 px-3 py-3">
-              <Mail className="w-4 h-4 text-emerald-600" />
-              <span className="flex-1 text-sm text-gray-900">Contact support</span>
-              <span className="text-xs text-gray-400 truncate max-w-[50%]">{appInfo.supportEmail}</span>
-            </a>
-          )}
-        </div>
-        <p className="text-xs text-gray-400 mt-3 text-center">
-          {appInfo.appName}{version ? ` · version ${version}` : ''}
-          {isFilledIn(appInfo.developerName) && <><br />© {new Date().getFullYear()} {appInfo.developerName}</>}
-        </p>
+        <p className="text-xs text-gray-500 mb-3">Offered when you report a lost tray. Trays already marked keep their reason.</p>
+        <NameListEditor
+          items={config.lossReasons}
+          placeholder="New reason, e.g. Seed quality"
+          onAdd={name => onUpdateConfig({ ...config, lossReasons: [...config.lossReasons, name] })}
+          onRename={(from, to) => onUpdateConfig({ ...config, lossReasons: config.lossReasons.map(r => (r === from ? to : r)) })}
+          onDelete={name => onUpdateConfig({ ...config, lossReasons: config.lossReasons.filter(r => r !== name) })}
+        />
       </div>
+      )}
     </div>
   );
 };

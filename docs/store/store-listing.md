@@ -123,7 +123,7 @@ Check these answers against RevenueCat's own guidance before submitting, in case
 - Sign in with Apple: the iPhone app offers only email sign-in (Google sign-in is Android-only), so Apple's rule
   requiring Sign in with Apple alongside third-party logins does not apply. If Google sign-in is ever added on iPhone,
   add Sign in with Apple too.
-- **Account deletion** (Apple guideline 5.1.1(v)): available in the app under Config → Account → Delete account.
+- **Account deletion** (Apple guideline 5.1.1(v)): available in the app under Settings → Account → Delete account.
 
 ### Google Play: Data safety
 
@@ -137,7 +137,7 @@ Check these answers against RevenueCat's own guidance before submitting, in case
 - **Device or other IDs**: collected (a one-way hash of the device ID, used to allow one free trial per device);
   **required**; purposes **App functionality** and **Fraud prevention, security, and compliance**.
 - **Is all of the user data collected by your app encrypted in transit?** Yes (HTTPS).
-- **Do you provide a way for users to request that their data is deleted?** Yes: in the app (Config → Account →
+- **Do you provide a way for users to request that their data is deleted?** Yes: in the app (Settings → Account →
   Delete account) or by email to the support address (see the privacy policy).
 - **Account creation:** Yes, **username and password** and **OAuth** (Google). Account-deletion URL:
   https://universepdkt.github.io/Microgreentracker/store/delete-account

@@ -9,7 +9,7 @@ Signing in to Thulir MicroGreen Tracker is optional. If you created an account, 
 ## In the app
 
 1. Open Thulir MicroGreen Tracker.
-2. Tap **Config** at the bottom, then go to **Account**.
+2. Tap **Settings** at the bottom, then **Account**.
 3. Tap **Delete account** and confirm.
 
 The account is deleted straight away. (If the app asks you to sign in again first, that is a security check: sign

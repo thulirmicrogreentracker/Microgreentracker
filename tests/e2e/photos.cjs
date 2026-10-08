@@ -29,6 +29,8 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   const browser = await chromium.launch(process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {});
   const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 400, height: 860 }, hasTouch: true });
   const page = await context.newPage();
+  // Taps a tab in the bottom navigation (Home, Shelves, Batches, Insights, Settings).
+  const tab = name => page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true }).click();
   page.on('dialog', d => d.accept());
   page.on('pageerror', e => { console.log(`  PAGE ERROR: ${e.message}`); failures++; });
   page.on('console', m => { if (m.type() === 'error') console.log(`  console.error: ${m.text().slice(0, 200)}`); });
@@ -60,6 +62,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
     localStorage.setItem('microgreen-batches', JSON.stringify(batches));
   });
   await page.goto(URL);
+  await tab('Batches');
   // Batches are numbered B001.. in the order they were created (all at once here, so in list order).
   const card = crop => page.locator('[data-batch-card]', { hasText: crop }).first();
   await card('Radish').waitFor();
@@ -76,7 +79,8 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   check(await card('Kale').getByRole('button', { name: 'See all' }).count() === 0 && await card('Kale').getByRole('button', { name: 'Add photo' }).count() === 1, 'strip: Kale (no photos) shows only Add tile');
   check(await radish.locator('text=Photos').count() >= 1, 'card: photo strip shown');
 
-  await page.waitForFunction(() => [...document.querySelectorAll('img')].filter(i => i.complete && i.naturalWidth > 0).length >= 6);
+  // Cards also show a tray picture, so wait for the thumbnail files themselves rather than for loaded images.
+  for (let i = 0; i < 50 && (await disc(page)).filter(e => e.path.includes('/microgreen/thumbs/') && e.type === 'file').length < 6; i++) await page.waitForTimeout(100);
   let files = await disc(page);
   const thumbs = files.filter(e => e.path.includes('/microgreen/thumbs/') && e.type === 'file');
   check(thumbs.length >= 6, `thumbs: created on demand for migrated photos (${thumbs.length})`);
@@ -98,9 +102,9 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   check(badges.join('|') === 'Sowing|Germination|Growing|Ready to Harvest', `gallery: grouped by stage (${badges.join('|')})`);
   check(await page.locator('text=Day 2–3 · 2 photos').count() === 1, 'gallery: section shows day range and count');
   check(await page.locator('main').getByText('No caption').count() === 1, 'gallery: empty caption shows "No caption"');
-  await page.getByRole('button', { name: 'Growing', exact: true }).click();
+  await page.getByLabel('Filter by stage').getByRole('button', { name: 'Growing', exact: true }).click(); // the gallery's filter, not the Batches tab's
   check(await top().locator('section').count() === 1 && await top().locator('section button').count() === 2, 'gallery: stage filter shows only Growing (2 photos)');
-  await page.getByRole('button', { name: 'All', exact: true }).click();
+  await page.getByLabel('Filter by stage').getByRole('button', { name: 'All', exact: true }).click();
   await page.screenshot({ path: path.join(OUT, 'gallery.png') });
 
   // ---------- 3. Viewer ----------
@@ -196,7 +200,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await page.getByRole('button', { name: 'Back' }).last().click();
 
   // ---------- 5. Reports → photos by crop ----------
-  await page.getByRole('button', { name: 'Reports' }).click();
+  await tab('Insights');
   const row = page.getByRole('button', { name: /^Radish/ });
   check(/8 photos · 2 batches/.test(await row.innerText()), `reports: Radish row (${(await row.innerText()).replace(/\n/g, ' ')})`);
   check(/1 photo · 1 batch/.test(await page.getByRole('button', { name: /^Basil/ }).innerText()), 'reports: Basil row singular');
@@ -218,7 +222,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await page.getByText('4 photos · Completed').waitFor({ timeout: 5000 });
   check(true, 'gallery: Add photo saves into this batch (4 photos)');
   await page.getByRole('button', { name: 'Back' }).last().click();
-  await page.getByRole('button', { name: 'Reports' }).last().click();
+  await page.getByRole('button', { name: 'Insights' }).last().click(); // the crop photos screen's back button
   await page.getByRole('heading', { name: 'Radish photos' }).waitFor({ state: 'detached' }).catch(() => {});
 
   // ---------- 7. A missing photo file shows a placeholder, not a crash ----------
@@ -231,11 +235,12 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
     };
   }));
   await page.reload();
+  await tab('Batches');
   await page.getByRole('button', { name: 'Expand all' }).click();
   await card('Basil').getByText('Missing').waitFor({ timeout: 5000 }).catch(() => {});
   check(await card('Basil').getByText('Missing').count() === 1, 'missing file: tile shows "Missing" placeholder');
 
-  await page.getByRole('button', { name: 'Home' }).click();
+  await tab('Batches');
   // Radish T1 now has exactly 5 photos: five tiles, no "+N", no Add tile wrapping to a second row
   const r = card('Radish');
   check(await r.locator('.grid-cols-5 > button').count() === 5 && await r.getByRole('button', { name: 'Add photo' }).count() === 0, 'strip: exactly 5 photos fill the row without an Add tile');

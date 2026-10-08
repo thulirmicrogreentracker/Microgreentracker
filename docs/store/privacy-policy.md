@@ -53,7 +53,7 @@ lifetime purchase. Everything you have already recorded stays available either w
 
 ## Optional sign-in (account)
 
-You can sign in from Config → Account or from the subscription screen. It is never required.
+You can sign in from Settings → Account or from the subscription screen. It is never required.
 
 - **What we keep:** your name, your email address, whether the email is confirmed, how you sign in (Google or
   email and password), a user ID, and when the account was created and last used. If you sign in with Google, Google
@@ -108,7 +108,7 @@ made remain until you delete them).
 
 Because we do not hold your growing data, deleting the app is all you need to remove it.
 
-**Deleting your account:** if you signed in, open Config → Account → Delete account. This deletes your sign-in
+**Deleting your account:** if you signed in, open Settings → Account → Delete account. This deletes your sign-in
 account (name, email and user ID) from Firebase straight away and removes your name and email from RevenueCat. Your
 batches and photos on the phone are not affected, and a purchase stays with your Google Play or App Store account
 (use Restore purchases). If you no longer have the app, email us from the address of your account and we will delete

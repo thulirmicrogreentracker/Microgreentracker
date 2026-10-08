@@ -2,6 +2,7 @@ import { AppConfig, AppData, Batch, BatchPhoto, CropType, Tray } from '../types'
 import { defaultCategories, defaultCategoryIcons, defaultCropTypes, renamedCategories } from '../data/cropTypes';
 import { defaultLossReasons } from '../data/lossReasons';
 import { codeNumber, highestBatchNumber, MAX_NUMBER, MAX_TRAY_POSITIONS, syncCounters, trayCode, wholeNumber } from '../utils/batches';
+import { normalizeLayout } from '../utils/farmLayout';
 import { isSafePhotoName } from './photos';
 
 // Before version 1 of the storage format, data lived in localStorage under these keys,
@@ -97,6 +98,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
   const config: AppConfig = syncCounters({
     ...defaults.config,
     ...rawConfig,
+    farmLayout: normalizeLayout(rawConfig.farmLayout),
     categories,
     categoryIcons,
     totalTrays: wholeNumber(rawConfig.totalTrays, MAX_TRAY_POSITIONS, 0) || defaults.config.totalTrays,
@@ -108,6 +110,9 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
       ? rawConfig.trialStartedAt
       : new Date().toISOString(),
   }, batches);
+  // A saved rack layout must cover exactly the tray positions; otherwise fall back to the default racks.
+  const layout = config.farmLayout;
+  if (layout && layout.rackCount * layout.shelvesPerRack * layout.traysPerShelf !== config.totalTrays) config.farmLayout = undefined;
 
   return {
     batches,
