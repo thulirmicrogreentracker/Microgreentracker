@@ -6,8 +6,8 @@ export const appInfo = {
   // name gets cut off there.
   developerName: 'Rajeshkumar',
   supportEmail: 'thulirmicrogreentracker@gmail.com',
-  privacyPolicyUrl: 'https://universepdkt.github.io/Microgreentracker/store/privacy-policy',
-  supportUrl: 'https://universepdkt.github.io/Microgreentracker/store/faq',
+  privacyPolicyUrl: 'https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy',
+  supportUrl: 'https://thulirmicrogreentracker.github.io/Microgreentracker/store/faq',
 };
 
 export const isFilledIn = (value: string) => !/^\[.*\]$/.test(value);

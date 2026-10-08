@@ -18,8 +18,8 @@ because the full name would be cut off there.
 | Secondary category | Food & Drink |
 | Promotional text [170] | Track every tray from sowing to harvest: auto-numbered batches, per-tray photos and harvest weights, lost-tray reasons and yield reports. No account needed. |
 | Keywords [100] | microgreens,tray,grow,harvest,yield,seed,sprouts,farm,garden,crop,log,tracker,batch,hydroponic |
-| Support URL | https://universepdkt.github.io/Microgreentracker/store/faq |
-| Privacy Policy URL | https://universepdkt.github.io/Microgreentracker/store/privacy-policy |
+| Support URL | https://thulirmicrogreentracker.github.io/Microgreentracker/store/faq |
+| Privacy Policy URL | https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy |
 | Copyright | 2026 Rajeshkumar |
 | Age rating | 4+ (answer "None" to every content question) |
 
@@ -102,8 +102,8 @@ First release: batches with multiple trays, per-tray photos and harvest weights,
 | App category | Productivity |
 | Tags | Productivity, Gardening, Agriculture (pick the closest ones offered) |
 | Email | thulirmicrogreentracker@gmail.com |
-| Website | https://universepdkt.github.io/Microgreentracker/store/faq |
-| Privacy policy | https://universepdkt.github.io/Microgreentracker/store/privacy-policy |
+| Website | https://thulirmicrogreentracker.github.io/Microgreentracker/store/faq |
+| Privacy policy | https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy |
 
 ## Privacy questionnaires
 
