@@ -1120,7 +1120,7 @@ body {
   z-index: 3;
 }
 .steel-level {
-  height: 77px;
+  min-height: 77px;
   position: relative;
   padding: 0 13px 10px;
 }
@@ -1149,9 +1149,9 @@ body {
   box-shadow: 0 3px 8px 3px #fff8c64a;
 }
 .steel-tray-row {
-  height: 100%;
+  min-height: 67px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  grid-auto-rows: 67px;
   gap: 5px;
   position: relative;
   z-index: 2;
@@ -1185,6 +1185,10 @@ body {
 }
 .steel-tray-row.single-tray {
   display: block;
+}
+/* Room above the trays for the "Shelf N" tag when a shelf holds several trays. */
+.steel-tray-row:not(.single-tray) {
+  padding-top: 16px;
 }
 .single-tray .rack-tray {
   display: grid;

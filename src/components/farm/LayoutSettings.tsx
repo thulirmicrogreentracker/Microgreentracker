@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, LayoutGrid } from 'lucide-react';
 import { AppConfig, Batch } from '../../types';
-import { getLayout, occupiedSlots } from '../../utils/farmLayout';
+import { getLayout, MAX_RACKS, MAX_SHELVES_PER_RACK, MAX_TRAYS_PER_SHELF, occupiedSlots } from '../../utils/farmLayout';
 import { MAX_TRAY_POSITIONS } from '../../utils/batches';
 export default function LayoutSettings({
   config,
@@ -20,10 +20,23 @@ export default function LayoutSettings({
     [saved, setSaved] = useState(false);
   const values = [racks, shelves, trays].map(Number),
     capacity = values.reduce((a, b) => a * b, 1);
+  const fields: [string, string, (v: string) => void, number][] = [
+    ['Racks', racks, setRacks, MAX_RACKS],
+    ['Shelves / rack', shelves, setShelves, MAX_SHELVES_PER_RACK],
+    ['Trays / shelf', trays, setTrays, MAX_TRAYS_PER_SHELF],
+  ];
   const save = () => {
     setSaved(false);
-    if (values.some((n) => !Number.isInteger(n) || n < 1) || capacity > MAX_TRAY_POSITIONS) {
-      setError(`Use positive whole numbers with at most ${MAX_TRAY_POSITIONS} total slots.`);
+    const fieldError = fields.find(([label, value, , max]) => {
+      const n = Number(value);
+      return !Number.isInteger(n) || n < 1 || n > max ? label : undefined;
+    });
+    if (fieldError) {
+      setError(`${fieldError[0]} must be a whole number from 1 to ${fieldError[3]}.`);
+      return;
+    }
+    if (capacity > MAX_TRAY_POSITIONS) {
+      setError(`That's ${capacity} tray positions; the most is ${MAX_TRAY_POSITIONS}.`);
       return;
     }
     const highest = Math.max(0, ...occupiedSlots(batches).keys());
@@ -75,27 +88,28 @@ export default function LayoutSettings({
         Use vertical rack · 6 shelves × 1 tray
       </button>
       <div className="layout-fields">
-        {[
-          ['Racks', racks, setRacks],
-          ['Shelves / rack', shelves, setShelves],
-          ['Trays / shelf', trays, setTrays],
-        ].map(([label, value, setter]) => (
-          <label key={label as string}>
-            {label as string}
+        {fields.map(([label, value, setter, max]) => (
+          <label key={label}>
+            {label}
             <input
-              aria-label={label as string}
-              type="number"
-              min="1"
-              max="2000"
-              value={value as string}
+              aria-label={label}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={String(max).length + 1} // room to type a too-large number and see why it's refused
+              value={value}
               onChange={(e) => {
-                (setter as (v: string) => void)(e.target.value);
+                setter(e.target.value.replace(/\D/g, ''));
                 setSaved(false);
+                setError('');
               }}
             />
           </label>
         ))}
       </div>
+      <p className="farm-help">
+        Up to {MAX_SHELVES_PER_RACK} shelves per rack and {MAX_TRAYS_PER_SHELF} trays per shelf.
+      </p>
       <p className="layout-capacity">{Number.isFinite(capacity) ? capacity : 0} total tray positions</p>
       {error && (
         <p role="alert" className="text-red-700 text-sm">

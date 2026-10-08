@@ -37,6 +37,8 @@ try {
     { rackCount: 0, shelvesPerRack: 3, traysPerShelf: 4 },
     { rackCount: 1.5, shelvesPerRack: 3, traysPerShelf: 4 },
     { rackCount: 100, shelvesPerRack: 100, traysPerShelf: 4 },
+    { rackCount: 1, shelvesPerRack: 3, traysPerShelf: 12 }, // more trays per shelf than a rack holds
+    { rackCount: 1, shelvesPerRack: 11, traysPerShelf: 1 }, // more shelves than a rack holds
   ])
     assert.equal(normalizeLayout(value), undefined);
   assert.deepEqual(normalizeAppData({ config }).config.farmLayout, config.farmLayout);

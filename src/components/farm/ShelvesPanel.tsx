@@ -148,7 +148,11 @@ export default function ShelvesPanel({
                   Shelf {s.index + 1}
                 </button>
                 <div className="steel-grow-light" aria-hidden="true" />
-                <div className={`steel-tray-row ${s.slots.length === 1 ? 'single-tray' : ''}`}>
+                <div
+                  className={`steel-tray-row ${s.slots.length === 1 ? 'single-tray' : ''}`}
+                  // At most 4 trays side by side on a phone; more wrap onto another row and the shelf grows.
+                  style={s.slots.length > 1 ? { gridTemplateColumns: `repeat(${Math.min(s.slots.length, 4)}, minmax(0, 1fr))` } : undefined}
+                >
                   {s.slots.map((n) => trayButton(n, occupied.get(n)))}
                 </div>
                 <div className="steel-deck" aria-hidden="true">

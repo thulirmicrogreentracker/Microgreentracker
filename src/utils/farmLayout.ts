@@ -6,14 +6,16 @@ export interface FarmLayout {
   shelvesPerRack: number;
   traysPerShelf: number;
 }
+
+// Real racks stay within these; larger numbers can't be drawn sensibly on a phone. The total is also capped at
+// MAX_TRAY_POSITIONS.
+export const MAX_SHELVES_PER_RACK = 10;
+export const MAX_TRAYS_PER_SHELF = 8;
+export const MAX_RACKS = 400;
+
 export const getLayout = (config: AppConfig): FarmLayout => {
-  const layout = config.farmLayout;
-  if (
-    layout &&
-    [layout.rackCount, layout.shelvesPerRack, layout.traysPerShelf].every((n) => Number.isInteger(n) && n > 0) &&
-    layout.rackCount * layout.shelvesPerRack * layout.traysPerShelf <= MAX_TRAY_POSITIONS
-  )
-    return layout;
+  const layout = normalizeLayout(config.farmLayout);
+  if (layout) return layout;
   return {
     rackCount: Math.ceil(config.totalTrays / 6),
     shelvesPerRack: 6,
@@ -23,9 +25,9 @@ export const getLayout = (config: AppConfig): FarmLayout => {
 export const normalizeLayout = (value: unknown): FarmLayout | undefined => {
   if (!value || typeof value !== 'object') return undefined;
   const v = value as Partial<FarmLayout>;
-  const rackCount = wholeNumber(v.rackCount, 100),
-    shelvesPerRack = wholeNumber(v.shelvesPerRack, 500),
-    traysPerShelf = wholeNumber(v.traysPerShelf, 100);
+  const rackCount = wholeNumber(v.rackCount, MAX_RACKS),
+    shelvesPerRack = wholeNumber(v.shelvesPerRack, MAX_SHELVES_PER_RACK),
+    traysPerShelf = wholeNumber(v.traysPerShelf, MAX_TRAYS_PER_SHELF);
   return rackCount &&
     shelvesPerRack &&
     traysPerShelf &&
