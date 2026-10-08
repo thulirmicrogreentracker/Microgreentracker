@@ -1,11 +1,37 @@
-import React from 'react';
-import { CreditCard as Edit3, Trash2, Camera, FileText, Droplets, AlertCircle, ChevronDown, AlertTriangle, X, Scale } from 'lucide-react';
-import { Batch } from '../types';
-import { formatDate, getDaysSince, getRelativeTimeString } from '../utils/dateUtils';
-import { activeTrays, batchCode, batchSeedGrams, batchYieldGrams, formatGrams, isBatchGrowing, isBatchLost, lostTrays, slotLabel } from '../utils/batches';
-import { categoryIcon } from '../data/categoryIcons';
-import { STAGE_ORDER, stageConfig } from '../data/stages';
-import PhotoStrip from './photos/PhotoStrip';
+import React from "react";
+import {
+  CreditCard as Edit3,
+  Trash2,
+  Camera,
+  FileText,
+  Droplets,
+  AlertCircle,
+  ChevronDown,
+  AlertTriangle,
+  X,
+  Scale,
+} from "lucide-react";
+import { Batch } from "../types";
+import {
+  formatDate,
+  getDaysSince,
+  getRelativeTimeString,
+} from "../utils/dateUtils";
+import {
+  activeTrays,
+  batchCode,
+  batchSeedGrams,
+  batchYieldGrams,
+  formatGrams,
+  isBatchGrowing,
+  isBatchLost,
+  lostTrays,
+  slotLabel,
+} from "../utils/batches";
+import { categoryIcon } from "../data/categoryIcons";
+import { STAGE_ORDER, stageConfig } from "../data/stages";
+import TrayArt from "./farm/TrayArt";
+import PhotoStrip from "./photos/PhotoStrip";
 
 interface BatchCardProps {
   batch: Batch;
@@ -14,7 +40,7 @@ interface BatchCardProps {
   slotPrefix: string;
   onEdit: (batch: Batch) => void;
   onDelete: (id: string) => void;
-  onStageChange: (id: string, stage: Batch['stage']) => void;
+  onStageChange: (id: string, stage: Batch["stage"]) => void;
   onAddPhoto: (batchId: string) => void;
   onAddNote: (batchId: string) => void;
   onAddWatering: (batchId: string) => void;
@@ -22,15 +48,16 @@ interface BatchCardProps {
   onReportLoss: (batchId: string) => void;
   onDeleteNote: (batchId: string, noteId: string) => void;
   onHarvest: (batchId: string) => void;
+  onOpenTray?: (trayId: string) => void;
   iconKey?: string; // icon of the crop's category
 }
 
 const noteTypeLabels: Record<string, string> = {
-  general: 'General',
-  observation: 'Observation',
-  watering: 'Watering',
-  fertilizer: 'Fertilizer',
-  issue: 'Issue',
+  general: "General",
+  observation: "Observation",
+  watering: "Watering",
+  fertilizer: "Fertilizer",
+  issue: "Issue",
 };
 
 const BatchCard: React.FC<BatchCardProps> = ({
@@ -49,6 +76,7 @@ const BatchCard: React.FC<BatchCardProps> = ({
   onDeleteNote,
   onHarvest,
   iconKey,
+  onOpenTray,
 }) => {
   const CropIcon = categoryIcon(iconKey);
   const allLost = isBatchLost(batch);
@@ -63,29 +91,61 @@ const BatchCard: React.FC<BatchCardProps> = ({
   const harvestTimeframe = getRelativeTimeString(batch.expectedHarvestDate);
 
   const lastWatering = batch.watering[batch.watering.length - 1];
-  const daysSinceWatering = lastWatering ? getDaysSince(lastWatering.timestamp) : null;
-  const needsWatering = growing && (daysSinceWatering === null || daysSinceWatering >= 2);
+  const daysSinceWatering = lastWatering
+    ? getDaysSince(lastWatering.timestamp)
+    : null;
+  const needsWatering =
+    growing && (daysSinceWatering === null || daysSinceWatering >= 2);
 
-  const progress = ((STAGE_ORDER.indexOf(batch.stage) + 1) / STAGE_ORDER.length) * 100;
-  const notes = [...batch.notes].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const progress =
+    ((STAGE_ORDER.indexOf(batch.stage) + 1) / STAGE_ORDER.length) * 100;
+  const notes = [...batch.notes].sort((a, b) =>
+    b.timestamp.localeCompare(a.timestamp),
+  );
 
-  const harvested = batch.stage === 'completed';
+  const harvested = batch.stage === "completed";
   const yieldGrams = batchYieldGrams(batch);
-  const weighedTrays = active.filter(t => t.harvestWeight != null);
+  const weighedTrays = active.filter((t) => t.harvestWeight != null);
   const seedGrams = batchSeedGrams(batch);
 
   const summary = [
-    `${batch.trays.length} tray${batch.trays.length === 1 ? '' : 's'}`,
+    `${batch.trays.length} tray${batch.trays.length === 1 ? "" : "s"}`,
     harvested ? null : `Day ${daysSinceSowing}`,
     harvested && batch.actualHarvestDate
       ? `Harvested ${formatDate(batch.actualHarvestDate)}`
-      : growing ? `Harvest ${harvestTimeframe.toLowerCase()}` : null,
-  ].filter(Boolean).join(' · ');
+      : growing
+        ? `Harvest ${harvestTimeframe.toLowerCase()}`
+        : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     // No box-shadow here: Android WebViews (at least with software rendering) left stale fragments of
     // shadowed cards on screen at startup until something was repainted.
-    <div data-batch-card className={`bg-white rounded-xl border overflow-hidden ${allLost ? 'border-red-100' : 'border-gray-100'}`}>
+    <div
+      data-batch-card
+      className={`bg-white rounded-xl border overflow-hidden ${allLost ? "border-red-100" : "border-gray-100"}`}
+    >
+      <div className="batch-visual-cover">
+        <TrayArt stage={allLost ? "lost" : batch.stage} />
+        <span className={`stage-badge stage-${allLost ? "lost" : batch.stage}`}>
+          {allLost ? "Lost" : config.label}
+        </span>
+      </div>
+      {expanded && onOpenTray && (
+        <div className="tray-chip-list">
+          {batch.trays.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onOpenTray(t.id)}
+              className={t.status === "lost" ? "lost" : ""}
+            >
+              {t.code} · {t.status === "lost" ? "Lost" : "View tray"} →
+            </button>
+          ))}
+        </div>
+      )}
       {/* Summary row: always visible, tap to open or close the card */}
       <button
         onClick={onToggle}
@@ -97,19 +157,41 @@ const BatchCard: React.FC<BatchCardProps> = ({
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <CropIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden />
-            <h3 className="text-sm font-semibold text-gray-900 truncate">{batch.cropType}</h3>
+            <CropIcon
+              className="w-3.5 h-3.5 text-emerald-600 shrink-0"
+              aria-hidden
+            />
+            <h3 className="text-sm font-semibold text-gray-900 truncate">
+              {batch.cropType}
+            </h3>
             {lost.length > 0 && !allLost && (
-              <span className="text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded-full shrink-0">{lost.length} lost</span>
+              <span className="text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded-full shrink-0">
+                {lost.length} lost
+              </span>
             )}
-            {needsWatering && <Droplets className="w-3.5 h-3.5 text-red-500 shrink-0" aria-label="Needs watering" />}
+            {needsWatering && (
+              <Droplets
+                className="w-3.5 h-3.5 text-red-500 shrink-0"
+                aria-label="Needs watering"
+              />
+            )}
           </div>
           <div className="text-xs text-gray-500 truncate">
             {summary}
-            {yieldGrams > 0 && <> · <span className="font-semibold text-emerald-700">{formatGrams(yieldGrams)}</span></>}
+            {yieldGrams > 0 && (
+              <>
+                {" "}
+                ·{" "}
+                <span className="font-semibold text-emerald-700">
+                  {formatGrams(yieldGrams)}
+                </span>
+              </>
+            )}
           </div>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
       </button>
 
       {expanded && (
@@ -118,11 +200,15 @@ const BatchCard: React.FC<BatchCardProps> = ({
           <div className="mb-2">
             {allLost ? (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-red-50 text-red-700 border-red-200">
-                <AlertTriangle className="w-3 h-3 mr-1" />All trays lost
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                All trays lost
               </span>
             ) : (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${config.color}`}>
-                <StageIcon className="w-3 h-3 mr-1" />{config.label}
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${config.color}`}
+              >
+                <StageIcon className="w-3 h-3 mr-1" />
+                {config.label}
               </span>
             )}
           </div>
@@ -131,13 +217,27 @@ const BatchCard: React.FC<BatchCardProps> = ({
           {!allLost && (
             <div className="mb-3">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-gray-500">Sowed {formatDate(batch.sowingDate)}</span>
                 <span className="text-xs text-gray-500">
-                  {growing ? <>Harvest <span className="font-medium text-gray-900">{harvestTimeframe}</span></> : `${Math.round(progress)}%`}
+                  Sowed {formatDate(batch.sowingDate)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {growing ? (
+                    <>
+                      Harvest{" "}
+                      <span className="font-medium text-gray-900">
+                        {harvestTimeframe}
+                      </span>
+                    </>
+                  ) : (
+                    `${Math.round(progress)}%`
+                  )}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-1.5">
-                <div className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+                <div
+                  className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
           )}
@@ -146,34 +246,47 @@ const BatchCard: React.FC<BatchCardProps> = ({
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-medium text-gray-700">
-                Trays · {active.length} {harvested ? 'harvested' : 'growing'}{lost.length > 0 ? `, ${lost.length} lost` : ''}
+                Trays · {active.length} {harvested ? "harvested" : "growing"}
+                {lost.length > 0 ? `, ${lost.length} lost` : ""}
               </span>
             </div>
             {/* Tray chips are labels only; losses are reported with the button below, undone in Edit. */}
             <div className="flex flex-wrap gap-1.5">
-              {active.map(t => (
+              {active.map((t) => (
                 <span
                   key={t.id}
-                  title={t.slot != null ? slotLabel(slotPrefix, t.slot) : 'No position'}
+                  title={
+                    t.slot != null
+                      ? slotLabel(slotPrefix, t.slot)
+                      : "No position"
+                  }
                   className="text-[11px] font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded-md"
                 >
                   {t.code}
-                  {harvested && t.harvestWeight != null
-                    ? <span className="text-emerald-700"> · {formatGrams(t.harvestWeight)}</span>
-                    : t.slot != null && <span className="text-gray-400"> · #{t.slot}</span>}
+                  {harvested && t.harvestWeight != null ? (
+                    <span className="text-emerald-700">
+                      {" "}
+                      · {formatGrams(t.harvestWeight)}
+                    </span>
+                  ) : (
+                    t.slot != null && (
+                      <span className="text-gray-400"> · #{t.slot}</span>
+                    )
+                  )}
                 </span>
               ))}
-              {lost.map(t => (
+              {lost.map((t) => (
                 <span
                   key={t.id}
                   title={t.lostNote}
                   className="text-[11px] font-medium text-red-700 bg-red-50 border border-red-100 px-2 py-1 rounded-md"
                 >
-                  <span className="line-through">{t.code}</span> · {t.lostReason || 'Lost'}
+                  <span className="line-through">{t.code}</span> ·{" "}
+                  {t.lostReason || "Lost"}
                 </span>
               ))}
             </div>
-            {active.length > 0 && batch.stage !== 'completed' && (
+            {active.length > 0 && batch.stage !== "completed" && (
               <button
                 onClick={() => onReportLoss(batch.id)}
                 className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-colors"
@@ -184,13 +297,19 @@ const BatchCard: React.FC<BatchCardProps> = ({
             )}
           </div>
 
-          <PhotoStrip batch={batch} onOpenGallery={() => onOpenGallery(batch.id)} onAddPhoto={() => onAddPhoto(batch.id)} />
+          <PhotoStrip
+            batch={batch}
+            onOpenGallery={() => onOpenGallery(batch.id)}
+            onAddPhoto={() => onAddPhoto(batch.id)}
+          />
 
           {needsWatering && (
             <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-lg mb-3">
               <AlertCircle className="w-3.5 h-3.5 text-red-600" />
               <span className="text-xs text-red-800">
-                {daysSinceWatering === null ? 'Not watered yet' : `Last watered ${daysSinceWatering} days ago`}
+                {daysSinceWatering === null
+                  ? "Not watered yet"
+                  : `Last watered ${daysSinceWatering} days ago`}
               </span>
             </div>
           )}
@@ -202,7 +321,8 @@ const BatchCard: React.FC<BatchCardProps> = ({
               className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
             >
               <Droplets className="w-3.5 h-3.5" />
-              Water{daysSinceWatering !== null ? ` · ${daysSinceWatering}d` : ''}
+              Water
+              {daysSinceWatering !== null ? ` · ${daysSinceWatering}d` : ""}
             </button>
             <button
               onClick={() => onAddPhoto(batch.id)}
@@ -216,11 +336,11 @@ const BatchCard: React.FC<BatchCardProps> = ({
               className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors"
             >
               <FileText className="w-3.5 h-3.5" />
-              Note{batch.notes.length > 0 ? ` · ${batch.notes.length}` : ''}
+              Note{batch.notes.length > 0 ? ` · ${batch.notes.length}` : ""}
             </button>
           </div>
 
-          {nextStage === 'completed' ? (
+          {nextStage === "completed" ? (
             <button
               onClick={() => onHarvest(batch.id)}
               className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors font-medium text-xs mb-2"
@@ -228,31 +348,54 @@ const BatchCard: React.FC<BatchCardProps> = ({
               <Scale className="w-3.5 h-3.5" />
               Harvest & weigh trays
             </button>
-          ) : nextStage && (
-            <button
-              onClick={() => onStageChange(batch.id, nextStage)}
-              className="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors font-medium text-xs mb-2"
-            >
-              Mark as {stageConfig[nextStage].label}
-            </button>
+          ) : (
+            nextStage && (
+              <button
+                onClick={() => onStageChange(batch.id, nextStage)}
+                className="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors font-medium text-xs mb-2"
+              >
+                Mark as {stageConfig[nextStage].label}
+              </button>
+            )
           )}
 
           {(seedGrams > 0 || yieldGrams > 0 || harvested) && (
             <div className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-2 space-y-1">
               {seedGrams > 0 && (
-                <div>Seed: <span className="font-medium text-gray-900">{formatGrams(batch.seedWeightPerTray ?? 0)}</span> per tray · {formatGrams(seedGrams)} in total</div>
+                <div>
+                  Seed:{" "}
+                  <span className="font-medium text-gray-900">
+                    {formatGrams(batch.seedWeightPerTray ?? 0)}
+                  </span>{" "}
+                  per tray · {formatGrams(seedGrams)} in total
+                </div>
               )}
               {yieldGrams > 0 && (
                 <div>
-                  Harvest: <span className="font-semibold text-emerald-700">{formatGrams(yieldGrams)}</span>
-                  {weighedTrays.length > 0 && <> · {formatGrams(yieldGrams / weighedTrays.length)} per tray</>}
-                  {seedGrams > 0 && <> · {(yieldGrams / seedGrams).toFixed(1)}× seed weight</>}
+                  Harvest:{" "}
+                  <span className="font-semibold text-emerald-700">
+                    {formatGrams(yieldGrams)}
+                  </span>
+                  {weighedTrays.length > 0 && (
+                    <>
+                      {" "}
+                      · {formatGrams(yieldGrams / weighedTrays.length)} per tray
+                    </>
+                  )}
+                  {seedGrams > 0 && (
+                    <> · {(yieldGrams / seedGrams).toFixed(1)}× seed weight</>
+                  )}
                 </div>
               )}
               {harvested && active.length > 0 && (
-                <button onClick={() => onHarvest(batch.id)} className="font-medium text-emerald-700 flex items-center gap-1">
+                <button
+                  onClick={() => onHarvest(batch.id)}
+                  className="font-medium text-emerald-700 flex items-center gap-1"
+                >
                   <Scale className="w-3.5 h-3.5" />
-                  {weighedTrays.length > 0 ? 'Edit tray weights' : 'Weigh trays'}
+                  {weighedTrays.length > 0
+                    ? "Edit tray weights"
+                    : "Weigh trays"}
                 </button>
               )}
             </div>
@@ -261,18 +404,29 @@ const BatchCard: React.FC<BatchCardProps> = ({
           {/* Notes */}
           {notes.length > 0 && (
             <div className="mb-2">
-              <h4 className="text-xs font-medium text-gray-700 mb-1.5">Notes</h4>
+              <h4 className="text-xs font-medium text-gray-700 mb-1.5">
+                Notes
+              </h4>
               <div className="space-y-1.5">
-                {notes.map(note => (
-                  <div key={note.id} className="text-xs text-gray-700 bg-gray-50 p-2 rounded-lg flex gap-2">
+                {notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="text-xs text-gray-700 bg-gray-50 p-2 rounded-lg flex gap-2"
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="text-[10px] text-gray-500 mb-0.5">
-                        {formatDate(note.timestamp)} · {noteTypeLabels[note.type] ?? note.type}
+                        {formatDate(note.timestamp)} ·{" "}
+                        {noteTypeLabels[note.type] ?? note.type}
                       </div>
-                      <div className="whitespace-pre-wrap break-words">{note.content}</div>
+                      <div className="whitespace-pre-wrap break-words">
+                        {note.content}
+                      </div>
                     </div>
                     <button
-                      onClick={() => window.confirm('Delete this note?') && onDeleteNote(batch.id, note.id)}
+                      onClick={() =>
+                        window.confirm("Delete this note?") &&
+                        onDeleteNote(batch.id, note.id)
+                      }
                       aria-label="Delete note"
                       className="p-1 text-gray-400 hover:text-red-600 self-start"
                     >

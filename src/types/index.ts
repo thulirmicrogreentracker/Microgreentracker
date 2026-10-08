@@ -2,7 +2,7 @@ export interface Tray {
   id: string;
   code: string; // "T001": numbered from AppConfig.lastTrayNumber, never reused
   slot?: number; // physical tray position, 1..AppConfig.totalTrays
-  status: 'active' | 'lost';
+  status: "active" | "lost";
   lostDate?: string; // local YYYY-MM-DD
   lostReason?: string; // one of AppConfig.lossReasons
   lostNote?: string;
@@ -18,7 +18,7 @@ export interface Batch {
   sowingDate: string;
   expectedHarvestDate: string;
   actualHarvestDate?: string;
-  stage: 'sowing' | 'germination' | 'growth' | 'harvest' | 'completed';
+  stage: "sowing" | "germination" | "growth" | "harvest" | "completed";
   notes: BatchNote[];
   photos: BatchPhoto[];
   watering: WateringRecord[];
@@ -26,7 +26,7 @@ export interface Batch {
   // Total harvest. Set to the sum of the trays' harvestWeight (grams) when weighed per tray;
   // older data may have a total in ounces or pounds instead. Read it with batchYieldGrams().
   yieldAmount?: number;
-  yieldUnit?: 'grams' | 'ounces' | 'pounds';
+  yieldUnit?: "grams" | "ounces" | "pounds";
   createdAt: string;
   updatedAt: string;
 }
@@ -35,7 +35,7 @@ export interface BatchNote {
   id: string;
   content: string;
   timestamp: string;
-  type: 'general' | 'watering' | 'fertilizer' | 'issue' | 'observation';
+  type: "general" | "watering" | "fertilizer" | "issue" | "observation";
 }
 
 export interface BatchPhoto {
@@ -43,7 +43,7 @@ export interface BatchPhoto {
   file: string; // file name inside the app's photos folder (see src/storage/photos.ts)
   caption?: string;
   timestamp: string;
-  stage: Batch['stage'];
+  stage: Batch["stage"];
   trayId?: string; // Tray.id when the photo shows one tray; absent for the whole batch
 }
 
@@ -51,7 +51,7 @@ export interface WateringRecord {
   id: string;
   timestamp: string;
   amount?: number;
-  unit?: 'ml' | 'cups' | 'liters' | 'sprays';
+  unit?: "ml" | "cups" | "liters" | "sprays";
   notes?: string;
 }
 
@@ -59,14 +59,14 @@ export interface LightingRecord {
   id: string;
   timestamp: string;
   duration: number; // hours
-  intensity?: 'low' | 'medium' | 'high';
+  intensity?: "low" | "medium" | "high";
   notes?: string;
 }
 
 export interface Reminder {
   id: string;
   batchId: string;
-  type: 'watering' | 'germination' | 'harvest' | 'general';
+  type: "watering" | "germination" | "harvest" | "general";
   title: string;
   message: string;
   scheduledFor: string;
@@ -98,6 +98,11 @@ export interface CropType {
 }
 
 export interface AppConfig {
+  farmLayout?: {
+    rackCount: number;
+    shelvesPerRack: number;
+    traysPerShelf: number;
+  };
   totalTrays: number;
   trayNumberPrefix: string;
   categories: string[];
