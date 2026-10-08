@@ -5,6 +5,7 @@ import { formatDate, getDaysSince, getRelativeTimeString } from '../utils/dateUt
 import { activeTrays, batchCode, batchSeedGrams, batchYieldGrams, formatGrams, isBatchGrowing, isBatchLost, lostTrays, slotLabel } from '../utils/batches';
 import { categoryIcon } from '../data/categoryIcons';
 import { STAGE_ORDER, stageConfig } from '../data/stages';
+import TrayArt from './farm/TrayArt';
 import PhotoStrip from './photos/PhotoStrip';
 
 interface BatchCardProps {
@@ -22,6 +23,7 @@ interface BatchCardProps {
   onReportLoss: (batchId: string) => void;
   onDeleteNote: (batchId: string, noteId: string) => void;
   onHarvest: (batchId: string) => void;
+  onOpenTray?: (trayId: string) => void; // opens the tray's own screen
   iconKey?: string; // icon of the crop's category
 }
 
@@ -48,6 +50,7 @@ const BatchCard: React.FC<BatchCardProps> = ({
   onReportLoss,
   onDeleteNote,
   onHarvest,
+  onOpenTray,
   iconKey,
 }) => {
   const CropIcon = categoryIcon(iconKey);
@@ -86,6 +89,19 @@ const BatchCard: React.FC<BatchCardProps> = ({
     // No box-shadow here: Android WebViews (at least with software rendering) left stale fragments of
     // shadowed cards on screen at startup until something was repainted.
     <div data-batch-card className={`bg-white rounded-xl border overflow-hidden ${allLost ? 'border-red-100' : 'border-gray-100'}`}>
+      <div className="batch-visual-cover">
+        <TrayArt stage={allLost ? 'lost' : batch.stage} />
+        <span className={`stage-badge stage-${allLost ? 'lost' : batch.stage}`}>{allLost ? 'Lost' : config.label}</span>
+      </div>
+      {expanded && onOpenTray && (
+        <div className="tray-chip-list">
+          {batch.trays.map(t => (
+            <button key={t.id} onClick={() => onOpenTray(t.id)} className={t.status === 'lost' ? 'lost' : ''}>
+              {t.code} · {t.status === 'lost' ? 'Lost' : 'View tray'} →
+            </button>
+          ))}
+        </div>
+      )}
       {/* Summary row: always visible, tap to open or close the card */}
       <button
         onClick={onToggle}

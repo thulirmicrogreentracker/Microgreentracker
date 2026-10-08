@@ -98,6 +98,12 @@ export interface CropType {
 }
 
 export interface AppConfig {
+  // Rack / shelf arrangement of the tray positions (1..totalTrays); absent means the default vertical racks.
+  farmLayout?: {
+    rackCount: number;
+    shelvesPerRack: number;
+    traysPerShelf: number;
+  };
   totalTrays: number;
   trayNumberPrefix: string;
   categories: string[];

@@ -36,7 +36,7 @@ const CropPhotos: React.FC<CropPhotosProps> = ({ crop, batches, onClose, onOpenG
       <header className="flex items-center justify-between px-2 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] bg-white border-b border-gray-100 shrink-0">
         <button onClick={onClose} className="flex items-center gap-0.5 min-h-[44px] px-2 text-sm font-medium text-gray-600 hover:text-gray-900">
           <ChevronLeft className="w-5 h-5" />
-          Reports
+          Insights
         </button>
         <div className="text-center min-w-0">
           <h2 className="text-base font-semibold text-gray-900 truncate">{crop} photos</h2>

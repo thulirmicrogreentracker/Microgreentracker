@@ -82,6 +82,12 @@ export const exportAllBatchesToCSV = (batches: Batch[]): Promise<void> => {
     'Photos Count'
   ];
 
+  // Quote every cell, and neutralise spreadsheet formula prefixes in user-entered text.
+  const cell = (value: unknown) => {
+    const text = String(value ?? '');
+    const safe = /^[=+@\-\t\r]/.test(text) ? `'${text}` : text;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
   const csvContent = [
     headers.join(','),
     ...batches.map(batch => [
@@ -98,7 +104,7 @@ export const exportAllBatchesToCSV = (batches: Batch[]): Promise<void> => {
       Math.round(batchYieldGrams(batch)) || '',
       batch.notes.length,
       batch.photos.length
-    ].join(','))
+    ].map(cell).join(','))
   ].join('\n');
 
   return saveFile(`thulir_microgreen_batches_${new Date().toISOString().split('T')[0]}.csv`, csvContent, 'text/csv');

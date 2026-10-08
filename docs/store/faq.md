@@ -11,20 +11,25 @@ gets a number (B001, B002, …) and each tray gets its own number (T001, T002, �
 belong to the batch; each tray has its own position, lost status and harvest weight.
 
 **How do I add a batch with several trays?**
-Tap the green + button, choose the crop, and set "Number of trays". Tray numbers and positions are filled in
+Tap **New batch** on the Home tab (or **+** on the Batches tab), choose the crop, and set "Number of trays". Tray numbers and positions are filled in
 automatically; tap "Change" to pick different positions. Enter the seed weight per tray (it applies to every tray in
 the batch), then tap "Add N trays".
 
 **What are tray positions?**
 Positions are your physical rack or shelf spots (#1, #2, …). The app hands out free positions to new trays and frees
-them again when a batch is harvested or a tray is lost. Set how many positions you have under Config → Tray Settings,
+them again when a batch is harvested or a tray is lost. Set how many positions you have under Settings → Tray Settings,
 and rename them (for example "Rack #3") with the label prefix.
+
+**How do I set up my racks and shelves?**
+Go to Settings → Racks & shelves and enter how many racks you have, the shelves per rack and the trays per shelf, then
+tap "Save rack layout". The Shelves tab then draws your racks, and each tray shows where it sits (for example Rack A /
+Shelf 2 / Slot 1). Tap a tray to open its own page with its batch, photos and harvest.
 
 ## Numbering
 
 **How are batch and tray numbers chosen?**
 They count up from the last number used and are never reused, even if you delete a batch. You can see and change the
-next numbers under Config → Numbering, for example to continue from labels you already use on paper.
+next numbers under Settings → Numbering, for example to continue from labels you already use on paper.
 
 **Do numbers continue after restoring a backup or moving to a new phone?**
 Yes. The last numbers are saved with your data, so after a restore the next batch and tray carry on where the backup
@@ -33,7 +38,7 @@ left off.
 ## Growing
 
 **How do I move a batch to the next stage?**
-Open the batch on the home screen and tap "Mark as Germination", "Mark as Growing" and so on. The stages are Sowing,
+Open the batch on the Batches tab and tap "Mark as Germination", "Mark as Growing" and so on. The stages are Sowing,
 Germination, Growing, Ready to Harvest and Completed.
 
 **How do I record watering?**
@@ -51,17 +56,21 @@ gallery can then be filtered by tray and by stage, and photos can be compared si
 
 **A tray failed. How do I record it?**
 Open the batch and tap "Report lost trays". Pick the trays, a reason (fungus or mould, pest attack, physical damage and
-more), the date and an optional note. Lost trays free their positions and appear in Reports → Tray Losses.
+more), the date and an optional note. Lost trays free their positions and appear in Insights → Tray Losses.
 
 **I marked a tray lost by mistake. Can I undo it?**
 Yes. Tap "Edit batch & trays" and tap "Growing again" next to the tray.
 
 **Can I add my own loss reasons?**
-Yes, under Config → Loss Reasons.
+Yes, under Settings → Loss Reasons.
 
 **How do I record the harvest?**
 When a batch is "Ready to Harvest", tap "Harvest & weigh trays", enter the weight of each tray in grams (or use "Fill
 all") and tap "Harvest". You can correct weights later with "Edit tray weights".
+
+**Can I export a report?**
+Yes. Open the Insights tab, choose a crop (or all) and the sowing dates, then tap "PDF report" or "Export CSV". The
+file opens in your phone's share sheet, so you can save it or send it by email.
 
 **What is the seed-to-yield ratio?**
 Grams harvested divided by grams of seed sown. For example 635 g harvested from 75 g of seed is 8.5×. It appears on
@@ -70,21 +79,21 @@ the batch card and in Reports when the seed weight was entered.
 ## Crops and categories
 
 **Can I add crops that aren't in the list?**
-Yes. Go to Config → Add Crop Type and enter the days to germination and harvest, watering frequency and light hours.
+Yes. Go to Settings → Add Crop Type and enter the days to germination and harvest, watering frequency and light hours.
 
 **Can I create my own categories and icons?**
-Yes. Under Config → Crop Categories you can add, rename and delete categories and tap the icon to choose a new one.
+Yes. Under Settings → Crop Categories you can add, rename and delete categories and tap the icon to choose a new one.
 "Add standard microgreens" adds any of the built-in crops and categories you don't have yet without changing yours.
 
 ## Backups and new phones
 
 **Is my data backed up?**
-The app saves a copy on your phone automatically every day (Config → Restore lists them). For protection against
-losing or replacing your phone, use Config → Save File regularly and save the file to Google Drive, Files or email.
+The app saves a copy on your phone automatically every day (Settings → Restore lists them). For protection against
+losing or replacing your phone, use Settings → Save File regularly and save the file to Google Drive, Files or email.
 
 **How do I move to a new phone?**
-On the old phone tap Config → Save File and save it somewhere you can reach from the new phone (for example Google
-Drive). On the new phone install the app, tap "Restore from a backup file" (or Config → Restore File) and choose the
+On the old phone tap Settings → Save File and save it somewhere you can reach from the new phone (for example Google
+Drive). On the new phone install the app, tap "Restore from a backup file" (or Settings → Restore File) and choose the
 file. Your batches, photos, settings and numbering come back.
 
 **What happens if I uninstall the app?**
