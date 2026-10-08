@@ -341,26 +341,87 @@ body {
   flex-shrink: 0;
   margin-left: -8px;
 }
+/* Bottom navigation: a floating rounded bar. The active tab's icon rises into a green circle that sits in a notch
+   of the page's own colour, with curved corners where the notch meets the bar. */
 .farm-nav {
-  background: #fffffff5;
-  border-top: 1px solid var(--farm-border);
+  position: relative;
   z-index: 20;
-  min-height: 69px;
+  background: var(--farm-paper);
+  padding: 0 14px calc(10px + env(safe-area-inset-bottom));
 }
-.farm-nav button {
-  min-width: 54px;
-  min-height: 57px;
+.farm-nav-bar {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: 62px;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow:
+    0 10px 30px #18372d1a,
+    0 2px 6px #18372d0d;
 }
-.farm-nav button[aria-current="page"] {
+.farm-nav-indicator {
+  position: absolute;
+  top: -32px;
+  left: calc((var(--tab) + 0.5) * 20% - 32px);
+  width: 64px;
+  height: 64px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--farm-green);
+  border: 6px solid var(--farm-paper);
+  transition: left 0.4s cubic-bezier(0.3, 1.25, 0.5, 1);
+}
+.farm-nav-indicator::before,
+.farm-nav-indicator::after {
+  content: "";
+  position: absolute;
+  top: 26px; /* the bar's top edge */
+  width: 12px;
+  height: 12px;
+}
+.farm-nav-indicator::before {
+  left: -16px;
+  background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--farm-paper) 12px);
+}
+.farm-nav-indicator::after {
+  right: -16px;
+  background: radial-gradient(circle at 100% 100%, transparent 11.5px, var(--farm-paper) 12px);
+}
+.farm-nav-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding-bottom: 9px;
+  min-width: 0;
+  color: #9aa59b;
+  transition: color 0.2s;
+}
+.farm-nav-item svg {
+  width: 22px;
+  height: 22px;
+  transition:
+    transform 0.4s cubic-bezier(0.3, 1.25, 0.5, 1),
+    color 0.2s;
+}
+.farm-nav-item span {
+  font-size: 10.5px;
+  font-weight: 500;
+}
+.farm-nav-item[aria-current="page"] {
   color: var(--farm-green);
 }
-.farm-nav button[aria-current="page"] svg {
-  background: #e9f3e5;
-  box-sizing: content-box;
-  padding: 5px 12px;
-  border-radius: 20px;
-  margin-top: -5px;
-  margin-bottom: -1px;
+.farm-nav-item[aria-current="page"] span {
+  font-weight: 650;
+}
+.farm-nav-item[aria-current="page"] svg {
+  transform: translateY(-27px);
+  color: #fff;
+  stroke-width: 2.3;
 }
 .farm-icon-button {
   width: 40px;
@@ -1083,6 +1144,10 @@ body {
   }
   .swipe-page {
     animation: none;
+  }
+  .farm-nav-indicator,
+  .farm-nav-item svg {
+    transition: none;
   }
 }
 .rack-trays {

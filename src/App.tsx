@@ -711,28 +711,29 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       </main>
 
       {/* Bottom Navigation */}
-      <nav aria-label="Main navigation" className="farm-nav shrink-0 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key);
-                setSelectedTray(null);
-                mainRef.current?.scrollTo(0, 0);
-              }}
-              aria-current={isActive ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center py-3 px-2 rounded-lg transition-colors ${
-                isActive ? 'text-emerald-600' : 'text-gray-400'
-              }`}
-            >
-              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'stroke-[2.5]' : ''}`} />
-              <span className="text-[10px] font-medium">{tab.label}</span>
-            </button>
-          );
-        })}
+      <nav aria-label="Main navigation" className="farm-nav shrink-0">
+        {/* A floating bar; the active tab sits in a circle in a notch that slides between tabs. */}
+        <div className="farm-nav-bar" style={{ '--tab': tabs.findIndex(t => t.key === activeTab) } as React.CSSProperties}>
+          <span className="farm-nav-indicator" aria-hidden="true" />
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setSelectedTray(null);
+                  mainRef.current?.scrollTo(0, 0);
+                }}
+                aria-current={activeTab === tab.key ? 'page' : undefined}
+                className="farm-nav-item"
+              >
+                <Icon />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Screens pushed on top of the tabs; each slides in and goes back with a swipe from the left edge. */}
