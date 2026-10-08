@@ -16,14 +16,14 @@ automatically; tap "Change" to pick different positions. Enter the seed weight p
 the batch), then tap "Add N trays".
 
 **What are tray positions?**
-Positions are your physical rack or shelf spots (#1, #2, …). The app hands out free positions to new trays and frees
-them again when a batch is harvested or a tray is lost. Set how many positions you have under Settings → Tray Settings,
-and rename them (for example "Rack #3") with the label prefix.
+Positions are the spots on your racks where a tray can sit, for example Rack A / Shelf 2. The app hands out free
+positions to new trays and frees them again when a batch is harvested or a tray is lost. How many positions you have
+comes from your rack layout under Settings → Racks & shelves.
 
 **How do I set up my racks and shelves?**
 Go to Settings → Racks & shelves and enter how many racks you have, the shelves per rack and the trays per shelf, then
 tap "Save rack layout". The Shelves tab then draws your racks, and each tray shows where it sits (for example Rack A /
-Shelf 2 / Slot 1). Tap a tray to open its own page with its batch, photos and harvest.
+Shelf 2, plus the slot when a shelf holds more than one tray). Tap a tray to open its own page with its batch, photos and harvest.
 
 ## Numbering
 
@@ -62,7 +62,7 @@ more), the date and an optional note. Lost trays free their positions and appear
 Yes. Tap "Edit batch & trays" and tap "Growing again" next to the tray.
 
 **Can I add my own loss reasons?**
-Yes, under Settings → Loss Reasons.
+Yes, under Settings → Loss reasons.
 
 **How do I record the harvest?**
 When a batch is "Ready to Harvest", tap "Harvest & weigh trays", enter the weight of each tray in grams (or use "Fill
@@ -79,21 +79,21 @@ the batch card and in Reports when the seed weight was entered.
 ## Crops and categories
 
 **Can I add crops that aren't in the list?**
-Yes. Go to Settings → Add Crop Type and enter the days to germination and harvest, watering frequency and light hours.
+Yes. Go to Settings → Crops & categories, tap Add Crop Type and enter the days to germination and harvest, watering frequency and light hours.
 
 **Can I create my own categories and icons?**
-Yes. Under Settings → Crop Categories you can add, rename and delete categories and tap the icon to choose a new one.
+Yes. Under Settings → Crops & categories you can add, rename and delete categories and tap the icon to choose a new one.
 "Add standard microgreens" adds any of the built-in crops and categories you don't have yet without changing yours.
 
 ## Backups and new phones
 
 **Is my data backed up?**
-The app saves a copy on your phone automatically every day (Settings → Restore lists them). For protection against
-losing or replacing your phone, use Settings → Save File regularly and save the file to Google Drive, Files or email.
+The app saves a copy on your phone automatically every day (Settings → Backup & restore → Restore lists them). For protection against
+losing or replacing your phone, use Settings → Backup & restore → Save File regularly and save the file to Google Drive, Files or email.
 
 **How do I move to a new phone?**
-On the old phone tap Settings → Save File and save it somewhere you can reach from the new phone (for example Google
-Drive). On the new phone install the app, tap "Restore from a backup file" (or Settings → Restore File) and choose the
+On the old phone tap Settings → Backup & restore → Save File and save it somewhere you can reach from the new phone (for example Google
+Drive). On the new phone install the app, tap "Restore from a backup file" (or Settings → Backup & restore → Restore File) and choose the
 file. Your batches, photos, settings and numbering come back.
 
 **What happens if I uninstall the app?**

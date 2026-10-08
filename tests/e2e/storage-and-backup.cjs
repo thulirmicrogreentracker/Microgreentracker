@@ -37,6 +37,9 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   const page = await context.newPage();
   // Taps a tab in the bottom navigation (Home, Shelves, Batches, Insights, Settings).
   const tab = name => page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true }).click();
+  // Settings → Backup & restore, which opens as its own page; closePage goes back from it.
+  const backupPage = async () => { await tab('Settings'); await page.getByRole('button', { name: /^Backup & restore/ }).click(); };
+  const closePage = () => page.locator('.swipe-page').getByRole('button', { name: 'Back', exact: true }).click();
   page.on('dialog', d => { console.log(`  dialog: ${d.message().slice(0, 110)}`); d.accept(); });
   page.on('pageerror', e => { console.log(`  PAGE ERROR: ${e.message}`); failures++; });
 
@@ -123,7 +126,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   check(dims[0] === 1600 && dims[1] === 1600, `photo: resized to ${dims.join('x')} (max 1600)`);
 
   // ---------- 6. Export backup file ----------
-  await tab('Settings');
+  await backupPage();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Save File' }).click()]);
   const zipPath = path.join(OUT, download.suggestedFilename());
   await download.saveAs(zipPath);
@@ -133,6 +136,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   check(listing.includes('backup.json') && listing.includes('photos/ph1abc.png') && listing.includes('photos/' + photoName), 'export: zip has backup.json and both photos');
   const manifest = JSON.parse(execSync(`unzip -p ${zipPath} backup.json`).toString());
   check(manifest.format === 'microgreen-manager-backup' && manifest.schemaVersion === 2 && manifest.data.batches.length === 3, 'export: manifest has format, version and 3 batches');
+  await closePage();
 
   // ---------- 7. Wipe data, then restore from the file ----------
   await tab('Batches');
@@ -169,7 +173,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   // ---------- 8. Old .json downloads can still be restored ----------
   const legacyJson = path.join(OUT, 'microgreen-backup-legacy.json');
   fs.writeFileSync(legacyJson, JSON.stringify({ 'microgreen-batches': [{ id: 'j1', cropType: 'Sunflower', trayId: 'T5', trayNumber: 5, sowingDate: '2026-09-01', expectedHarvestDate: '2026-09-11', stage: 'completed', notes: [], photos: [], watering: [], lighting: [], createdAt: 'x', updatedAt: 'x' }] }));
-  await tab('Settings');
+  await backupPage();
   await page.getByRole('button', { name: 'Restore File' }).click();
   await page.locator('input[type=file][accept^=".zip"]').setInputFiles(legacyJson);
   await tab('Batches');
@@ -179,15 +183,16 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   // ---------- 9. Not-a-backup file is rejected without changing data ----------
   const junk = path.join(OUT, 'junk.zip');
   fs.writeFileSync(junk, 'hello');
-  await tab('Settings');
+  await backupPage();
   await page.getByRole('button', { name: 'Restore File' }).click();
   await page.locator('input[type=file][accept^=".zip"]').setInputFiles(junk);
   await page.waitForTimeout(800);
+  await closePage();
   await tab('Batches');
   check(await page.getByText('Sunflower').count() > 0, 'junk file: rejected, data unchanged');
 
   // ---------- 10. On-phone snapshot restore (undo the legacy import) ----------
-  await tab('Settings');
+  await backupPage();
   await page.getByRole('button', { name: /^Restore$/ }).click();
   await page.getByText('Daily Backups').waitFor();
   await page.locator('div.rounded-t-2xl').getByRole('button', { name: 'Restore' }).first().click(); // newest = copy taken right before the .json import

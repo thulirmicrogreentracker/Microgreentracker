@@ -46,9 +46,41 @@ export const slotLocation = (slot: number | undefined, config: AppConfig) => {
     position: ((slot - 1) % l.traysPerShelf) + 1,
   };
 };
+// "Rack A / Shelf 2", plus "/ Slot 3" when shelves hold more than one tray.
 export const locationLabel = (slot: number | undefined, config: AppConfig) => {
   const loc = slotLocation(slot, config);
-  return loc ? `${rackName(loc.rack)} / Shelf ${loc.shelf + 1} / Slot ${loc.position}` : 'Unassigned';
+  if (!loc) return 'Unassigned';
+  const slotPart = getLayout(config).traysPerShelf > 1 ? ` / Slot ${loc.position}` : '';
+  return `${rackName(loc.rack)} / Shelf ${loc.shelf + 1}${slotPart}`;
+};
+// "A2" for Rack A, shelf 2 (or "A2.3" for its third slot), for small tray labels.
+export const shortLocation = (slot: number | undefined, config: AppConfig) => {
+  const loc = slotLocation(slot, config);
+  if (!loc) return null;
+  const rack = rackName(loc.rack).slice('Rack '.length);
+  return `${rack}${loc.shelf + 1}${getLayout(config).traysPerShelf > 1 ? `.${loc.position}` : ''}`;
+};
+// "Shelf 2", "Shelves 1–3, 5".
+const shelfList = (shelves: number[]) => {
+  const sorted = [...new Set(shelves)].sort((a, b) => a - b);
+  const ranges: string[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    let j = i;
+    while (sorted[j + 1] === sorted[j] + 1) j++;
+    ranges.push(j > i ? `${sorted[i]}–${sorted[j]}` : String(sorted[i]));
+    i = j;
+  }
+  return `${sorted.length === 1 ? 'Shelf' : 'Shelves'} ${ranges.join(', ')}`;
+};
+// Where a group of trays is, one line per rack: ["Rack A · Shelves 1–3", "Rack B · Shelf 1"]. Empty when no tray
+// has a position.
+export const rackShelves = (slots: (number | undefined)[], config: AppConfig) => {
+  const byRack = new Map<number, number[]>();
+  for (const slot of slots) {
+    const loc = slotLocation(slot, config);
+    if (loc) byRack.set(loc.rack, [...(byRack.get(loc.rack) ?? []), loc.shelf + 1]);
+  }
+  return [...byRack].sort(([a], [b]) => a - b).map(([rack, shelves]) => ({ rack: rackName(rack), shelves: shelfList(shelves) }));
 };
 export const occupiedSlots = (batches: Batch[]): Map<number, { batch: Batch; tray: Tray }> =>
   new Map(

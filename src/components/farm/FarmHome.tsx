@@ -1,9 +1,112 @@
 import { ArrowUpRight, Check, ChevronRight, CheckCircle2, Droplets, Leaf, Plus, Sprout, Sun, X } from 'lucide-react';
 import { Batch, CropType } from '../../types';
-import { activeTrays, isBatchGrowing } from '../../utils/batches';
+import { activeTrays, batchCode, isBatchGrowing } from '../../utils/batches';
 import { getDaysSince } from '../../utils/dateUtils';
 import TrayArt from './TrayArt';
 export type StageFilter = Batch['stage'] | 'lost' | 'all';
+
+// Growing batches that are due for watering (by their crop's watering interval) or ready to harvest.
+export const careTasks = (batches: Batch[], cropTypes: CropType[]) => {
+  const growing = batches.filter(isBatchGrowing);
+  const watering = growing.filter((b) => {
+    const last = b.watering.slice(-1)[0];
+    return (
+      !last || getDaysSince(last.timestamp) >= (cropTypes.find((c) => c.name === b.cropType)?.wateringFrequency ?? 1)
+    );
+  });
+  return { watering, ready: growing.filter((b) => b.stage === 'harvest') };
+};
+
+const trays = (b: Batch) => `${activeTrays(b).length} tray${activeTrays(b).length === 1 ? '' : 's'}`;
+
+// The rows of a care list: watering tasks open the watering form, harvest tasks open the batch.
+export function CareRows({
+  watering,
+  ready,
+  onWater,
+  onBatch,
+}: {
+  watering: Batch[];
+  ready: Batch[];
+  onWater: (id: string) => void;
+  onBatch: (id: string) => void;
+}) {
+  return (
+    <>
+      {watering.map((b) => (
+        <button key={`w-${b.id}`} onClick={() => onWater(b.id)}>
+          <span className="care-icon">
+            <Droplets />
+          </span>
+          <span>
+            <b>Water {b.cropType}</b>
+            <small>
+              {batchCode(b.batchNumber)} · {trays(b)} · Day {getDaysSince(b.sowingDate)}
+            </small>
+          </span>
+          <ChevronRight />
+        </button>
+      ))}
+      {ready.map((b) => (
+        <button key={`h-${b.id}`} onClick={() => onBatch(b.id)}>
+          <span className="care-icon lime">
+            <Sprout />
+          </span>
+          <span>
+            <b>Harvest {b.cropType}</b>
+            <small>
+              {batchCode(b.batchNumber)} · {trays(b)} ready
+            </small>
+          </span>
+          <ChevronRight />
+        </button>
+      ))}
+    </>
+  );
+}
+
+// Every care task, on its own page.
+export function AllTasks({
+  batches,
+  cropTypes,
+  onWater,
+  onBatch,
+}: {
+  batches: Batch[];
+  cropTypes: CropType[];
+  onWater: (id: string) => void;
+  onBatch: (id: string) => void;
+}) {
+  const { watering, ready } = careTasks(batches, cropTypes);
+  return (
+    <div className="farm-stack">
+      {ready.length > 0 && (
+        <section>
+          <p className="care-group-label">HARVEST · {ready.length}</p>
+          <div className="care-list">
+            <CareRows watering={[]} ready={ready} onWater={onWater} onBatch={onBatch} />
+          </div>
+        </section>
+      )}
+      {watering.length > 0 && (
+        <section>
+          <p className="care-group-label">WATER · {watering.length}</p>
+          <div className="care-list">
+            <CareRows watering={watering} ready={[]} onWater={onWater} onBatch={onBatch} />
+          </div>
+        </section>
+      )}
+      {!watering.length && !ready.length && (
+        <div className="care-list">
+          <div className="care-empty">
+            <CheckCircle2 />
+            <span>All caught up. Let them grow.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 export default function FarmHome({
   batches,
   cropTypes,
@@ -12,6 +115,7 @@ export default function FarmHome({
   onWater,
   onShelves,
   onBatch,
+  onAllTasks,
 }: {
   batches: Batch[];
   cropTypes: CropType[];
@@ -20,6 +124,7 @@ export default function FarmHome({
   onWater: (id: string) => void;
   onShelves: () => void;
   onBatch: (id: string) => void;
+  onAllTasks: () => void;
 }) {
   const stages = [
     ['sowing', 'Sowing', Sprout],
@@ -37,13 +142,12 @@ export default function FarmHome({
       0
     );
   const growing = batches.filter(isBatchGrowing);
-  const watering = growing.filter((b) => {
-    const last = b.watering.slice(-1)[0];
-    return (
-      !last || getDaysSince(last.timestamp) >= (cropTypes.find((c) => c.name === b.cropType)?.wateringFrequency ?? 1)
-    );
-  });
-  const ready = growing.filter((b) => b.stage === 'harvest');
+  const { watering, ready } = careTasks(batches, cropTypes);
+  const taskCount = watering.length + ready.length;
+  // Up to three tasks on Home, including a harvest when there is one; the rest are on the All tasks page.
+  const previewReady = ready.slice(0, 1);
+  const previewWatering = watering.slice(0, 3 - previewReady.length);
+  const hidden = taskCount - previewReady.length - previewWatering.length;
   return (
     <div className="farm-stack">
       <div className="farm-heading">
@@ -101,36 +205,22 @@ export default function FarmHome({
       <section>
         <div className="section-heading">
           <h2>Today's care</h2>
-          <span>{watering.length + ready.length} tasks</span>
+          {taskCount > 0 ? (
+            <button onClick={onAllTasks}>
+              {taskCount} task{taskCount === 1 ? '' : 's'} <ChevronRight size={14} />
+            </button>
+          ) : (
+            <span>0 tasks</span>
+          )}
         </div>
         <div className="care-list">
-          {watering.slice(0, 2).map((b) => (
-            <button key={b.id} onClick={() => onWater(b.id)}>
-              <span className="care-icon">
-                <Droplets />
-              </span>
-              <span>
-                <b>Water {b.cropType}</b>
-                <small>
-                  {activeTrays(b).length} trays · Day {getDaysSince(b.sowingDate)}
-                </small>
-              </span>
-              <ChevronRight />
+          <CareRows watering={previewWatering} ready={previewReady} onWater={onWater} onBatch={onBatch} />
+          {hidden > 0 && (
+            <button className="care-more" onClick={onAllTasks}>
+              See all {taskCount} tasks <ChevronRight />
             </button>
-          ))}
-          {ready.slice(0, 1).map((b) => (
-            <button key={b.id} onClick={() => onBatch(b.id)}>
-              <span className="care-icon lime">
-                <Sprout />
-              </span>
-              <span>
-                <b>Harvest {b.cropType}</b>
-                <small>{activeTrays(b).length} trays ready</small>
-              </span>
-              <ChevronRight />
-            </button>
-          ))}
-          {!watering.length && !ready.length && (
+          )}
+          {!taskCount && (
             <div className="care-empty">
               <CheckCircle2 />
               <span>{batches.length ? 'All caught up. Let them grow.' : 'Your first harvest starts with a seed.'}</span>

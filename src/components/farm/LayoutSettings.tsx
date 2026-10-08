@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Check, LayoutGrid } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { AppConfig, Batch } from '../../types';
-import { getLayout, MAX_RACKS, MAX_SHELVES_PER_RACK, MAX_TRAYS_PER_SHELF, occupiedSlots } from '../../utils/farmLayout';
+import { getLayout, locationLabel, MAX_RACKS, MAX_SHELVES_PER_RACK, MAX_TRAYS_PER_SHELF, occupiedSlots } from '../../utils/farmLayout';
 import { MAX_TRAY_POSITIONS } from '../../utils/batches';
 export default function LayoutSettings({
   config,
@@ -41,7 +41,7 @@ export default function LayoutSettings({
     }
     const highest = Math.max(0, ...occupiedSlots(batches).keys());
     if (capacity < highest) {
-      setError(`Slot ${highest} is occupied. Move its tray before reducing capacity.`);
+      setError(`${locationLabel(highest, config)} is in use. Move its tray before making the farm smaller.`);
       return;
     }
     if (
@@ -66,12 +66,6 @@ export default function LayoutSettings({
   };
   return (
     <section className="farm-surface layout-settings">
-      <div className="section-heading">
-        <h2>
-          <LayoutGrid size={18} /> Racks & shelves
-        </h2>
-        <span>{config.totalTrays} slots</span>
-      </div>
       <p className="farm-help">
         Rack → Shelf → Tray. Configure matching racks; existing tray slot numbers are preserved.
       </p>

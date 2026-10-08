@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronRight, LayoutGrid, Rows3, List, Plus, Settings2 } from 'lucide-react';
 import { AppConfig, Batch, Tray } from '../../types';
-import { getLayout, occupiedSlots, rackName } from '../../utils/farmLayout';
+import { getLayout, occupiedSlots, rackName, rackShelves } from '../../utils/farmLayout';
+import { batchCode } from '../../utils/batches';
+import { getDaysSince, getRelativeTimeString } from '../../utils/dateUtils';
 import { stageConfig } from '../../data/stages';
 import TrayArt from './TrayArt';
 export default function ShelvesPanel({
@@ -10,12 +12,14 @@ export default function ShelvesPanel({
   onTray,
   onNew,
   onConfig,
+  onBatch,
 }: {
   batches: Batch[];
   config: AppConfig;
   onTray: (batchId: string, trayId: string) => void;
   onNew: () => void;
   onConfig: () => void;
+  onBatch: (batchId: string) => void;
 }) {
   const layout = getLayout(config),
     occupied = occupiedSlots(batches);
@@ -32,20 +36,31 @@ export default function ShelvesPanel({
   })).filter((s) => s.slots.length);
   const activeShelf = shelf !== null ? shelves.find((s) => s.index === shelf) : undefined;
   const used = shelves.flatMap((s) => s.slots).filter((n) => occupied.has(n)).length;
+  // The batches growing on the rack (or on the one shelf shown), with the slots each one has here.
+  const shownSlots = (activeShelf ? [activeShelf] : shelves).flatMap((s) => s.slots).filter((n) => occupied.has(n));
+  const rackBatches = [...new Set(shownSlots.map((n) => occupied.get(n)!.batch))].map((batch) => ({
+    batch,
+    slots: shownSlots.filter((n) => occupied.get(n)!.batch === batch),
+  }));
+  const batchLine = (batch: Batch) => `${batchCode(batch.batchNumber)} · Day ${getDaysSince(batch.sowingDate)}`;
   function trayButton(slot: number, entry?: { batch: Batch; tray: Tray }) {
     return (
       <button
         key={slot}
         className={`rack-tray ${entry ? '' : 'empty-slot'}`}
         onClick={() => (entry ? onTray(entry.batch.id, entry.tray.id) : onNew())}
-        aria-label={entry ? `Open tray ${entry.tray.code}` : `Add tray in slot ${slot}`}
+        aria-label={entry ? `Open tray ${entry.tray.code}, ${batchCode(entry.batch.batchNumber)} ${entry.batch.cropType}` : `Add tray in slot ${slot}`}
       >
         <TrayArt stage={entry?.batch.stage} empty={!entry} />
-        <b>{entry?.tray.code ?? `Slot ${slot}`}</b>
+        <b>{entry ? `${entry.tray.code} · ${batchCode(entry.batch.batchNumber)}` : `Slot ${slot}`}</b>
         <span className={`stage-badge stage-${entry?.batch.stage ?? 'completed'}`}>
           {entry ? stageConfig[entry.batch.stage].label : '+ Empty'}
         </span>
-        {entry && <small>{entry.batch.cropType}</small>}
+        {entry && (
+          <small>
+            {entry.batch.cropType} · Day {getDaysSince(entry.batch.sowingDate)}
+          </small>
+        )}
       </button>
     );
   }
@@ -185,7 +200,7 @@ export default function ShelvesPanel({
                     <TrayArt stage={e?.batch.stage} empty={!e} />
                     <span>
                       <b>{e ? `${e.tray.code} · ${e.batch.cropType}` : `Slot ${n}`}</b>
-                      <small>{e ? stageConfig[e.batch.stage].label : 'Available'}</small>
+                      <small>{e ? `${stageConfig[e.batch.stage].label} · ${batchLine(e.batch)}` : 'Available'}</small>
                     </span>
                     <ChevronRight size={17} />
                   </button>
@@ -194,6 +209,33 @@ export default function ShelvesPanel({
             </section>
           ))}
         </div>
+      )}
+      {rackBatches.length > 0 && (
+        <section>
+          <div className="section-heading">
+            <h2>Batches on {activeShelf ? `shelf ${activeShelf.index + 1}` : rackName(selectedRack)}</h2>
+            <span>{rackBatches.length}</span>
+          </div>
+          <div className="rack-batches">
+            {rackBatches.map(({ batch, slots }) => (
+              <button key={batch.id} className="rack-batch" onClick={() => onBatch(batch.id)}>
+                <TrayArt stage={batch.stage} />
+                <span>
+                  <b>
+                    {batchCode(batch.batchNumber)} · {batch.cropType}
+                  </b>
+                  <small>
+                    {slots.length} tray{slots.length === 1 ? '' : 's'} · {rackShelves(slots, config)[0]?.shelves}
+                  </small>
+                  <small>
+                    Day {getDaysSince(batch.sowingDate)} · Harvest {getRelativeTimeString(batch.expectedHarvestDate).toLowerCase()}
+                  </small>
+                </span>
+                <span className={`stage-badge stage-${batch.stage}`}>{stageConfig[batch.stage].label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
       <div className="stage-legend">
         <span>

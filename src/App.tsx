@@ -9,7 +9,7 @@ import { createSnapshot, deleteSnapshot, listSnapshots, readSnapshot, SnapshotIn
 import { exportBackupFile, parseBackupFile, writeBackupPhotos } from './storage/backupFile';
 import BatchCard from './components/BatchCard';
 import AddBatchModal from './components/AddBatchModal';
-import FarmHome, { StageFilter } from './components/farm/FarmHome';
+import FarmHome, { AllTasks, StageFilter } from './components/farm/FarmHome';
 import ShelvesPanel from './components/farm/ShelvesPanel';
 import TrayDetail from './components/farm/TrayDetail';
 import LayoutSettings from './components/farm/LayoutSettings';
@@ -18,6 +18,8 @@ import './components/farm/farm.css';
 import NotificationPanel from './components/NotificationPanel';
 import QuickActionModal from './components/QuickActionModal';
 import ConfigPanel from './components/ConfigPanel';
+import SettingsMenu, { SettingsPage, settingsTitles } from './components/SettingsMenu';
+import SwipePage, { attachSwipeBack } from './components/SwipePage';
 import ReportsPanel from './components/ReportsPanel';
 import BatchGallery from './components/photos/BatchGallery';
 import PhotoViewer from './components/photos/PhotoViewer';
@@ -77,6 +79,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [viewerPhoto, setViewerPhoto] = useState<{ batchId: string; photoId: string } | null>(null);
   const [compareBatchId, setCompareBatchId] = useState<string | null>(null);
   const [cropPhotos, setCropPhotos] = useState<string | null>(null);
+  const [settingsPage, setSettingsPage] = useState<SettingsPage | null>(null);
+  const [showTasks, setShowTasks] = useState(false);
 
   const [quickActionModal, setQuickActionModal] = useState<{
     isOpen: boolean;
@@ -101,30 +105,44 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     }
   }, [showRestoreSheet]);
 
-  // Android hardware back button: close the top-most screen instead of exiting the app.
+  // Back (Android back button or gesture, or a swipe from the left edge): close the top-most screen; on a tab other
+  // than Home go to Home; on Home leave the app.
+  const goBack = () => {
+    if (infoPage) setInfoPage(null);
+    else if (harvestBatchId) setHarvestBatchId(null);
+    else if (lossSheet) setLossSheet(null);
+    else if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
+    else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
+    else if (viewerPhoto) setViewerPhoto(null);
+    else if (compareBatchId) setCompareBatchId(null);
+    else if (galleryBatchId) setGalleryBatchId(null);
+    else if (cropPhotos) setCropPhotos(null);
+    else if (showRestoreSheet) setShowRestoreSheet(false);
+    else if (showNotifications) setShowNotifications(false);
+    else if (selectedTray) setSelectedTray(null);
+    else if (showTasks) setShowTasks(false);
+    else if (settingsPage) setSettingsPage(null);
+    else if (activeTab !== 'home') setActiveTab('home');
+    else CapacitorApp.exitApp();
+  };
+  const goBackRef = useRef(goBack);
+  goBackRef.current = goBack;
+
   useEffect(() => {
-    const handle = CapacitorApp.addListener('backButton', () => {
-      if (infoPage) setInfoPage(null);
-      else if (harvestBatchId) setHarvestBatchId(null);
-      else if (lossSheet) setLossSheet(null);
-      else if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
-      else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
-      else if (viewerPhoto) setViewerPhoto(null);
-      else if (compareBatchId) setCompareBatchId(null);
-      else if (galleryBatchId) setGalleryBatchId(null);
-      else if (cropPhotos) setCropPhotos(null);
-      else if (showRestoreSheet) setShowRestoreSheet(false);
-      else if (showNotifications) setShowNotifications(false);
-      else if (selectedTray) setSelectedTray(null);
-      else if (activeTab !== 'home') setActiveTab('home');
-      else CapacitorApp.exitApp();
-    });
+    const handle = CapacitorApp.addListener('backButton', () => goBackRef.current());
     return () => { handle.then(h => h.remove()); };
-  }, [infoPage, harvestBatchId, lossSheet, quickActionModal.isOpen, isModalOpen, viewerPhoto, compareBatchId, galleryBatchId, cropPhotos, showRestoreSheet, showNotifications, selectedTray, activeTab]);
+  }, []);
+
+  // A swipe from the left edge on a tab other than Home goes back to Home (pushed screens handle their own swipe).
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  useEffect(() => attachSwipeBack(mainRef.current!, () => goBackRef.current(), {
+    slideOut: false,
+    enabled: () => activeTabRef.current !== 'home',
+  }), []);
 
   const availableSlots = useMemo(() => freeSlots(batches, config.totalTrays), [batches, config.totalTrays]);
 
-  const usedTrayCount = config.totalTrays - availableSlots.length;
 
   const stats: BatchStats = useMemo(() => {
     const s = {
@@ -406,30 +424,24 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const openBatch = (id: string) => {
     setActiveTab('batches');
     setSelectedTray(null);
+    setShowTasks(false);
     setStageFilter('all');
     setBatchSearch('');
     setExpandedIds(new Set([id]));
     requestAnimationFrame(() => document.getElementById(`batch-${id}`)?.scrollIntoView({ block: 'start' }));
   };
-  const openTray = (batchId: string, trayId: string) => {
-    setSelectedTray({ batchId, trayId });
-    setActiveTab('shelves');
-    mainRef.current?.scrollTo(0, 0);
-  };
+  const openTray = (batchId: string, trayId: string) => setSelectedTray({ batchId, trayId });
   const trayBatch = batches.find(b => b.id === selectedTray?.batchId);
   const tray = trayBatch?.trays.find(t => t.id === selectedTray?.trayId);
+  const matchesSearch = (b: Batch) =>
+    !batchSearch ||
+    `${b.cropType} B${String(b.batchNumber).padStart(3, '0')} ${b.trays.map(t => t.code).join(' ')}`
+      .toLowerCase()
+      .includes(batchSearch.toLowerCase());
+  const matchesStage = (b: Batch, stage: StageFilter) =>
+    stage === 'all' || (stage === 'lost' ? lostTrays(b).length > 0 : b.stage === stage && !isBatchLost(b));
   const visibleSections = batchSections
-    .map(section => ({
-      ...section,
-      batches: section.batches.filter(b =>
-        (!batchSearch ||
-          `${b.cropType} B${String(b.batchNumber).padStart(3, '0')} ${b.trays.map(t => t.code).join(' ')}`
-            .toLowerCase()
-            .includes(batchSearch.toLowerCase())) &&
-        (stageFilter === 'all' ||
-          (stageFilter === 'lost' ? lostTrays(b).length > 0 : b.stage === stageFilter && !isBatchLost(b)))
-      ),
-    }))
+    .map(section => ({ ...section, batches: section.batches.filter(b => matchesSearch(b) && matchesStage(b, stageFilter)) }))
     .filter(section => section.batches.length > 0);
 
   const runBusy = async (message: string, task: () => Promise<void>) => {
@@ -450,6 +462,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     update(() => next);
     setExpandedIds(new Set());
     setActiveTab('home');
+    setSettingsPage(null);
   };
 
   const handleSnapshotNow = () => runBusy('Saving a copy…', async () => {
@@ -479,7 +492,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     const backup = await parseBackupFile(file);
     const when = backup.createdAt ? ` from ${new Date(backup.createdAt).toLocaleString()}` : '';
     const count = backup.data.batches.length;
-    if (!window.confirm(`Restore this backup${when}? It has ${count} batch${count === 1 ? '' : 'es'}. Your current data will be replaced (a copy of it is kept under Settings → Restore).`)) return;
+    if (!window.confirm(`Restore this backup${when}? It has ${count} batch${count === 1 ? '' : 'es'}. Your current data will be replaced (a copy of it is kept under Settings → Backup & restore → Restore).`)) return;
     setBusyMessage('Restoring…');
     await writeBackupPhotos(backup);
     await replaceData(backup.data);
@@ -496,6 +509,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     });
     setExpandedIds(new Set());
     setActiveTab('home');
+    setSettingsPage(null);
   };
 
   return (
@@ -550,6 +564,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               onWater={id => handleQuickAction(id, 'watering')}
               onShelves={() => setActiveTab('shelves')}
               onBatch={openBatch}
+              onAllTasks={() => setShowTasks(true)}
             />
             {batches.length === 0 && (
               <button className="farm-restore-link" onClick={() => importInputRef.current?.click()}>
@@ -559,27 +574,19 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           </>
         )}
 
-        {activeTab === 'shelves' && (trayBatch && tray ? (
-          <TrayDetail
-            batch={trayBatch}
-            tray={tray}
-            config={config}
-            onClose={() => setSelectedTray(null)}
-            onBatch={() => openBatch(trayBatch.id)}
-            onWater={() => handleQuickAction(trayBatch.id, 'watering')}
-            onNote={() => handleQuickAction(trayBatch.id, 'note')}
-            onPhoto={() => handleQuickAction(trayBatch.id, 'photo', tray.id)}
-            onLoss={() => setLossSheet({ batchId: trayBatch.id, trayIds: [tray.id] })}
-          />
-        ) : (
+        {activeTab === 'shelves' && (
           <ShelvesPanel
             batches={batches}
             config={config}
             onTray={openTray}
             onNew={() => setIsModalOpen(true)}
-            onConfig={() => setActiveTab('config')}
+            onConfig={() => {
+              setActiveTab('config');
+              setSettingsPage('layout');
+            }}
+            onBatch={openBatch}
           />
-        ))}
+        )}
 
         {activeTab === 'batches' && (
           <div className="space-y-4">
@@ -597,10 +604,11 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               <Search size={18} />
               <input placeholder="Search crop, batch or tray" value={batchSearch} onChange={e => setBatchSearch(e.target.value)} />
             </label>
-            <div className="batch-filter-row">
+            <div className="batch-filter-row" role="group" aria-label="Show batches">
               {(['all', 'sowing', 'germination', 'growth', 'harvest', 'completed', 'lost'] as const).map(stage => (
                 <button key={stage} aria-pressed={stageFilter === stage} onClick={() => setStageFilter(stage)}>
-                  {stage === 'all' ? 'All' : stage === 'lost' ? 'Lost' : stageConfig[stage].label}
+                  {stage === 'all' ? 'All' : stage === 'lost' ? 'Lost' : stage === 'harvest' ? 'Ready' : stageConfig[stage].label}
+                  <span>{batches.filter(b => matchesSearch(b) && matchesStage(b, stage)).length}</span>
                 </button>
               ))}
             </div>
@@ -650,7 +658,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
                             batch={batch}
                             expanded={expandedIds.has(batch.id)}
                             onToggle={() => toggleExpanded(batch.id)}
-                            slotPrefix={config.trayNumberPrefix}
+                            config={config}
                             onEdit={handleEdit}
                             onDelete={deleteBatch}
                             onStageChange={updateBatchStage}
@@ -697,26 +705,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
                 <p>Your space, crops and preferences.</p>
               </div>
             </div>
-            <LayoutSettings key={JSON.stringify(config.farmLayout)} config={config} batches={batches} onSave={setConfig} />
-            <ConfigPanel
-              cropTypes={cropTypes}
-              onUpdateCropTypes={setCropTypes}
-              config={config}
-              onUpdateConfig={setConfig}
-              onRenameCategory={renameCategory}
-              onAddStandardCrops={addStandardCrops}
-              onOpenInfo={setInfoPage}
-              onDeleteCategory={deleteCategory}
-              highestBatchNumber={highestBatchNumber(batches)}
-              highestTrayNumber={highestTrayNumber(batches)}
-              usedTrayCount={usedTrayCount}
-              onBackupNow={handleSnapshotNow}
-              onShowRestore={() => setShowRestoreSheet(true)}
-              onExportBackup={handleExportBackup}
-              onImportBackup={() => importInputRef.current?.click()}
-              onLoadTestData={handleLoadTestData}
-              hasBatches={batches.length > 0}
-            />
+            <SettingsMenu config={config} cropTypes={cropTypes} lastBackup={lastBackup} onOpen={setSettingsPage} onOpenInfo={setInfoPage} />
           </div>
         )}
       </main>
@@ -745,6 +734,59 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           );
         })}
       </nav>
+
+      {/* Screens pushed on top of the tabs; each slides in and goes back with a swipe from the left edge. */}
+      {showTasks && (
+        <SwipePage title="Today's care" onBack={() => setShowTasks(false)}>
+          <AllTasks
+            batches={batches}
+            cropTypes={cropTypes}
+            onWater={id => handleQuickAction(id, 'watering')}
+            onBatch={openBatch}
+          />
+        </SwipePage>
+      )}
+      {settingsPage && (
+        <SwipePage title={settingsTitles[settingsPage]} onBack={() => setSettingsPage(null)}>
+          {settingsPage === 'layout' ? (
+            <LayoutSettings key={JSON.stringify(config.farmLayout)} config={config} batches={batches} onSave={setConfig} />
+          ) : (
+            <ConfigPanel
+              section={settingsPage}
+              cropTypes={cropTypes}
+              onUpdateCropTypes={setCropTypes}
+              config={config}
+              onUpdateConfig={setConfig}
+              onRenameCategory={renameCategory}
+              onAddStandardCrops={addStandardCrops}
+              onDeleteCategory={deleteCategory}
+              highestBatchNumber={highestBatchNumber(batches)}
+              highestTrayNumber={highestTrayNumber(batches)}
+              onBackupNow={handleSnapshotNow}
+              onShowRestore={() => setShowRestoreSheet(true)}
+              onExportBackup={handleExportBackup}
+              onImportBackup={() => importInputRef.current?.click()}
+              onLoadTestData={handleLoadTestData}
+              hasBatches={batches.length > 0}
+            />
+          )}
+        </SwipePage>
+      )}
+      {trayBatch && tray && (
+        <SwipePage onBack={() => setSelectedTray(null)}>
+          <TrayDetail
+            batch={trayBatch}
+            tray={tray}
+            config={config}
+            onClose={() => setSelectedTray(null)}
+            onBatch={() => openBatch(trayBatch.id)}
+            onWater={() => handleQuickAction(trayBatch.id, 'watering')}
+            onNote={() => handleQuickAction(trayBatch.id, 'note')}
+            onPhoto={() => handleQuickAction(trayBatch.id, 'photo', tray.id)}
+            onLoss={() => setLossSheet({ batchId: trayBatch.id, trayIds: [tray.id] })}
+          />
+        </SwipePage>
+      )}
 
       {/* Notifications Sheet */}
       {showNotifications && (
@@ -858,9 +900,12 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
 
       {/* Photo screens, back to front */}
       {cropPhotos && (
-        <CropPhotos crop={cropPhotos} batches={batches} onClose={() => setCropPhotos(null)} onOpenGallery={setGalleryBatchId} />
+        <SwipePage bare onBack={() => setCropPhotos(null)}>
+          <CropPhotos crop={cropPhotos} batches={batches} onClose={() => setCropPhotos(null)} onOpenGallery={setGalleryBatchId} />
+        </SwipePage>
       )}
       {galleryBatch && (
+        <SwipePage bare onBack={() => setGalleryBatchId(null)}>
         <BatchGallery
           batch={galleryBatch}
           canCompare={canCompare(galleryBatch)}
@@ -869,11 +914,15 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           onAddPhoto={(trayId) => handleQuickAction(galleryBatch.id, 'photo', trayId)}
           onCompare={() => setCompareBatchId(galleryBatch.id)}
         />
+        </SwipePage>
       )}
       {compareBatch && (
-        <PhotoCompare batch={compareBatch} batches={batches} onClose={() => setCompareBatchId(null)} />
+        <SwipePage bare onBack={() => setCompareBatchId(null)}>
+          <PhotoCompare batch={compareBatch} batches={batches} onClose={() => setCompareBatchId(null)} />
+        </SwipePage>
       )}
       {viewerBatch && viewerPhoto && (
+        <SwipePage bare onBack={() => setViewerPhoto(null)}>
         <PhotoViewer
           key={viewerPhoto.photoId}
           batch={viewerBatch}
@@ -882,6 +931,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           onUpdateCaption={(photoId, caption) => updatePhotoCaption(viewerBatch.id, photoId, caption)}
           onDelete={(photoId) => deletePhoto(viewerBatch.id, photoId)}
         />
+        </SwipePage>
       )}
 
       {/* Add/Edit Modal */}
@@ -905,7 +955,11 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         onSave={handleQuickActionSave}
       />
 
-      {infoPage && <InfoPage kind={infoPage} onClose={() => setInfoPage(null)} />}
+      {infoPage && (
+        <SwipePage bare onBack={() => setInfoPage(null)}>
+          <InfoPage kind={infoPage} onClose={() => setInfoPage(null)} />
+        </SwipePage>
+      )}
 
       {harvestBatchId && (() => {
         const harvesting = batches.find(b => b.id === harvestBatchId);

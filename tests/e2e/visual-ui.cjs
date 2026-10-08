@@ -76,6 +76,38 @@ fs.mkdirSync(out, { recursive: true });
   await page.screenshot({ path: `${out}/01-home.png` });
   const nav = (name) =>
     page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true });
+  // A finger dragged from the left edge of the top page, as on a phone.
+  const swipeBack = () =>
+    page.evaluate(async () => {
+      const pages = document.querySelectorAll('.swipe-page');
+      const el = pages[pages.length - 1] ?? document.querySelector('main');
+      const touch = (type, x) => {
+        const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: 400 });
+        el.dispatchEvent(
+          new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true })
+        );
+      };
+      touch('touchstart', 6);
+      for (let x = 20; x <= 300; x += 40) touch('touchmove', x);
+      touch('touchend', 300);
+      await new Promise((r) => setTimeout(r, 400));
+    });
+
+  // Home shows three care tasks; the rest are on the All tasks page, which goes back with a swipe.
+  assert.equal(await page.locator('.care-list > button:not(.care-more)').count(), 3);
+  await page.getByRole('button', { name: /See all 5 tasks/ }).click();
+  await page.locator('.swipe-page').getByRole('heading', { name: "Today's care", exact: true }).waitFor();
+  assert.equal(await page.locator('.swipe-page .care-list > button').count(), 5);
+  await swipeBack();
+  assert.equal(await page.locator('.swipe-page').count(), 0);
+
+  // Batches: a pill per stage with its count, and each card says where its trays are.
+  await nav('Batches').click();
+  assert.equal(await page.getByRole('group', { name: 'Show batches' }).getByRole('button', { name: /^Ready\s*1$/ }).count(), 1);
+  await page.locator('[data-batch-card]', { hasText: 'Pea Shoots' }).getByText('Rack D · Shelves 1–6').waitFor();
+  // A swipe from the left edge on a tab goes back to Home.
+  await swipeBack();
+  await page.getByRole('heading', { name: 'My farm.' }).waitFor();
   await nav('Shelves').click();
   await page.getByLabel('Select rack').selectOption('1');
   await page.getByRole('button', { name: /Expand shelf 1/ }).click();
@@ -92,7 +124,7 @@ fs.mkdirSync(out, { recursive: true });
   await page.getByRole('button', { name: 'Open tray T001' }).click();
   await page.getByRole('heading', { name: 'Tray T001' }).waitFor();
   await page.screenshot({ path: `${out}/04-tray.png` });
-  await page.getByRole('button', { name: /B001 · Radish/ }).click();
+  await page.locator('.swipe-page').getByRole('button', { name: /B001 · Radish/ }).click();
   await page.locator('[data-batch-card]').first().waitFor();
   await page.screenshot({ path: `${out}/05-batches.png` });
   await nav('Insights').click();
@@ -107,9 +139,10 @@ fs.mkdirSync(out, { recursive: true });
   await (await pdf).saveAs(`${out}/report.pdf`);
   assert(fs.readFileSync(`${out}/report.pdf`).subarray(0, 4).toString() === '%PDF');
   await nav('Settings').click();
+  await page.getByRole('button', { name: /^Racks & shelves/ }).click();
   await page.getByLabel('Racks', { exact: true }).fill('1');
   await page.getByRole('button', { name: 'Save rack layout' }).click();
-  await page.getByRole('alert').filter({ hasText: 'Slot 24 is occupied' }).waitFor();
+  await page.getByRole('alert').filter({ hasText: 'Rack D / Shelf 6 is in use' }).waitFor();
   await page.getByLabel('Racks', { exact: true }).fill('8');
   await page.getByRole('button', { name: 'Save rack layout' }).click();
   await page.getByText('48 total tray positions').waitFor();
@@ -125,7 +158,7 @@ fs.mkdirSync(out, { recursive: true });
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(
-    'PASS: five tabs, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, capacity guard, persistence and responsive widths.'
+    'PASS: five tabs, all tasks, swipe back, stage pills, batch locations, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, settings pages, capacity guard, persistence and responsive widths.'
   );
 })().catch((e) => {
   console.error(e);
