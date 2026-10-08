@@ -39,7 +39,7 @@ You need **Node.js 22+**, Git, and for Android, **Android Studio Narwhal 3 (2025
 uses Android Gradle Plugin 8.13, compile SDK 36, min SDK 24, Java 21). iOS needs a Mac with Xcode.
 
 ```bash
-git clone https://github.com/universepdkt/Microgreentracker.git
+git clone https://github.com/thulirmicrogreentracker/Microgreentracker.git
 cd Microgreentracker
 git checkout claude/gallant-hawking-b678x2
 npm install
