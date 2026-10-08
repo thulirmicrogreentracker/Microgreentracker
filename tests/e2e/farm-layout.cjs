@@ -11,8 +11,11 @@ try {
  assert.deepEqual(slotLocation(12,config),{rack:0,shelf:2,position:4});
  assert.deepEqual(slotLocation(13,config),{rack:1,shelf:0,position:1});
  assert.deepEqual(slotLocation(36,config),{rack:2,shelf:2,position:4});
+ const vertical={...config,farmLayout:{rackCount:6,shelvesPerRack:6,traysPerShelf:1}};
+ assert.deepEqual(slotLocation(6,vertical),{rack:0,shelf:5,position:1});
+ assert.deepEqual(slotLocation(7,vertical),{rack:1,shelf:0,position:1});
  assert.equal(slotLocation(37,config),null);assert.equal(slotLocation(undefined,config),null);
- assert.deepEqual(getLayout({...config,totalTrays:10,farmLayout:undefined}),{rackCount:1,shelvesPerRack:3,traysPerShelf:4});
+ assert.deepEqual(getLayout({...config,totalTrays:10,farmLayout:undefined}),{rackCount:2,shelvesPerRack:6,traysPerShelf:1});
  for(const value of [null,{}, {rackCount:0,shelvesPerRack:3,traysPerShelf:4},{rackCount:1.5,shelvesPerRack:3,traysPerShelf:4},{rackCount:100,shelvesPerRack:100,traysPerShelf:4}])assert.equal(normalizeLayout(value),undefined);
  assert.deepEqual(normalizeAppData({config}).config.farmLayout,config.farmLayout);
  assert.equal(normalizeAppData({config:{...config,totalTrays:10}}).config.farmLayout,undefined);

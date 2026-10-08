@@ -71,6 +71,18 @@ export default function LayoutSettings({
         Rack → Shelf → Tray. Configure matching racks; existing tray slot
         numbers are preserved.
       </p>
+      <button
+        className="farm-secondary vertical-layout-preset"
+        onClick={() => {
+          setRacks(String(Math.ceil(config.totalTrays / 6)));
+          setShelves("6");
+          setTrays("1");
+          setSaved(false);
+          setError("");
+        }}
+      >
+        Use vertical rack · 6 shelves × 1 tray
+      </button>
       <div className="layout-fields">
         {[
           ["Racks", racks, setRacks],

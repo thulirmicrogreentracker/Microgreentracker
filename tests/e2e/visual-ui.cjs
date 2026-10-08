@@ -65,7 +65,7 @@ fs.mkdirSync(out, { recursive: true });
       "microgreen-config",
       JSON.stringify({
         totalTrays: 36,
-        farmLayout: { rackCount: 3, shelvesPerRack: 3, traysPerShelf: 4 },
+        farmLayout: { rackCount: 6, shelvesPerRack: 6, traysPerShelf: 1 },
         trayNumberPrefix: "Tray",
       }),
     );
@@ -84,12 +84,17 @@ fs.mkdirSync(out, { recursive: true });
       .getByRole("button", { name, exact: true });
   await nav("Shelves").click();
   await page.getByLabel("Select rack").selectOption("1");
-  await page.getByRole("button", { name: /Shelf 1/ }).click();
-  await page.getByRole("button", { name: "Open tray T013" }).waitFor();
+  await page.getByRole("button", { name: /Expand shelf 1/ }).click();
+  await page.getByRole("button", { name: "Open tray T007" }).waitFor();
   await page.getByLabel("Select rack").selectOption("0");
   await page.screenshot({ path: `${out}/02-shelves.png` });
-  await page.getByRole("button", { name: /Shelf 1/ }).click();
+  assert.equal(await page.locator('.steel-level').count(),6);
+  assert.equal(await page.locator('.steel-tray-row.single-tray').count(),6);
   await page.screenshot({ path: `${out}/03-expanded-shelf.png` });
+  await page.getByRole('button',{name:'Tiles',exact:true}).click();
+  await page.screenshot({ path: `${out}/02-shelves.png` });
+  await page.getByRole('button',{name:/Shelf 1/}).click();
+  assert.equal(await page.locator('.steel-level').count(),1);
   await page.getByRole("button", { name: "Open tray T001" }).click();
   await page.getByRole("heading", { name: "Tray T001" }).waitFor();
   await page.screenshot({ path: `${out}/04-tray.png` });
@@ -116,7 +121,7 @@ fs.mkdirSync(out, { recursive: true });
     .getByRole("alert")
     .filter({ hasText: "Slot 24 is occupied" })
     .waitFor();
-  await page.getByLabel("Racks", { exact: true }).fill("4");
+  await page.getByLabel("Racks", { exact: true }).fill("8");
   await page.getByRole("button", { name: "Save rack layout" }).click();
   await page.getByText("48 total tray positions").waitFor();
   await page.screenshot({ path: `${out}/07-settings.png` });
@@ -124,7 +129,7 @@ fs.mkdirSync(out, { recursive: true });
   await nav("Shelves").click();
   assert.equal(
     await page.getByLabel("Select rack").locator("option").count(),
-    4,
+    8,
   );
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 844 });

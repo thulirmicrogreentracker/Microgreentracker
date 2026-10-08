@@ -158,7 +158,7 @@ body {
   text-align: left;
   padding: 16px 12px;
   border-radius: 15px;
-  min-height: 91px;
+  min-height: 77px;
 }
 .stage-card > span:nth-child(2) > span {
   font-size: 11px;
@@ -1046,4 +1046,295 @@ body {
 }
 .tray-detail-heading ~ .farm-metrics .metric-icon svg {
   width: 19px;
+}
+/* A physical rack built from individual shelves, so every tray remains a live target. */
+.steel-rack {
+  background: radial-gradient(ellipse at 50% 48%, #fffef7 0%, #eeeede 80%);
+  border: 1px solid #e2e4d6;
+  border-radius: 18px;
+  padding: 12px 10px 8px;
+  isolation: isolate;
+}
+.steel-rack-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 10px;
+}
+.steel-rack-name b {
+  font-size: 12px;
+}
+.steel-rack-name span {
+  font-size: 9px;
+  color: #77806b;
+}
+.steel-rack-frame {
+  position: relative;
+  padding: 12px 12px 0;
+  filter: drop-shadow(0 7px 6px #39422d20);
+}
+.steel-post {
+  position: absolute;
+  top: 2px;
+  bottom: 8px;
+  width: 11px;
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    #636a65 0%,
+    #929b94 10%,
+    #e2e9df 29%,
+    #fcfff6 40%,
+    #a6ada5 54%,
+    #6a756b 75%,
+    #424f44 95%
+  );
+  border: 1px solid #82907c;
+  z-index: 4;
+  box-shadow:
+    2px 0 3px #34442b28,
+    inset 1px 0 1px #fff;
+}
+.steel-post-left {
+  left: 0;
+}
+.steel-post-right {
+  right: 0;
+}
+.steel-topbar {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 3px;
+  height: 9px;
+  background: linear-gradient(
+    #dce2d7,
+    #edf1e6 18%,
+    #b2b9af 45%,
+    #717c70 65%,
+    #d1d6c8 90%
+  );
+  border: 1px solid #8a9384;
+  border-radius: 3px;
+  z-index: 3;
+}
+.steel-level {
+  height: 77px;
+  position: relative;
+  padding: 0 13px 10px;
+}
+.steel-shelf-label {
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  z-index: 3;
+  font-size: 8px;
+  font-weight: 650;
+  line-height: 1;
+  padding: 5px 6px;
+  border-radius: 4px;
+  background: #fffef5f0;
+  color: #43513c;
+  box-shadow: 0 1px 3px #3e4b2520;
+}
+.steel-grow-light {
+  position: absolute;
+  left: 17%;
+  right: 17%;
+  top: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: #fffce4;
+  box-shadow: 0 3px 8px 3px #fff8c64a;
+}
+.steel-tray-row {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  gap: 5px;
+  position: relative;
+  z-index: 2;
+}
+.steel-tray-row .rack-tray {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  border-radius: 4px;
+}
+.steel-tray-row .rack-tray .tray-art {
+  height: 48px;
+  aspect-ratio: auto;
+  margin-top: 4px;
+}
+.steel-tray-row .rack-tray b {
+  font-size: 8px;
+  margin-top: 0;
+}
+.steel-tray-row .rack-tray small {
+  display: none;
+}
+.steel-tray-row .rack-tray .stage-badge {
+  font-size: 7px;
+  padding: 2px 4px;
+  margin-top: 1px;
+}
+.steel-tray-row.single-tray {
+  display: block;
+}
+.single-tray .rack-tray {
+  display: grid;
+  grid-template-columns: minmax(100px, 1.6fr) minmax(75px, 1fr);
+  grid-template-rows: 20px 19px 16px;
+  column-gap: 9px;
+  height: 65px;
+  width: 100%;
+  padding: 6px 0 0 22px;
+  text-align: left;
+  justify-content: normal;
+}
+.single-tray .rack-tray .tray-art {
+  grid-column: 1;
+  grid-row: 1/4;
+  height: 57px;
+  align-self: end;
+  margin: 0;
+  width: 100%;
+  filter: drop-shadow(0 2px 1px #34442a22);
+}
+.single-tray .rack-tray b {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 11px;
+  margin: 0;
+  align-self: end;
+  color: #213b2b;
+}
+.single-tray .rack-tray .stage-badge {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 8px;
+  padding: 3px 6px;
+  justify-self: start;
+  margin: 3px 0 0;
+  white-space: nowrap;
+  line-height: 1;
+}
+.single-tray .rack-tray small {
+  display: block;
+  grid-column: 2;
+  grid-row: 3;
+  margin: 2px 0 0;
+  font-size: 9px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: #637755;
+}
+.steel-deck {
+  position: absolute;
+  bottom: 5px;
+  left: -7px;
+  right: -7px;
+  height: 12px;
+  z-index: 1;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 5px,
+      #72807188 5px 6px,
+      transparent 6px 11px
+    ),
+    linear-gradient(#bcc5b5, #edf0e4 50%, #7b8874);
+  border: 1px solid #8e9b85;
+  transform: perspective(100px) rotateX(15deg);
+  box-shadow:
+    0 4px 4px #293e2230,
+    inset 0 1px #fff8;
+}
+.steel-deck i {
+  position: absolute;
+  bottom: -4px;
+  left: -1px;
+  right: -1px;
+  height: 5px;
+  background: linear-gradient(#cfd7c5, #63755a 65%, #a8b49b);
+  border-radius: 2px;
+  box-shadow: 0 1px 1px #25321d35;
+}
+.steel-collar {
+  position: absolute;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    #5b675a,
+    #e0e7d9 35%,
+    #899783 68%,
+    #4a5c44
+  );
+  z-index: 5;
+  border-bottom: 1px solid #54624e;
+}
+.steel-collar.left {
+  left: -13px;
+}
+.steel-collar.right {
+  right: -13px;
+}
+.steel-feet {
+  height: 13px;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 -13px;
+  position: relative;
+  z-index: 5;
+}
+.steel-feet i {
+  height: 7px;
+  width: 13px;
+  background: linear-gradient(#4c5349, #1d261d);
+  border-radius: 0 0 4px 4px;
+  margin-top: 5px;
+}
+.steel-caption {
+  font-size: 9px;
+  color: #7b846d;
+  text-align: center;
+  margin: 7px 0 0;
+}
+.vertical-layout-preset {
+  margin-top: 12px;
+  font-size: 11px;
+  min-height: 40px;
+}
+.segmented-control button {
+  padding: 8px 9px;
+}
+.rack-select select {
+  max-width: 112px;
+}
+.farm-stack:has(.steel-rack) {
+  gap: 14px;
+}
+@media (max-width: 360px) {
+  .segmented-control button {
+    padding: 8px 6px;
+    font-size: 10px;
+  }
+  .rack-select select {
+    max-width: 94px;
+    padding-left: 8px;
+  }
+  .single-tray .rack-tray {
+    padding-left: 15px;
+    column-gap: 6px;
+    grid-template-columns: minmax(90px, 1.5fr) minmax(70px, 1fr);
+  }
 }

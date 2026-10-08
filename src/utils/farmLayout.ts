@@ -23,9 +23,9 @@ export const getLayout = (config: AppConfig): FarmLayout => {
   )
     return layout;
   return {
-    rackCount: 1,
-    shelvesPerRack: Math.ceil(config.totalTrays / 4),
-    traysPerShelf: 4,
+    rackCount: Math.ceil(config.totalTrays / 6),
+    shelvesPerRack: 6,
+    traysPerShelf: 1,
   };
 };
 export const normalizeLayout = (value: unknown): FarmLayout | undefined => {

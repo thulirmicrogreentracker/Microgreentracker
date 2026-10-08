@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   LayoutGrid,
+  Rows3,
   List,
   Plus,
   Settings2,
@@ -29,7 +30,7 @@ export default function ShelvesPanel({
     occupied = occupiedSlots(batches);
   const [rack, setRack] = useState(0),
     [shelf, setShelf] = useState<number | null>(null),
-    [view, setView] = useState<"visual" | "list">("visual");
+    [view, setView] = useState<"visual" | "tiles" | "list">("visual");
   const selectedRack = Math.min(rack, layout.rackCount - 1);
   const shelves = Array.from({ length: layout.shelvesPerRack }, (_, i) => ({
     index: i,
@@ -95,7 +96,13 @@ export default function ShelvesPanel({
             aria-pressed={view === "visual"}
             onClick={() => setView("visual")}
           >
-            <LayoutGrid size={15} /> Visual
+            <Rows3 size={15} /> Rack
+          </button>
+          <button
+            aria-pressed={view === "tiles"}
+            onClick={() => setView("tiles")}
+          >
+            <LayoutGrid size={15} /> Tiles
           </button>
           <button
             aria-pressed={view === "list"}
@@ -127,7 +134,7 @@ export default function ShelvesPanel({
           <ArrowLeft size={16} /> All shelves in {rackName(selectedRack)}
         </button>
       )}
-      {view === "visual" && !activeShelf ? (
+      {view === "tiles" && !activeShelf ? (
         <div className="shelf-tiles">
           {shelves.map((s) => (
             <button
@@ -163,21 +170,54 @@ export default function ShelvesPanel({
             </button>
           ))}
         </div>
-      ) : view === "visual" ? (
-        <div className="visual-rack">
-          <div className="rack-top">
+      ) : view === "visual" || view === "tiles" ? (
+        <div
+          className="steel-rack"
+          aria-label={`${rackName(selectedRack)}, ${shelves.length} shelves`}
+        >
+          <div className="steel-rack-name">
             <b>{rackName(selectedRack)}</b>
-            <span>Illustrative crop view</span>
-          </div>
-          <div className="rack-level">
-            <span className="shelf-label">
-              Shelf {(activeShelf?.index ?? 0) + 1}
+            <span>
+              {shelves.length} shelves · {layout.traysPerShelf} tray
+              {layout.traysPerShelf === 1 ? "" : "s"} per shelf
             </span>
-            <div className="rack-trays">
-              {activeShelf?.slots.map((n) => trayButton(n, occupied.get(n)))}
-            </div>
-            <div className="shelf-rail" />
           </div>
+          <div className="steel-rack-frame">
+            <div className="steel-post steel-post-left" aria-hidden="true" />
+            <div className="steel-post steel-post-right" aria-hidden="true" />
+            <div className="steel-topbar" aria-hidden="true" />
+            {(activeShelf ? [activeShelf] : shelves).map((s) => (
+              <section
+                className="steel-level"
+                key={s.index}
+                aria-label={`Shelf ${s.index + 1}`}
+              >
+                <button
+                  className="steel-shelf-label"
+                  aria-label={`Expand shelf ${s.index + 1}`}
+                  onClick={() => setShelf(activeShelf ? null : s.index)}
+                >
+                  Shelf {s.index + 1}
+                </button>
+                <div className="steel-grow-light" aria-hidden="true" />
+                <div
+                  className={`steel-tray-row ${s.slots.length === 1 ? "single-tray" : ""}`}
+                >
+                  {s.slots.map((n) => trayButton(n, occupied.get(n)))}
+                </div>
+                <div className="steel-deck" aria-hidden="true">
+                  <i />
+                </div>
+                <i className="steel-collar left" aria-hidden="true" />
+                <i className="steel-collar right" aria-hidden="true" />
+              </section>
+            ))}
+            <div className="steel-feet" aria-hidden="true">
+              <i />
+              <i />
+            </div>
+          </div>
+          <p className="steel-caption">Tap a tray to view its details</p>
         </div>
       ) : (
         <div className="farm-stack">
@@ -235,8 +275,8 @@ export default function ShelvesPanel({
         <Plus size={18} /> Add a batch
       </button>
       <p className="farm-help">
-        Tap a shelf to expand it, then a tray for its details. Empty slots are
-        assigned when creating or editing a batch.
+        Tap a tray for details, or a shelf label to focus on one shelf. Empty
+        slots are assigned when creating or editing a batch.
       </p>
     </div>
   );
