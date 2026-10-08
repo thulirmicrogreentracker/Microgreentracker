@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Droplets, Camera, FileText, Plus, ChevronLeft } from 'lucide-react';
-import { Batch, WateringRecord, BatchNote, BatchPhoto } from '../types';
+import { AppConfig, Batch, WateringRecord, BatchNote, BatchPhoto } from '../types';
+import { shortLocation } from '../utils/farmLayout';
 import { savePhotoFromFile } from '../storage/photos';
 import { activeTrays, batchCode } from '../utils/batches';
 import { stageConfig, STAGE_ORDER } from '../data/stages';
@@ -9,6 +10,7 @@ interface QuickActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   batch: Batch | null;
+  config: AppConfig; // for each tray's rack and shelf
   actionType: 'watering' | 'photo' | 'note' | null;
   trayId?: string; // pre-selected tray for a photo
   onSave: (batchId: string, data: { type: string; data: Record<string, unknown> }) => void;
@@ -18,6 +20,7 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
   isOpen,
   onClose,
   batch,
+  config,
   actionType,
   trayId,
   onSave,
@@ -231,7 +234,7 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
                 >
                   <option value="">Whole batch</option>
                   {activeTrays(batch).map(t => (
-                    <option key={t.id} value={t.id}>{t.code}{t.slot != null ? ` · #${t.slot}` : ''}</option>
+                    <option key={t.id} value={t.id}>{t.code}{shortLocation(t.slot, config) ? ` · ${shortLocation(t.slot, config)}` : ''}</option>
                   ))}
                 </select>
               </div>

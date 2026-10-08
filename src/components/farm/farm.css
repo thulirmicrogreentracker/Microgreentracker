@@ -1640,3 +1640,8 @@ body {
   padding: 4px 7px;
   white-space: nowrap;
 }
+
+/* A batch opened from Home or a tray is scrolled into view below the sticky stage pills, not under them. */
+[id^="batch-"] {
+  scroll-margin-top: 104px;
+}

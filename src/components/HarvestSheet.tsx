@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { X, Scale } from 'lucide-react';
-import { Batch } from '../types';
+import { AppConfig, Batch } from '../types';
+import { shortLocation } from '../utils/farmLayout';
 import { activeTrays, batchCode, formatGrams } from '../utils/batches';
 import { todayLocal } from '../utils/dateUtils';
 
 interface HarvestSheetProps {
   batch: Batch;
+  config: AppConfig; // for each tray's rack and shelf
   onSave: (weights: Record<string, number | undefined>, date: string) => void; // tray id → grams
   onClose: () => void;
 }
 
 // Harvests a batch (or corrects an earlier harvest): one weight per growing tray, in grams.
-const HarvestSheet: React.FC<HarvestSheetProps> = ({ batch, onSave, onClose }) => {
+const HarvestSheet: React.FC<HarvestSheetProps> = ({ batch, config, onSave, onClose }) => {
   const trays = activeTrays(batch);
   const editing = batch.stage === 'completed';
   const [weights, setWeights] = useState<Record<string, string>>(
@@ -81,7 +83,7 @@ const HarvestSheet: React.FC<HarvestSheetProps> = ({ batch, onSave, onClose }) =
               {trays.map(t => (
                 <label key={t.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
                   <span className="text-sm font-semibold text-gray-800 w-14 shrink-0">{t.code}</span>
-                  <span className="text-xs text-gray-400 w-10 shrink-0">{t.slot != null ? `#${t.slot}` : ''}</span>
+                  <span className="text-xs text-gray-400 w-10 shrink-0">{shortLocation(t.slot, config) ?? ''}</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -90,7 +92,7 @@ const HarvestSheet: React.FC<HarvestSheetProps> = ({ batch, onSave, onClose }) =
                     value={weights[t.id] ?? ''}
                     onChange={e => setWeights(prev => ({ ...prev, [t.id]: e.target.value }))}
                     aria-label={`Weight of tray ${t.code} in grams`}
-                    placeholder="g"
+                    placeholder="0"
                     className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-right text-sm bg-white"
                   />
                   <span className="text-xs text-gray-500">g</span>

@@ -1,8 +1,8 @@
-01-home|Every tray at a glance|Batches grouped by stage, ready for 50+ trays
-02-new-batch|Sow a batch in seconds|Tray numbers and rack positions filled in for you
-03-batch|Track every tray|Positions, stages, watering and notes in one place
-04-categories|53 microgreens built in|Add your own crops and categories, each with an icon
-05-harvest|Weigh every tray at harvest|Yield per tray, recorded in seconds
-06-reports|Know your real yield|Grams per tray and seed-to-yield by crop
-07-lost|Learn why trays fail|Log losses by reason and spot patterns
-08-backup|Your data stays on your phone|No account. Back up to Drive in one tap
+01-home|Your whole farm at a glance|Every tray by stage, with today's care
+02-shelves|See every rack and shelf|Each tray in its place, with its batch and stage
+03-tray|A page for every tray|Location, growth stage and notes together
+04-batches|Track every batch|Filter by stage and see which rack it is on
+05-new-batch|Sow a batch in seconds|Tray numbers and rack positions filled in for you
+06-harvest|Weigh every tray at harvest|Yield per tray, recorded in seconds
+07-insights|Know your real yield|Totals by crop, with PDF and CSV reports
+08-settings|Your data stays on your phone|No account. Back up to Drive in one tap

@@ -30,9 +30,15 @@ Thulir MicroGreen Tracker helps growers track every tray from sowing to harvest,
 
 BATCHES AND TRAYS
 • Sow a batch of many trays in one step: batch numbers (B001…) and tray numbers (T001…) are created for you and never reused
-• Assign each tray to a rack or shelf position, picked automatically from the free ones
-• Collapsible batch cards grouped by stage keep 50+ trays easy to scan
+• Each tray gets a spot on your racks, picked automatically from the free ones
+• Batches grouped by stage, with stage filters, search and the rack each one is on
 • Edit batches and trays at any time
+
+RACKS AND SHELVES
+• Set up your racks, shelves and trays per shelf
+• See each rack drawn shelf by shelf, with every tray's batch and stage
+• Open any tray for its location, growth progress, photo and notes
+• Today's care on the home screen: what to water and what to harvest
 
 FROM SOWING TO HARVEST
 • Move batches through Sowing, Germination, Growing, Ready to Harvest and Completed
@@ -52,6 +58,7 @@ HARVEST AND REPORTS
 • Weigh each tray at harvest and see the batch total in grams
 • Yield per tray and seed-to-yield ratio
 • Reports by crop and by month, crop performance, tray survival, watering and harvest timeline
+• Export a PDF or CSV report for any crop and date range
 
 CROPS
 • 53 common microgreens in 10 categories, from brassicas and pulses to herbs and alliums
@@ -65,6 +72,18 @@ YOUR DATA STAYS YOURS
 
 FREE DURING LAUNCH
 Thulir MicroGreen Tracker is free while we launch. An optional Pro plan is planned for later. When it arrives you'll get a free trial first, and everything you've already recorded stays yours and stays available.
+```
+
+### What's New (version 1.1)
+
+```
+A fresh new look:
+• Home shows your farm at a glance and today's care tasks
+• Shelves draws your racks shelf by shelf, with every tray's batch and stage
+• Every tray has its own page
+• Batches show the rack and shelves they are on, with stage filters
+• PDF and CSV reports
+• Settings in clear sections, and swipe back from any screen
 ```
 
 ### What's New (first release)
