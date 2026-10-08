@@ -21,21 +21,21 @@ are needed.
 
 | # | Screen | Headline | Sub-line |
 |---|---|---|---|
-| 1 | Home: stat tiles, trays growing / lost, batches grouped by stage | Every tray at a glance | Batches grouped by stage, ready for 50+ trays |
-| 2 | New Batch: Broccoli, 6 trays, tray IDs and positions, seed per tray | Sow a batch in seconds | Tray numbers and rack positions filled in for you |
-| 3 | Batch card opened: stage, harvest countdown, tray chips, actions | Track every tray | Positions, stages, watering and notes in one place |
-| 4 | Config → Crop Categories with their icons | 53 microgreens built in | Add your own crops and categories, each with an icon |
-| 5 | Harvest sheet: a weight for each tray and the total | Weigh every tray at harvest | Yield per tray, recorded in seconds |
-| 6 | Reports → Harvested Weight: total, per tray, seed-to-yield, by crop and month | Know your real yield | Grams per tray and seed-to-yield by crop |
-| 7 | Report lost trays: one tray and a reason selected | Learn why trays fail | Log losses by reason and spot patterns |
-| 8 | Config → Backup & Restore | Your data stays on your phone | No account. Back up to Drive in one tap |
+| 1 | Home: active trays, growth stages, today's care | Your whole farm at a glance | Every tray by stage, with today's care |
+| 2 | Shelves: Rack E drawn shelf by shelf, each tray with its batch and stage | See every rack and shelf | Each tray in its place, with its batch and stage |
+| 3 | Tray page: crop, rack and shelf, days, batch progress | A page for every tray | Location, growth stage and notes together |
+| 4 | Batches: stage pills with counts, each card with its rack and shelves | Track every batch | Filter by stage and see which rack it is on |
+| 5 | New Batch: Broccoli, 5 trays, tray IDs and rack positions, seed per tray | Sow a batch in seconds | Tray numbers and rack positions filled in for you |
+| 6 | Harvest sheet: a weight for each tray | Weigh every tray at harvest | Yield per tray, recorded in seconds |
+| 7 | Insights: report export and totals | Know your real yield | Totals by crop, with PDF and CSV reports |
+| 8 | Settings menu | Your data stays on your phone | No account. Back up to Drive in one tap |
 
-If you only upload four, use 1, 2, 5 and 6.
+If you only upload four, use 1, 2, 4 and 6.
 
 **Still to add: a photo screenshot.** A screenshot of the batch gallery or Compare screen needs real photos of
 microgreen trays (the simulator has no camera, and stock photos of something else would misrepresent the app). Take a
 few tray photos in the app on your phone, then capture the gallery with headline **Watch each tray grow** and sub-line
-**Photos by stage and by tray, compared day by day**, and add it as screenshot 4 (moving the categories one later).
+**Photos by stage and by tray, compared day by day**, and add it after screenshot 3.
 
 ## Sizes the stores accept
 
@@ -50,13 +50,15 @@ few tray photos in the app on your phone, then capture the gallery with headline
 
 The tools are in [`screenshots/tools/`](screenshots/tools/).
 
-1. **Sample data.** `python3 make-sample-data.py` writes `data-sample.json`: 17 batches and 91 trays on 60 positions,
+1. **Sample data.** `python3 make-sample-data.py` writes `data-sample.json`: 17 batches and 91 trays on 60 positions
+   (10 racks of 6 shelves),
    with harvests in the last two months, lost trays and seed weights (dates are relative to the day you run it).
    Copy it into a test install as the app's data file, with the app stopped:
    - iOS simulator: `cp data-sample.json "$(xcrun simctl get_app_container booted com.universepdkt.microgreentracker data)/Documents/microgreen/data-b.json"`
-     and delete `data-a.json` next to it.
+     and copy it over `data-a.json` next to it too.
    - Android emulator: `adb push data-sample.json /data/local/tmp/` then
-     `adb shell run-as com.universepdkt.microgreentracker sh -c 'cp /data/local/tmp/data-sample.json files/microgreen/data-b.json; rm -f files/microgreen/data-a.json'`.
+     `adb shell run-as com.universepdkt.microgreentracker cp /data/local/tmp/data-sample.json files/microgreen/data-b.json`, and the same for
+     `data-a.json`.
      Back up the emulator's own data first if you want to keep it.
    (Settings → Test data also works, but only in development builds, `npm run dev`; store builds don't show it.)
 2. **Devices.**

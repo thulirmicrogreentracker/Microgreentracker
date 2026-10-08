@@ -107,7 +107,7 @@ between phones.
 
 **Do you see my data?**
 No. Nothing is sent to us or anyone else. Data only leaves your phone when you share a backup file or a photo yourself.
-See the privacy policy: https://universepdkt.github.io/Microgreentracker/store/privacy-policy
+See the privacy policy: https://thulirmicrogreentracker.github.io/Microgreentracker/store/privacy-policy
 
 **Why does the app ask for the camera?**
 Only to take photos of your trays when you tap "Take photo".

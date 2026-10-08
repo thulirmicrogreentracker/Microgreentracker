@@ -2,7 +2,7 @@
 
 The state of the project as of 5 October 2026, for continuing work on a local machine.
 
-- **Repository:** `universepdkt/Microgreentracker`
+- **Repository:** `thulirmicrogreentracker/Microgreentracker` (it was `universepdkt/Microgreentracker` until 8 October 2026)
 - **Branch with all the work:** `claude/gallant-hawking-b678x2`. It is **not merged into `main` yet**: `main` still has
   the original Bolt.new web app, with no `android/` or `ios/` folders.
 - **Visual mockup of the photo screens:** https://claude.ai/artifact/Guk5dtYNvx7GWnkPVvybei (private to the owner)

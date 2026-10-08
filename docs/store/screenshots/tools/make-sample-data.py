@@ -65,8 +65,10 @@ for i, (name, n, ago, stage, lost) in enumerate(plan, start=1):
         b['yieldUnit'] = 'grams'
     batches.append(b)
 
+# 10 racks of 6 shelves, one tray per shelf.
 data = {'batches': batches, 'config': {'totalTrays': 60, 'trayNumberPrefix': 'Tray', 'lastBatchNumber': len(batches),
-        'lastTrayNumber': tray_no}, 'reminders': []}
+        'lastTrayNumber': tray_no, 'farmLayout': {'rackCount': 10, 'shelvesPerRack': 6, 'traysPerShelf': 1}},
+        'reminders': []}
 env = {'schemaVersion': 2, 'seq': 100000, 'savedAt': now.isoformat(), 'data': data}
 json.dump(env, open('data-sample.json', 'w'))
 print(len(batches), 'batches,', tray_no, 'trays,', slot - 1, 'positions in use')
