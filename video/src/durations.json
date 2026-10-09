@@ -1,0 +1,34 @@
+{
+  "clips": {
+    "batches": 13.523,
+    "data": 8.185,
+    "harvest": 15.144,
+    "home": 8.256,
+    "insights": 14.149,
+    "new-batch": 15.796,
+    "shelves": 14.009,
+    "tray": 15.139
+  },
+  "voice": {
+    "en-batches": 5.448,
+    "en-data": 8.664,
+    "en-harvest": 5.568,
+    "en-home": 7.584,
+    "en-insights": 5.856,
+    "en-intro": 7.056,
+    "en-new-batch": 10.392,
+    "en-outro": 5.448,
+    "en-shelves": 7.272,
+    "en-tray": 5.568,
+    "ta-batches": 7.32,
+    "ta-data": 10.224,
+    "ta-harvest": 8.016,
+    "ta-home": 9.624,
+    "ta-insights": 7.92,
+    "ta-intro": 7.44,
+    "ta-new-batch": 12.048,
+    "ta-outro": 4.608,
+    "ta-shelves": 7.92,
+    "ta-tray": 8.232
+  }
+}

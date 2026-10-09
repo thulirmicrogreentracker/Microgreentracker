@@ -1,0 +1,102 @@
+{
+  "voices": {
+    "en": "en-IN-NeerjaNeural",
+    "ta": "ta-IN-PallaviNeural"
+  },
+  "playLine": {
+    "en": "Coming soon to Google Play",
+    "ta": "விரைவில் Google Play-ல்"
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "clip": null,
+      "title": { "en": "Thulir MicroGreen Tracker", "ta": "துளிர் மைக்ரோகிரீன் டிராக்கர்" },
+      "say": {
+        "en": "Meet Thulir MicroGreen Tracker. Track every tray, from seed to harvest.",
+        "ta": "துளிர் மைக்ரோகிரீன் டிராக்கர். விதை முதல் அறுவடை வரை, ஒவ்வொரு டிரேயையும் கண்காணியுங்கள்."
+      }
+    },
+    {
+      "id": "home",
+      "clip": "home",
+      "title": { "en": "Your farm at a glance", "ta": "உங்கள் பண்ணை ஒரே பார்வையில்" },
+      "say": {
+        "en": "The home screen shows your whole farm at a glance: trays in every stage, and today's care tasks.",
+        "ta": "முகப்புத் திரையில் உங்கள் பண்ணை முழுவதும் ஒரே பார்வையில் தெரியும்: ஒவ்வொரு நிலையிலும் உள்ள டிரேக்கள், இன்று செய்ய வேண்டிய பராமரிப்பு வேலைகள்."
+      }
+    },
+    {
+      "id": "new-batch",
+      "clip": "new-batch",
+      "title": { "en": "A new batch in seconds", "ta": "சில நொடிகளில் புதிய பேட்ச்" },
+      "say": {
+        "en": "Start a new batch in seconds. Pick the crop and the number of trays. Tray numbers and rack spots are filled in for you.",
+        "ta": "சில நொடிகளில் புதிய பேட்ச் தொடங்குங்கள். பயிரையும் டிரேக்களின் எண்ணிக்கையையும் தேர்வு செய்தால் போதும். டிரே எண்களும் ரேக் இடங்களும் தானாக நிரப்பப்படும்."
+      }
+    },
+    {
+      "id": "shelves",
+      "clip": "shelves",
+      "title": { "en": "Every rack, every shelf", "ta": "ஒவ்வொரு ரேக்கும், ஒவ்வொரு ஷெல்ஃபும்" },
+      "say": {
+        "en": "See your racks shelf by shelf. Every tray shows its batch and its growth stage.",
+        "ta": "உங்கள் ரேக்குகளை ஷெல்ஃப் வாரியாகப் பாருங்கள். ஒவ்வொரு டிரேயும் அதன் பேட்சையும் வளர்ச்சி நிலையையும் காட்டும்."
+      }
+    },
+    {
+      "id": "tray",
+      "clip": "tray",
+      "title": { "en": "A page for every tray", "ta": "ஒவ்வொரு டிரேக்கும் ஒரு பக்கம்" },
+      "say": {
+        "en": "Tap any tray to see where it is, how it is growing, and its notes.",
+        "ta": "எந்த டிரேயைத் தட்டினாலும், அது எங்கே உள்ளது, எப்படி வளர்கிறது, அதன் குறிப்புகள் என அனைத்தையும் பார்க்கலாம்."
+      }
+    },
+    {
+      "id": "batches",
+      "clip": "batches",
+      "title": { "en": "Track every batch", "ta": "ஒவ்வொரு பேட்சையும் கண்காணியுங்கள்" },
+      "say": {
+        "en": "Filter your batches by stage, and see which rack each one is on.",
+        "ta": "பேட்ச்களை வளர்ச்சி நிலைப்படி பிரித்துப் பார்க்கலாம். ஒவ்வொன்றும் எந்த ரேக்கில் உள்ளது என்றும் தெரியும்."
+      }
+    },
+    {
+      "id": "harvest",
+      "clip": "harvest",
+      "title": { "en": "Weigh every tray", "ta": "ஒவ்வொரு டிரேயையும் எடை போடுங்கள்" },
+      "say": {
+        "en": "At harvest, weigh each tray, and the app adds up your real yield.",
+        "ta": "அறுவடையின் போது ஒவ்வொரு டிரேயையும் எடை போடுங்கள். உங்கள் உண்மையான விளைச்சலை ஆப் கணக்கிட்டுக் காட்டும்."
+      }
+    },
+    {
+      "id": "insights",
+      "clip": "insights",
+      "title": { "en": "Know your real yield", "ta": "உண்மையான விளைச்சலை அறியுங்கள்" },
+      "say": {
+        "en": "Insights show your yield by crop, with PDF and CSV reports.",
+        "ta": "பயிர் வாரியான விளைச்சலை இன்சைட்ஸ் பகுதி காட்டும். PDF, CSV அறிக்கைகளாகவும் பெறலாம்."
+      }
+    },
+    {
+      "id": "data",
+      "clip": "data",
+      "title": { "en": "Your data stays yours", "ta": "உங்கள் தகவல் உங்களிடமே" },
+      "say": {
+        "en": "Your data stays on your phone. No account needed. Back up to Google Drive any time.",
+        "ta": "உங்கள் தகவல்கள் உங்கள் போனிலேயே இருக்கும். கணக்கு எதுவும் தேவையில்லை. எப்போது வேண்டுமானாலும் Google Drive-ல் பேக்கப் எடுக்கலாம்."
+      }
+    },
+    {
+      "id": "outro",
+      "clip": null,
+      "title": { "en": "Thulir MicroGreen Tracker", "ta": "துளிர் மைக்ரோகிரீன் டிராக்கர்" },
+      "say": {
+        "en": "Thulir MicroGreen Tracker. Coming soon to Google Play.",
+        "ta": "துளிர் மைக்ரோகிரீன் டிராக்கர். விரைவில் Google Play-ல்."
+      }
+    }
+  ]
+}
