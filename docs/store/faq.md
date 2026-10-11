@@ -97,7 +97,7 @@ crop under Settings → Crops & categories; 7 days if not set). Stock close to i
 the top of Stock. Open a crop to record waste or correct what's left; you can also add stock by hand.
 
 **How do I record a sale?**
-In Shop, tap "New sale" (on Today or Sales). Choose the customer, or leave it as a walk-in, add each crop and its
+In Shop, tap "New sale" (on Today, or Orders → Sales). Choose the customer, or leave it as a walk-in, add each crop and its
 grams, and the price is worked out from Settings → Price list (per 100 g, optionally different for restaurants, shops
 or homes). The grams come off your stock, earliest use-by first. If they didn't pay in full, turn off "Paid in full"
 and enter what they paid; the rest shows as owed under Today and on the customer.
@@ -106,9 +106,29 @@ and enter what they paid; the rest shows as owed under Today and on the customer
 Open the customer and use "Record a payment": it pays off their oldest sales first. You can also record a payment on a
 single sale, and share the bill on WhatsApp or any app from the sale.
 
+**How do I take an order for a later day?**
+In Shop → Orders, tap "New order", choose the customer, the delivery date and what they want. On that day it shows
+under Today → Deliveries. Tap "Deliver" to record the sale: the order's crops and grams are filled in and priced from
+your price list, and you can change them if you deliver a different amount. Orders you haven't delivered stay on the
+list as overdue until you deliver or cancel them.
+
+**How do subscriptions work?**
+A subscription is a delivery that repeats: choose the customer, what they get, the days of the week, and whether it's
+every week or every other week. Each delivery day shows under Today, ready to deliver. On the subscription you can skip
+a single day, pause it until a date (for a holiday), end it, or change it. Restaurants and shops are set to pay later
+when you deliver; homes are set to paid in full. You can change either before saving.
+
+**Can I send the day's delivery list to someone?**
+Yes. Under Today → Deliveries, tap "Share delivery list" to send the names, phone numbers, addresses and what each
+customer gets to WhatsApp or any app. If you don't have enough stock for the day's deliveries, Today tells you which
+crop is short.
+
+**I deleted a delivery's sale by mistake. What happens?**
+Its microgreens go back into stock and the delivery goes back on the list, so you can deliver it again.
+
 **What's the Farm / Shop switch at the top?**
-Farm is for growing: trays, batches and supplies. Shop is for selling: sales, customers, stock and what's owed
-(orders for later delivery and subscriptions are being added). If you don't sell, turn Shop off under Settings → Shop;
+Farm is for growing: trays, batches and supplies. Shop is for selling: orders, subscriptions, sales, customers, stock
+and what's owed. If you don't sell, turn Shop off under Settings → Shop;
 you can also pick Shop's colour and your currency there.
 
 ## Crops and categories

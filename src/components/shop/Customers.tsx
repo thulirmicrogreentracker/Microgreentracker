@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { ChevronRight, MessageCircle, Phone, Plus, Search, ShoppingBag, Trash2, Pencil, Users } from 'lucide-react';
 import { Customer, CustomerType, PaymentMethod, Sale } from '../../types';
 import { formatMoney } from '../../data/shop';
@@ -86,13 +86,14 @@ interface CustomerPageProps {
   currency: string;
   onEdit: () => void;
   onNewSale: () => void;
+  orderSection?: ReactNode;
   onOpenSale: (id: string) => void;
   onPay: (amount: number, method: PaymentMethod) => void;
   onDelete: () => void;
 }
 
 // One customer: contact, what they owe, a payment, and their sales.
-export function CustomerPage({ customer, sales, currency, onEdit, onNewSale, onOpenSale, onPay, onDelete }: CustomerPageProps) {
+export function CustomerPage({ customer, sales, currency, onEdit, onNewSale, orderSection, onOpenSale, onPay, onDelete }: CustomerPageProps) {
   const theirs = sales.filter(s => s.customerId === customer.id).sort((a, b) => b.date.localeCompare(a.date) || b.number - a.number);
   const due = customerDue(sales, customer.id);
   const [pay, setPay] = useState('');
@@ -137,6 +138,7 @@ export function CustomerPage({ customer, sales, currency, onEdit, onNewSale, onO
       <button className="farm-primary" onClick={onNewSale}>
         <ShoppingBag size={18} /> New sale
       </button>
+      {orderSection}
       {due > 0 && (
         <section className="farm-surface">
           <h2>Record a payment</h2>

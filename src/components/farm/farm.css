@@ -2132,3 +2132,96 @@ body {
   gap: 10px;
   margin-top: 10px;
 }
+
+/* Orders and subscriptions */
+.orders-views {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.orders-views button {
+  justify-content: center;
+  font-size: 12px;
+}
+.supply-kinds.how-often {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.weekday-picker button {
+  padding: 10px 0;
+  border-radius: 11px;
+  border: 1px solid var(--farm-border);
+  background: #fafbf7;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5d6b5c;
+}
+.weekday-picker button[aria-pressed="true"] {
+  background: var(--farm-green);
+  border-color: var(--farm-green);
+  color: white;
+}
+.order-line {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+}
+.order-line select,
+.order-line input {
+  height: 46px;
+}
+.delivery-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+  border-bottom: 1px solid #f1f2ed;
+}
+.delivery-row:last-child {
+  border: 0;
+}
+.care-list .delivery-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+}
+.delivery-row .delivery-date {
+  flex: 1;
+  min-width: 0;
+  padding: 13px;
+}
+.delivery-row.skipped .delivery-date {
+  opacity: 0.55;
+}
+.care-list .delivery-row > .delivery-go,
+.care-list .delivery-row > .stock-edit {
+  width: auto;
+  flex: none;
+  border: 0;
+}
+.care-list .delivery-row > .delivery-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--farm-green);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+.care-list .delivery-row > .stock-edit {
+  align-self: center;
+  padding: 6px 10px;
+}
+.care-list button.muted {
+  opacity: 0.7;
+}
+.delivery-short {
+  margin-top: 8px;
+}
+.share-list {
+  width: 100%;
+  margin-top: 10px;
+}

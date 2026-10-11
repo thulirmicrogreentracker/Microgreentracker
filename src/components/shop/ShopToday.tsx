@@ -1,27 +1,43 @@
-import { AlertTriangle, CalendarDays, ChevronRight, Clock, ShoppingBag, Wallet } from 'lucide-react';
-import { Customer, Sale, StockLot } from '../../types';
+import { AlertTriangle, CalendarDays, ChevronRight, Clock, Share2, ShoppingBag, Truck, Wallet } from 'lucide-react';
+import { Customer, Order, Sale, StockLot, Subscription } from '../../types';
 import { formatMoney } from '../../data/shop';
 import { formatGrams } from '../../utils/batches';
 import { formatDate, todayLocal } from '../../utils/dateUtils';
 import { stockAlerts, stockByCrop } from '../../utils/stock';
 import { customerDue, salesTotal } from '../../utils/sales';
+import { Delivery, deliveriesBetween } from '../../utils/orders';
+import { DeliveryRows } from './Orders';
 
 interface ShopTodayProps {
   stock: StockLot[];
   sales: Sale[];
   customers: Customer[];
+  orders: Order[];
+  subscriptions: Subscription[];
   currency: string;
+  onDeliver: (d: Delivery) => void;
+  onOpenDelivery: (d: Delivery) => void;
+  onShareDeliveries: (deliveries: Delivery[]) => void;
   onOpenCrop: (crop: string) => void;
   onStock: () => void;
   onNewSale: () => void;
   onOpenCustomer: (id: string) => void;
 }
 
-// Shop's first tab: today's sales, what to sell first and who owes money. Deliveries come with orders.
-export default function ShopToday({ stock, sales, customers, currency, onOpenCrop, onStock, onNewSale, onOpenCustomer }: ShopTodayProps) {
+// Shop's first tab: today's deliveries, today's sales, what to sell first and who owes money.
+export default function ShopToday(props: ShopTodayProps) {
+  const { stock, sales, customers, orders, subscriptions, currency, onOpenCrop, onStock, onNewSale, onOpenCustomer } = props;
   const today = todayLocal();
   const alerts = stockAlerts(stock, today);
-  const ready = stockByCrop(stock, today).reduce((n, c) => n + c.available, 0);
+  const byCrop = stockByCrop(stock, today);
+  const ready = byCrop.reduce((n, c) => n + c.available, 0);
+  // Today's deliveries, and orders that were due earlier.
+  const deliveries = deliveriesBetween(orders, subscriptions, today, today, true);
+  const need = new Map<string, number>();
+  for (const d of deliveries) for (const i of d.items) need.set(i.crop, (need.get(i.crop) ?? 0) + i.grams);
+  const short = [...need]
+    .map(([crop, grams]) => ({ crop, grams, have: byCrop.find(c => c.crop.toLowerCase() === crop.toLowerCase())?.available ?? 0 }))
+    .filter(x => x.have < x.grams);
   const owing = customers
     .map(c => ({ c, due: customerDue(sales, c.id) }))
     .filter(x => x.due > 0)
@@ -53,6 +69,32 @@ export default function ShopToday({ stock, sales, customers, currency, onOpenCro
       <button className="farm-primary" onClick={onNewSale}>
         <ShoppingBag size={18} /> New sale
       </button>
+      <section>
+        <div className="section-heading">
+          <h2>Deliveries</h2>
+          <span>{deliveries.length}</span>
+        </div>
+        {deliveries.length > 0 ? (
+          <>
+            <DeliveryRows deliveries={deliveries} customers={customers} onOpen={props.onOpenDelivery} onDeliver={props.onDeliver} />
+            {short.length > 0 && (
+              <p className="sale-warn delivery-short">
+                Not enough in stock: {short.map(x => `${x.crop} needs ${formatGrams(x.grams)}, ${formatGrams(x.have)} ready`).join('; ')}.
+              </p>
+            )}
+            <button className="farm-secondary share-list" onClick={() => props.onShareDeliveries(deliveries)}>
+              <Share2 size={16} /> Share delivery list
+            </button>
+          </>
+        ) : (
+          <div className="care-list">
+            <div className="care-empty">
+              <Truck />
+              <span>No deliveries today.</span>
+            </div>
+          </div>
+        )}
+      </section>
       <section>
         <div className="section-heading">
           <h2>Sell first</h2>

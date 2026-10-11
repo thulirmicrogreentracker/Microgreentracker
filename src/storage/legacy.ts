@@ -8,6 +8,7 @@ import { defaultShopSettings, normalizeShopSettings } from '../data/shop';
 import { normalizeSupplies } from '../utils/supplies';
 import { normalizeStock } from '../utils/stock';
 import { normalizeCustomers, normalizePrices, normalizeSales } from '../utils/sales';
+import { normalizeOrders, normalizeSubscriptions } from '../utils/orders';
 
 // Before version 1 of the storage format, data lived in localStorage under these keys,
 // photos were embedded as data: URLs, and daily snapshots / downloaded .json backups
@@ -33,6 +34,7 @@ export const defaultAppData = (): AppData => ({
     lastBatchNumber: 0,
     lastTrayNumber: 0,
     lastSaleNumber: 0,
+    lastOrderNumber: 0,
     shop: defaultShopSettings(),
   },
   reminders: [],
@@ -41,6 +43,8 @@ export const defaultAppData = (): AppData => ({
   customers: [],
   prices: [],
   sales: [],
+  orders: [],
+  subscriptions: [],
 });
 
 // Schema version 1 stored a single tray per batch, and lower-case fixed crop categories.
@@ -113,6 +117,11 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .map(s => (s.number ? s : { ...s, number: ++nextSale }));
 
+  let nextOrder = 0;
+  const loadedOrders = normalizeOrders(raw.orders);
+  nextOrder = Math.max(0, ...loadedOrders.map(o => o.number));
+  const orders = loadedOrders.map(o => (o.number ? o : { ...o, number: ++nextOrder }));
+
   const config: AppConfig = syncCounters({
     ...defaults.config,
     ...rawConfig,
@@ -126,6 +135,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     shop: normalizeShopSettings(rawConfig.shop),
     // Never below a sale number already used.
     lastSaleNumber: Math.max(wholeNumber(rawConfig.lastSaleNumber, MAX_NUMBER), ...sales.map(s => s.number)),
+    lastOrderNumber: Math.max(wholeNumber(rawConfig.lastOrderNumber, MAX_NUMBER), ...orders.map(o => o.number)),
   }, batches);
   // A saved rack layout must cover exactly the tray positions; otherwise fall back to the default racks.
   const layout = config.farmLayout;
@@ -141,6 +151,8 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     customers: normalizeCustomers(raw.customers),
     prices: normalizePrices(raw.prices),
     sales,
+    orders,
+    subscriptions: normalizeSubscriptions(raw.subscriptions),
   };
 };
 

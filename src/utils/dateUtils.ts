@@ -12,6 +12,9 @@ export const formatDate = (date: string | Date): string => {
   return format(toDate(date), 'MMM dd, yyyy');
 };
 
+// "Wed, Oct 14": for dates in the coming weeks.
+export const formatDay = (date: string | Date): string => format(toDate(date), 'EEE, MMM d');
+
 export const formatDateTime = (date: string | Date): string => {
   return format(toDate(date), 'MMM dd, yyyy HH:mm');
 };

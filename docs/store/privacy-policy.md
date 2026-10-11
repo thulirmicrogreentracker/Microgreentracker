@@ -25,7 +25,7 @@ When you use the app, it saves the following in the app's private storage on you
 - Watering records, notes, lost-tray reports and harvest weights.
 - Photos you take or choose in the app, saved as compressed copies with smaller preview images.
 - Supplies you record (seed, coco peat, packaging), with what you paid and where you bought them.
-- Harvested stock, and any customers, prices, sales and payments you record in Shop. Customer details are only what
+- Harvested stock, and any customers, prices, orders, subscriptions, sales and payments you record in Shop. Customer details are only what
   you type in, such as a name, phone number and address.
 - Your settings: crop list, categories, loss reasons, number of tray positions and numbering, Shop colour and currency.
 - Automatic daily copies ("snapshots") of this data, kept on the device so you can go back to an earlier day.
@@ -37,7 +37,8 @@ This information is never sent to us, and we cannot see it.
 If you record customers in Shop, their details stay on your device like the rest of your data; we never receive them.
 Please only record people who are happy for you to keep their details, and delete a customer in the app when you no
 longer need them. The Call and WhatsApp buttons open your phone or WhatsApp with their number; "Share bill" sends the
-bill's text to the app you choose.
+bill's text to the app you choose, and "Share delivery list" sends that day's deliveries (names, phone numbers,
+addresses and what each customer gets) to the app you choose.
 
 ## Permissions
 

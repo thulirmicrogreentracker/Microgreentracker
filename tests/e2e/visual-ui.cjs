@@ -181,6 +181,29 @@ fs.mkdirSync(out, { recursive: true });
   await page.reload();
   assert.deepEqual(await navLabels(), ['Today', 'Orders', 'Stock', 'Customers', 'Settings']);
   assert.equal(await accent(), '#2563a8');
+  // A subscription for today's weekday, for a customer added from the form; delivering it records a sale and takes it
+  // off today's list.
+  await nav('Orders').click();
+  await page.getByRole('button', { name: 'Subscription', exact: true }).click();
+  await page.getByLabel('Customer').selectOption('+');
+  await page.getByPlaceholder('Hotel Annapoorna').fill('Priya');
+  await page.getByRole('button', { name: 'Add customer' }).click();
+  await page.waitForFunction(() => document.querySelector('.swipe-page:last-of-type select')?.selectedOptions[0]?.textContent.startsWith('Priya'));
+  await page.getByLabel('Crop').selectOption('Sunflower');
+  await page.getByLabel('Grams').fill('200');
+  await page.getByRole('button', { name: new Date().toLocaleDateString('en-US', { weekday: 'long' }) }).click();
+  await page.getByRole('button', { name: 'Add subscription' }).click();
+  await page.getByText("Priya's subscription").waitFor();
+  await page.screenshot({ path: `${out}/09-subscription.png` });
+  await page.getByRole('button', { name: 'Deliver', exact: true }).click();
+  await page.getByText('Deliver to Priya').waitFor();
+  await page.getByLabel('Price', { exact: true }).fill('160');
+  await page.getByRole('button', { name: 'Save delivery' }).click();
+  await page.getByText('Sale S001').waitFor();
+  for (let i = 0; i < 2; i++) await page.locator('.swipe-page').last().getByRole('button', { name: 'Back', exact: true }).click();
+  await nav('Today').click();
+  await page.getByText('No deliveries today.').waitFor();
+  assert.match(await page.locator('.farm-metrics').innerText(), /^US\$160\nSold today/);
   // Hiding Shop leaves only the farm, with the app's name in the header.
   await nav('Settings').click();
   await page.getByRole('group', { name: 'Shop settings' }).getByRole('button', { name: /^Shop / }).click();
@@ -192,7 +215,7 @@ fs.mkdirSync(out, { recursive: true });
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(
-    'PASS: five tabs, farm and shop modes, shop colour and currency, all tasks, swipe back, stage pills, batch locations, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, settings pages, capacity guard, persistence and responsive widths.'
+    'PASS: five tabs, farm and shop modes, shop colour and currency, subscription delivery, all tasks, swipe back, stage pills, batch locations, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, settings pages, capacity guard, persistence and responsive widths.'
   );
 })().catch((e) => {
   console.error(e);

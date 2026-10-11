@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Plus, Share2, ShoppingBag, Trash2, X } from 'lucide-react';
-import { CropPrice, CropType, Customer, CustomerType, PaymentMethod, Sale, StockLot } from '../../types';
+import { CropPrice, CropType, Customer, CustomerType, OrderItem, PaymentMethod, Sale, StockLot } from '../../types';
 import { formatMoney } from '../../data/shop';
 import { appInfo } from '../../data/appInfo';
 import { formatDate, todayLocal } from '../../utils/dateUtils';
 import { formatGrams, newId } from '../../utils/batches';
 import { stockByCrop } from '../../utils/stock';
 import { CUSTOMER_TYPES, dueOn, itemsTotal, paidOn, PAYMENT_METHODS, priceFor, saleCode } from '../../utils/sales';
-import { SaleRows } from './Customers';
 
 interface Line {
   key: string;
@@ -29,20 +28,23 @@ interface SaleFormProps {
   cropTypes: CropType[];
   currency: string;
   customerId?: string;
+  // Delivering an order or subscription: its items to start with. Restaurants and shops usually pay later.
+  items?: OrderItem[];
+  delivery?: boolean;
   onSave: (sale: Omit<Sale, 'number'>) => void;
 }
 
 // A new sale: who, what (taken from stock), the price from the price list, and what's paid now.
-export function SaleForm({ customers, prices, stock, cropTypes, currency, customerId: startCustomer, onSave }: SaleFormProps) {
+export function SaleForm({ customers, prices, stock, cropTypes, currency, customerId: startCustomer, items: startItems, delivery, onSave }: SaleFormProps) {
   const today = todayLocal();
   const available = useMemo(() => new Map(stockByCrop(stock, today).map(c => [c.crop.toLowerCase(), c.available])), [stock, today]);
   const [customerId, setCustomerId] = useState(startCustomer ?? '');
   const customer = customers.find(c => c.id === customerId);
   const type: CustomerType | undefined = customer?.type;
-  const [lines, setLines] = useState<Line[]>([{ key: newId(), crop: '', grams: '', amount: '', edited: false }]);
   const [discount, setDiscount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
-  const [paidText, setPaidText] = useState<string | null>(null); // null: paid in full
+  // null: paid in full
+  const [paidText, setPaidText] = useState<string | null>(() => (delivery && (type === 'restaurant' || type === 'shop') ? '0' : null));
   const [error, setError] = useState('');
 
   // Crops in stock first, then the rest.
@@ -53,6 +55,11 @@ export function SaleForm({ customers, prices, stock, cropTypes, currency, custom
     const p = priceFor(prices, l.crop, num(l.grams), t);
     return { ...l, amount: p != null ? String(p) : l.amount };
   };
+  const [lines, setLines] = useState<Line[]>(() =>
+    startItems?.length
+      ? startItems.map(i => priced({ key: newId(), crop: i.crop, grams: String(i.grams), amount: '', edited: false }))
+      : [{ key: newId(), crop: '', grams: '', amount: '', edited: false }]
+  );
   const setLine = (key: string, patch: Partial<Line>) => setLines(ls => ls.map(l => (l.key === key ? priced({ ...l, ...patch }) : l)));
   const changeCustomer = (id: string) => {
     setCustomerId(id);
@@ -200,7 +207,7 @@ export function SaleForm({ customers, prices, stock, cropTypes, currency, custom
         </p>
       )}
       <button className="farm-primary" onClick={save}>
-        <ShoppingBag size={18} /> Save sale
+        <ShoppingBag size={18} /> {delivery ? 'Save delivery' : 'Save sale'}
       </button>
     </div>
   );
@@ -328,52 +335,6 @@ export function SalePage({ sale, customer, currency, onPay, onDelete, onOpenCust
       <button className="farm-danger" onClick={onDelete}>
         <Trash2 size={16} /> Delete sale
       </button>
-    </div>
-  );
-}
-
-interface SalesPanelProps {
-  sales: Sale[];
-  customers: Customer[];
-  currency: string;
-  onNew: () => void;
-  onOpen: (id: string) => void;
-}
-
-// The Orders tab, for now: recent sales and a new sale. (Orders for a delivery date and subscriptions come next.)
-export function SalesPanel({ sales, customers, currency, onNew, onOpen }: SalesPanelProps) {
-  const recent = [...sales].sort((a, b) => b.date.localeCompare(a.date) || b.number - a.number).slice(0, 50);
-  return (
-    <div className="farm-stack">
-      <div className="farm-heading">
-        <div>
-          <p className="eyebrow">SELL AND DELIVER</p>
-          <h1>Sales</h1>
-          <p>Sales at the shop and to your customers.</p>
-        </div>
-        <button className="farm-icon-button" onClick={onNew} aria-label="New sale">
-          <Plus />
-        </button>
-      </div>
-      <button className="farm-primary" onClick={onNew}>
-        <ShoppingBag size={18} /> New sale
-      </button>
-      {recent.length > 0 && (
-        <section>
-          <div className="section-heading">
-            <h2>Recent sales</h2>
-            <span>{sales.length}</span>
-          </div>
-          <SaleRows sales={recent} customers={customers} currency={currency} onOpen={onOpen} />
-        </section>
-      )}
-      <section className="farm-surface coming-soon">
-        <h2>Coming next</h2>
-        <ul>
-          <li>Orders for a delivery date</li>
-          <li>Subscriptions that repeat every week</li>
-        </ul>
-      </section>
     </div>
   );
 }

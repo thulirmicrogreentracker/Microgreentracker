@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Plus, Sprout, Settings, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown, LayoutGrid, Layers, Search, Package, CalendarDays, ClipboardList, Boxes, Users } from 'lucide-react';
-import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto, SupplyItem, SupplyKind, Customer, PaymentMethod, Sale } from './types';
+import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto, SupplyItem, SupplyKind, Customer, PaymentMethod, Sale, Order, OrderItem, Subscription } from './types';
 import { useAppData, UpdateAppData } from './hooks/useAppData';
 import { useReminders } from './hooks/useReminders';
 import { useDailySnapshot } from './hooks/useBackup';
@@ -41,9 +41,11 @@ import StockPanel from './components/shop/StockPanel';
 import StockCrop, { AddStock } from './components/shop/StockCrop';
 import ShopToday from './components/shop/ShopToday';
 import { CustomerForm, CustomerPage, CustomersPanel, paymentFor } from './components/shop/Customers';
-import { PriceList, SaleForm, SalePage, SalesPanel } from './components/shop/Sales';
+import { PriceList, SaleForm, SalePage } from './components/shop/Sales';
+import { CustomerOrders, OrderForm, OrderPage, OrdersPanel, SubscriptionForm, SubscriptionPage } from './components/shop/Orders';
+import { Delivery, deliveriesBetween, deliveryListText, orderCode } from './utils/orders';
 import { customerDue, recordPayment, returnSaleStock, saleCode } from './utils/sales';
-import { getDaysSince, todayLocal } from './utils/dateUtils';
+import { formatDate, getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
 import { defaultCategories, defaultCategoryIcons, defaultCropTypes } from './data/cropTypes';
@@ -76,7 +78,7 @@ interface TrackerAppProps {
 }
 
 function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
-  const { batches, cropTypes, config, reminders, supplies, stock, customers, prices, sales } = data;
+  const { batches, cropTypes, config, reminders, supplies, stock, customers, prices, sales, orders, subscriptions } = data;
   const currency = config.shop.currency;
   const setSupplies = (fn: (prev: SupplyItem[]) => SupplyItem[]) => update(d => ({ ...d, supplies: fn(d.supplies) }));
   const saveSupply = (item: SupplyItem) =>
@@ -127,7 +129,13 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [customerPage, setCustomerPage] = useState<string | null>(null);
   const [customerForm, setCustomerForm] = useState<{ id?: string } | null>(null);
   const [salePage, setSalePage] = useState<string | null>(null);
-  const [saleForm, setSaleForm] = useState<{ customerId?: string } | null>(null);
+  // A new sale, or the delivery of an order or of one date of a subscription.
+  const [saleForm, setSaleForm] = useState<{ customerId?: string; items?: OrderItem[]; orderId?: string; subscriptionId?: string; date?: string } | null>(null);
+  // Orders and subscriptions: a page, and a form on top.
+  const [orderPage, setOrderPage] = useState<string | null>(null);
+  const [orderForm, setOrderForm] = useState<{ id?: string; customerId?: string } | null>(null);
+  const [subPage, setSubPage] = useState<string | null>(null);
+  const [subForm, setSubForm] = useState<{ id?: string; customerId?: string } | null>(null);
   const [supplyForm, setSupplyForm] = useState<
     { mode: 'new'; kind?: SupplyKind } | { mode: 'edit'; id: string } | { mode: 'lot'; itemId: string; lotId?: string } | null
   >(null);
@@ -173,7 +181,11 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     else if (showTasks) setShowTasks(false);
     else if (saleForm) setSaleForm(null);
     else if (customerForm) setCustomerForm(null);
+    else if (subForm) setSubForm(null);
+    else if (orderForm) setOrderForm(null);
     else if (salePage) setSalePage(null);
+    else if (subPage) setSubPage(null);
+    else if (orderPage) setOrderPage(null);
     else if (customerPage) setCustomerPage(null);
     else if (addingStock) setAddingStock(false);
     else if (stockCrop) setStockCrop(null);
@@ -513,15 +525,20 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         { key: 'customers', label: 'Customers', icon: Users },
         { key: 'config', label: 'Settings', icon: Settings },
       ];
-  // Work waiting on the other side of the switch: batches ready to harvest on the farm. (Shop's comes with orders.)
+  // Work waiting on the other side of the switch: batches ready to harvest on the farm.
   const farmBadge = batches.filter(b => b.stage === 'harvest' && isBatchGrowing(b)).length;
-  // Shop: stock to sell today or tomorrow, or past its use-by date. (Deliveries are added with orders.)
-  const shopBadge = useMemo(() => stockAlerts(stock, todayLocal()).length, [stock]);
+  // Shop: deliveries due today (or overdue), and stock to sell today or tomorrow or past its use-by date.
+  const shopBadge = useMemo(() => {
+    const today = todayLocal();
+    return deliveriesBetween(orders, subscriptions, today, today, true).length + stockAlerts(stock, today).length;
+  }, [stock, orders, subscriptions]);
   const alerts = useMemo(() => supplyAlerts(supplies, todayLocal()), [supplies]);
   const saveCustomer = (c: Customer) =>
     update(d => ({ ...d, customers: d.customers.some(x => x.id === c.id) ? d.customers.map(x => (x.id === c.id ? c : x)) : [...d.customers, c] }));
-  // A sale gets the next sale number and takes its microgreens from stock (earliest use-by first).
+  // A sale gets the next sale number and takes its microgreens from stock (earliest use-by first). A delivery also
+  // marks its order delivered, or its subscription date.
   const saveSale = (sale: Omit<Sale, 'number'>) => {
+    const start = saleForm;
     update(d => {
       const number = d.config.lastSaleNumber + 1;
       let nextStock = d.stock;
@@ -530,11 +547,56 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         ...d,
         sales: [...d.sales, { ...sale, number }],
         stock: nextStock,
+        orders: start?.orderId ? d.orders.map(o => (o.id === start.orderId ? { ...o, status: 'delivered' as const, saleId: sale.id } : o)) : d.orders,
+        subscriptions:
+          start?.subscriptionId && start.date
+            ? d.subscriptions.map(s => (s.id === start.subscriptionId ? { ...s, delivered: [...s.delivered, { date: start.date!, saleId: sale.id }] } : s))
+            : d.subscriptions,
         config: { ...d.config, lastSaleNumber: number },
       };
     });
     setSaleForm(null);
     setSalePage(sale.id);
+  };
+  // Deleting a sale puts its stock back and reopens the order or subscription delivery it was for.
+  const deleteSale = (saleId: string) =>
+    update(d => ({
+      ...d,
+      sales: d.sales.filter(x => x.id !== saleId),
+      stock: returnSaleStock(d.stock, saleId),
+      orders: d.orders.map(o => (o.saleId === saleId ? { ...o, status: 'open' as const, saleId: undefined } : o)),
+      subscriptions: d.subscriptions.map(s => (s.delivered.some(x => x.saleId === saleId) ? { ...s, delivered: s.delivered.filter(x => x.saleId !== saleId) } : s)),
+    }));
+  // A new order gets the next order number.
+  const saveOrder = (o: Order) => {
+    const isNew = !orders.some(x => x.id === o.id);
+    update(d => {
+      if (d.orders.some(x => x.id === o.id)) return { ...d, orders: d.orders.map(x => (x.id === o.id ? o : x)) };
+      const number = d.config.lastOrderNumber + 1;
+      return { ...d, orders: [...d.orders, { ...o, number }], config: { ...d.config, lastOrderNumber: number } };
+    });
+    setOrderForm(null);
+    if (isNew) setOrderPage(o.id);
+  };
+  const updateSub = (id: string, fn: (s: Subscription) => Subscription) =>
+    update(d => ({ ...d, subscriptions: d.subscriptions.map(s => (s.id === id ? fn(s) : s)) }));
+  const saveSub = (s: Subscription) => {
+    const isNew = !subscriptions.some(x => x.id === s.id);
+    update(d => ({ ...d, subscriptions: isNew ? [...d.subscriptions, s] : d.subscriptions.map(x => (x.id === s.id ? s : x)) }));
+    setSubForm(null);
+    if (isNew) setSubPage(s.id);
+  };
+  const deliver = (d: Delivery) =>
+    setSaleForm({ customerId: d.customerId, items: d.items, orderId: d.order?.id, subscriptionId: d.subscription?.id, date: d.date });
+  const openDelivery = (d: Delivery) => (d.order ? setOrderPage(d.order.id) : d.subscription && setSubPage(d.subscription.id));
+  const shareDeliveries = async (list: Delivery[]) => {
+    const text = deliveryListText(list, customers, `Deliveries · ${formatDate(todayLocal())}`);
+    try {
+      if (navigator.share) return await navigator.share({ text });
+    } catch {
+      return; // cancelled
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
   const payCustomer = (customerId: string, amount: number, method: PaymentMethod) =>
     update(d => ({ ...d, sales: recordPayment(d.sales, customerId, paymentFor(amount, method)).sales }));
@@ -829,7 +891,12 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             stock={stock}
             sales={sales}
             customers={customers}
+            orders={orders}
+            subscriptions={subscriptions}
             currency={currency}
+            onDeliver={deliver}
+            onOpenDelivery={openDelivery}
+            onShareDeliveries={shareDeliveries}
             onOpenCrop={setStockCrop}
             onStock={() => setActiveTab('stock')}
             onNewSale={() => setSaleForm({})}
@@ -837,7 +904,20 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           />
         )}
         {activeTab === 'orders' && (
-          <SalesPanel sales={sales} customers={customers} currency={currency} onNew={() => setSaleForm({})} onOpen={setSalePage} />
+          <OrdersPanel
+            orders={orders}
+            subscriptions={subscriptions}
+            sales={sales}
+            customers={customers}
+            currency={currency}
+            onNewOrder={() => setOrderForm({})}
+            onNewSubscription={() => setSubForm({})}
+            onNewSale={() => setSaleForm({})}
+            onOpenDelivery={openDelivery}
+            onOpenOrder={setOrderPage}
+            onOpenSubscription={setSubPage}
+            onOpenSale={setSalePage}
+          />
         )}
         {activeTab === 'stock' && <StockPanel stock={stock} onOpenCrop={setStockCrop} onAdd={() => setAddingStock(true)} />}
         {activeTab === 'customers' && (
@@ -942,17 +1022,98 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               currency={currency}
               onEdit={() => setCustomerForm({ id: c.id })}
               onNewSale={() => setSaleForm({ customerId: c.id })}
+              orderSection={
+                <CustomerOrders
+                  customerId={c.id}
+                  orders={orders}
+                  subscriptions={subscriptions}
+                  onNewOrder={() => setOrderForm({ customerId: c.id })}
+                  onNewSubscription={() => setSubForm({ customerId: c.id })}
+                  onOpenOrder={setOrderPage}
+                  onOpenSubscription={setSubPage}
+                />
+              }
               onOpenSale={setSalePage}
               onPay={(amount, method) => payCustomer(c.id, amount, method)}
               onDelete={() => {
                 if (customerDue(sales, c.id) > 0) return window.alert(`${c.name} still owes money. Record their payments first.`);
-                if (!window.confirm(`Delete ${c.name}? Their past sales are kept, without the name.`)) return;
-                update(d => ({ ...d, customers: d.customers.filter(x => x.id !== c.id) }));
+                const plans = orders.some(o => o.customerId === c.id && o.status === 'open') || subscriptions.some(s => s.customerId === c.id);
+                const also = plans ? ' Their open orders and subscriptions are deleted too.' : '';
+                if (!window.confirm(`Delete ${c.name}? Their past sales are kept, without the name.${also}`)) return;
+                update(d => ({
+                  ...d,
+                  customers: d.customers.filter(x => x.id !== c.id),
+                  orders: d.orders.filter(o => o.customerId !== c.id || o.status === 'delivered'),
+                  subscriptions: d.subscriptions.filter(s => s.customerId !== c.id),
+                }));
                 setCustomerPage(null);
               }}
             />
           </SwipePage>
         ) : null;
+      })()}
+      {orderPage && (() => {
+        const o = orders.find(x => x.id === orderPage);
+        if (!o) return null;
+        const c = customers.find(x => x.id === o.customerId);
+        return (
+          <SwipePage title={`Order ${orderCode(o.number)}`} onBack={() => setOrderPage(null)}>
+            <OrderPage
+              order={o}
+              customer={c}
+              sale={sales.find(s => s.id === o.saleId)}
+              onDeliver={() => deliver({ key: o.id, date: o.deliverOn, customerId: o.customerId, items: o.items, order: o })}
+              onEdit={() => setOrderForm({ id: o.id })}
+              onStatus={status => update(d => ({ ...d, orders: d.orders.map(x => (x.id === o.id ? { ...x, status } : x)) }))}
+              onOpenSale={() => o.saleId && setSalePage(o.saleId)}
+              onOpenCustomer={() => {
+                setOrderPage(null);
+                if (c) setCustomerPage(c.id);
+              }}
+              onDelete={() => {
+                const kept = o.status === 'delivered' ? ' Its sale is kept.' : '';
+                if (!window.confirm(`Delete order ${orderCode(o.number)}?${kept}`)) return;
+                update(d => ({ ...d, orders: d.orders.filter(x => x.id !== o.id) }));
+                setOrderPage(null);
+              }}
+            />
+          </SwipePage>
+        );
+      })()}
+      {subPage && (() => {
+        const sub = subscriptions.find(x => x.id === subPage);
+        if (!sub) return null;
+        const c = customers.find(x => x.id === sub.customerId);
+        return (
+          <SwipePage title={c ? `${c.name}'s subscription` : 'Subscription'} onBack={() => setSubPage(null)}>
+            <SubscriptionPage
+              subscription={sub}
+              customer={c}
+              sales={sales}
+              currency={currency}
+              onDeliver={date => deliver({ key: sub.id, date, customerId: sub.customerId, items: sub.items, subscription: sub })}
+              onSkip={date =>
+                updateSub(sub.id, s => ({ ...s, skipped: s.skipped.includes(date) ? s.skipped.filter(x => x !== date) : [...s.skipped, date] }))
+              }
+              onPause={until => updateSub(sub.id, s => ({ ...s, pausedUntil: until }))}
+              onEnd={endOn => {
+                if (endOn && !window.confirm('End this subscription? There are no more deliveries from today.')) return;
+                updateSub(sub.id, s => ({ ...s, endOn }));
+              }}
+              onEdit={() => setSubForm({ id: sub.id })}
+              onOpenSale={setSalePage}
+              onOpenCustomer={() => {
+                setSubPage(null);
+                if (c) setCustomerPage(c.id);
+              }}
+              onDelete={() => {
+                if (!window.confirm('Delete this subscription? Sales already delivered are kept.')) return;
+                update(d => ({ ...d, subscriptions: d.subscriptions.filter(x => x.id !== sub.id) }));
+                setSubPage(null);
+              }}
+            />
+          </SwipePage>
+        );
       })()}
       {salePage && (() => {
         const sale = sales.find(x => x.id === salePage);
@@ -965,16 +1126,46 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               customer={c}
               currency={currency}
               onPay={(amount, method) => paySale(sale.id, amount, method)}
-              onOpenCustomer={() => c && setCustomerPage(c.id)}
+              onOpenCustomer={() => {
+                if (!c) return;
+                setSalePage(null);
+                setCustomerPage(c.id);
+              }}
               onDelete={() => {
-                if (!window.confirm('Delete this sale? Its microgreens go back into stock.')) return;
-                update(d => ({ ...d, sales: d.sales.filter(x => x.id !== sale.id), stock: returnSaleStock(d.stock, sale.id) }));
+                const linked = orders.some(o => o.saleId === sale.id) || subscriptions.some(s => s.delivered.some(x => x.saleId === sale.id));
+                const reopen = linked ? ' The delivery goes back on the list.' : '';
+                if (!window.confirm(`Delete this sale? Its microgreens go back into stock.${reopen}`)) return;
+                deleteSale(sale.id);
                 setSalePage(null);
               }}
             />
           </SwipePage>
         );
       })()}
+      {orderForm && (
+        <SwipePage title={orderForm.id ? 'Edit order' : 'New order'} onBack={() => setOrderForm(null)}>
+          <OrderForm
+            customers={customers}
+            cropTypes={cropTypes}
+            order={orders.find(o => o.id === orderForm.id)}
+            customerId={orderForm.customerId}
+            onAddCustomer={() => setCustomerForm({})}
+            onSave={saveOrder}
+          />
+        </SwipePage>
+      )}
+      {subForm && (
+        <SwipePage title={subForm.id ? 'Edit subscription' : 'New subscription'} onBack={() => setSubForm(null)}>
+          <SubscriptionForm
+            customers={customers}
+            cropTypes={cropTypes}
+            subscription={subscriptions.find(s => s.id === subForm.id)}
+            customerId={subForm.customerId}
+            onAddCustomer={() => setCustomerForm({})}
+            onSave={saveSub}
+          />
+        </SwipePage>
+      )}
       {customerForm && (
         <SwipePage title={customerForm.id ? 'Edit customer' : 'Add customer'} onBack={() => setCustomerForm(null)}>
           <CustomerForm
@@ -983,13 +1174,17 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             onSave={c => {
               saveCustomer(c);
               setCustomerForm(null);
-              if (!customerForm.id) setCustomerPage(c.id);
+              // Added from an order or subscription form: choose them there; otherwise open their page.
+              if (customerForm.id) return;
+              if (subForm) setSubForm({ ...subForm, customerId: c.id });
+              else if (orderForm) setOrderForm({ ...orderForm, customerId: c.id });
+              else setCustomerPage(c.id);
             }}
           />
         </SwipePage>
       )}
       {saleForm && (
-        <SwipePage title="New sale" onBack={() => setSaleForm(null)}>
+        <SwipePage title={saleForm.items ? `Deliver to ${customers.find(c => c.id === saleForm.customerId)?.name ?? 'customer'}` : 'New sale'} onBack={() => setSaleForm(null)}>
           <SaleForm
             customers={customers}
             prices={prices}
@@ -997,6 +1192,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             cropTypes={cropTypes}
             currency={currency}
             customerId={saleForm.customerId}
+            items={saleForm.items}
+            delivery={!!saleForm.items}
             onSave={saveSale}
           />
         </SwipePage>

@@ -160,6 +160,7 @@ export interface AppConfig {
   lastBatchNumber: number;
   lastTrayNumber: number;
   lastSaleNumber: number; // highest sale number handed out, so numbers are never reused
+  lastOrderNumber: number;
   shop: ShopSettings;
 }
 
@@ -173,6 +174,42 @@ export interface AppData {
   customers: Customer[];
   prices: CropPrice[];
   sales: Sale[];
+  orders: Order[];
+  subscriptions: Subscription[];
+}
+
+export interface OrderItem {
+  crop: string;
+  grams: number;
+}
+
+// An order to deliver on a date. Delivering it records a sale (and takes the stock).
+export interface Order {
+  id: string;
+  number: number; // shown as "O001"
+  customerId: string;
+  deliverOn: string; // YYYY-MM-DD
+  items: OrderItem[];
+  note?: string;
+  status: 'open' | 'delivered' | 'cancelled';
+  saleId?: string; // the sale recorded when delivered
+  createdAt: string;
+}
+
+// A repeating order, e.g. 200 g sunflower every Monday and Thursday. Each delivery becomes a sale when delivered.
+export interface Subscription {
+  id: string;
+  customerId: string;
+  items: OrderItem[];
+  weekdays: number[]; // 0 = Sunday … 6 = Saturday
+  everyWeeks: number; // 1 = every week, 2 = every other week
+  startOn: string; // YYYY-MM-DD
+  endOn?: string; // last day, if it ends
+  pausedUntil?: string; // no deliveries before this date
+  skipped: string[]; // delivery dates skipped
+  delivered: { date: string; saleId: string }[];
+  note?: string;
+  createdAt: string;
 }
 
 export type CustomerType = 'home' | 'restaurant' | 'shop' | 'other';
