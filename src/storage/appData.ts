@@ -85,8 +85,13 @@ const load = async (): Promise<AppData> => {
   return data;
 };
 
+// Callers at the same time (React's double start-up in development) share one load. A later call reads the files
+// again, so a component that starts again (e.g. after a code reload in development) gets the latest saved data, not
+// the data from when the app opened.
 export const loadAppData = (): Promise<AppData> => {
-  loading = loading ?? load();
+  loading = loading ?? load().finally(() => {
+    loading = null;
+  });
   return loading;
 };
 

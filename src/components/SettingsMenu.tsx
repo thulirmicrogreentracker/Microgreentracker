@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { AlertTriangle, BarChart3, ChevronRight, Database, HardDrive, Hash, HelpCircle, LayoutGrid, Mail, ShieldCheck, ShoppingBag, Sprout } from 'lucide-react';
+import { AlertTriangle, BarChart3, ChevronRight, Database, HardDrive, Hash, HelpCircle, LayoutGrid, Mail, ShieldCheck, ShoppingBag, Sprout, Tag } from 'lucide-react';
 import { AppConfig, CropType } from '../types';
 import { appInfo, isFilledIn } from '../data/appInfo';
 import { batchCode, trayCode } from '../utils/batches';
@@ -10,12 +10,13 @@ import type { InfoPageKind } from './InfoPage';
 import type { AppMode } from './ModeSwitch';
 import { shopAccents } from '../data/shop';
 
-export type SettingsPage = 'insights' | 'layout' | 'shop' | ConfigSection;
+export type SettingsPage = 'insights' | 'layout' | 'shop' | 'prices' | ConfigSection;
 
 export const settingsTitles: Record<SettingsPage, string> = {
   insights: 'Insights & reports',
   layout: 'Racks & shelves',
   shop: 'Shop',
+  prices: 'Price list',
   crops: 'Crops & categories',
   lossReasons: 'Loss reasons',
   numbering: 'Numbering',
@@ -28,12 +29,13 @@ interface SettingsMenuProps {
   cropTypes: CropType[];
   lastBackup: string | null;
   mode: AppMode;
+  pricedCrops: number;
   onOpen: (page: SettingsPage) => void;
   onOpenInfo: (page: InfoPageKind) => void;
 }
 
 // The Settings tab: one row per settings page, each opening on its own screen.
-export default function SettingsMenu({ config, cropTypes, lastBackup, mode, onOpen, onOpenInfo }: SettingsMenuProps) {
+export default function SettingsMenu({ config, cropTypes, lastBackup, mode, pricedCrops, onOpen, onOpenInfo }: SettingsMenuProps) {
   const [version, setVersion] = useState<string | null>(null);
   useEffect(() => {
     // The installed app's version and build number (not available in a browser).
@@ -53,6 +55,7 @@ export default function SettingsMenu({ config, cropTypes, lastBackup, mode, onOp
   const { shop } = config;
   const shopRows: Row[] = [
     ['shop', ShoppingBag, shop.enabled ? `${shopAccents.find(a => a.key === shop.accent)?.label} · ${shop.currency}` : 'Off'],
+    ...(shop.enabled ? [['prices', Tag, pricedCrops ? plural(pricedCrops, 'crop') + ' priced' : 'Set a price per 100 g'] as Row] : []),
   ];
   const data: Row[] = [
     ['backup', HardDrive, lastBackup ? `Last copy ${new Date(lastBackup).toLocaleDateString()}` : 'A copy is saved on this phone every day'],

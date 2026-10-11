@@ -11,8 +11,8 @@ stays on your own device. This policy explains what the app stores, where it is 
 ## Summary
 
 - **We do not collect any personal data.** The app has no account, no login and no server of ours.
-- **Everything you enter stays on your device**: your batches, trays, notes, watering records, harvest weights and
-  photos.
+- **Everything you enter stays on your device**: your batches, trays, notes, watering records, harvest weights,
+  photos, supplies, stock, and any customers, sales and payments you record.
 - **No advertising, analytics or tracking.** The app contains no ad networks, analytics or tracking tools, and it
   does not send data over the internet.
 - **You decide when data leaves your device**, for example when you save a backup file to Google Drive or email it.
@@ -24,10 +24,20 @@ When you use the app, it saves the following in the app's private storage on you
 - Batches and trays you create: crop, dates, tray numbers and positions, growth stage, seed weight.
 - Watering records, notes, lost-tray reports and harvest weights.
 - Photos you take or choose in the app, saved as compressed copies with smaller preview images.
-- Your settings: crop list, categories, loss reasons, number of tray positions and numbering.
+- Supplies you record (seed, coco peat, packaging), with what you paid and where you bought them.
+- Harvested stock, and any customers, prices, sales and payments you record in Shop. Customer details are only what
+  you type in, such as a name, phone number and address.
+- Your settings: crop list, categories, loss reasons, number of tray positions and numbering, Shop colour and currency.
 - Automatic daily copies ("snapshots") of this data, kept on the device so you can go back to an earlier day.
 
 This information is never sent to us, and we cannot see it.
+
+## Your customers' details
+
+If you record customers in Shop, their details stay on your device like the rest of your data; we never receive them.
+Please only record people who are happy for you to keep their details, and delete a customer in the app when you no
+longer need them. The Call and WhatsApp buttons open your phone or WhatsApp with their number; "Share bill" sends the
+bill's text to the app you choose.
 
 ## Permissions
 

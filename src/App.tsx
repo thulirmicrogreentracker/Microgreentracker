@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Plus, Sprout, Settings, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown, LayoutGrid, Layers, Search, Package, CalendarDays, ClipboardList, Boxes, Users } from 'lucide-react';
-import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto, SupplyItem, SupplyKind } from './types';
+import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto, SupplyItem, SupplyKind, Customer, PaymentMethod, Sale } from './types';
 import { useAppData, UpdateAppData } from './hooks/useAppData';
 import { useReminders } from './hooks/useReminders';
 import { useDailySnapshot } from './hooks/useBackup';
@@ -30,17 +30,19 @@ import HarvestSheet from './components/HarvestSheet';
 import AppLogo from './components/AppLogo';
 import InfoPage, { InfoPageKind } from './components/InfoPage';
 import ModeSwitch, { AppMode } from './components/ModeSwitch';
-import ComingSoon from './components/shop/ComingSoon';
 import ShopSettingsPanel from './components/shop/ShopSettingsPanel';
 import { accentColor } from './data/shop';
 import SuppliesPanel from './components/supplies/SuppliesPanel';
 import SupplyDetail from './components/supplies/SupplyDetail';
 import { LotForm, SupplyForm } from './components/supplies/SupplyForms';
 import { suppliesForBatch, supplyAlerts } from './utils/supplies';
-import { addHarvestToStock, moveStock, stockAlerts } from './utils/stock';
+import { addHarvestToStock, moveStock, sellFromStock, stockAlerts } from './utils/stock';
 import StockPanel from './components/shop/StockPanel';
 import StockCrop, { AddStock } from './components/shop/StockCrop';
 import ShopToday from './components/shop/ShopToday';
+import { CustomerForm, CustomerPage, CustomersPanel, paymentFor } from './components/shop/Customers';
+import { PriceList, SaleForm, SalePage, SalesPanel } from './components/shop/Sales';
+import { customerDue, recordPayment, returnSaleStock, saleCode } from './utils/sales';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
@@ -74,7 +76,7 @@ interface TrackerAppProps {
 }
 
 function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
-  const { batches, cropTypes, config, reminders, supplies, stock } = data;
+  const { batches, cropTypes, config, reminders, supplies, stock, customers, prices, sales } = data;
   const currency = config.shop.currency;
   const setSupplies = (fn: (prev: SupplyItem[]) => SupplyItem[]) => update(d => ({ ...d, supplies: fn(d.supplies) }));
   const saveSupply = (item: SupplyItem) =>
@@ -121,6 +123,11 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   // Stock: one crop's page, and the add-stock form.
   const [stockCrop, setStockCrop] = useState<string | null>(null);
   const [addingStock, setAddingStock] = useState(false);
+  // Customers and sales: a customer's or sale's page, and a form on top.
+  const [customerPage, setCustomerPage] = useState<string | null>(null);
+  const [customerForm, setCustomerForm] = useState<{ id?: string } | null>(null);
+  const [salePage, setSalePage] = useState<string | null>(null);
+  const [saleForm, setSaleForm] = useState<{ customerId?: string } | null>(null);
   const [supplyForm, setSupplyForm] = useState<
     { mode: 'new'; kind?: SupplyKind } | { mode: 'edit'; id: string } | { mode: 'lot'; itemId: string; lotId?: string } | null
   >(null);
@@ -164,6 +171,10 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     else if (showNotifications) setShowNotifications(false);
     else if (selectedTray) setSelectedTray(null);
     else if (showTasks) setShowTasks(false);
+    else if (saleForm) setSaleForm(null);
+    else if (customerForm) setCustomerForm(null);
+    else if (salePage) setSalePage(null);
+    else if (customerPage) setCustomerPage(null);
     else if (addingStock) setAddingStock(false);
     else if (stockCrop) setStockCrop(null);
     else if (supplyForm) setSupplyForm(null);
@@ -507,6 +518,29 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   // Shop: stock to sell today or tomorrow, or past its use-by date. (Deliveries are added with orders.)
   const shopBadge = useMemo(() => stockAlerts(stock, todayLocal()).length, [stock]);
   const alerts = useMemo(() => supplyAlerts(supplies, todayLocal()), [supplies]);
+  const saveCustomer = (c: Customer) =>
+    update(d => ({ ...d, customers: d.customers.some(x => x.id === c.id) ? d.customers.map(x => (x.id === c.id ? c : x)) : [...d.customers, c] }));
+  // A sale gets the next sale number and takes its microgreens from stock (earliest use-by first).
+  const saveSale = (sale: Omit<Sale, 'number'>) => {
+    update(d => {
+      const number = d.config.lastSaleNumber + 1;
+      let nextStock = d.stock;
+      for (const item of sale.items) nextStock = sellFromStock(nextStock, item.crop, item.grams, sale.date, sale.id).stock;
+      return {
+        ...d,
+        sales: [...d.sales, { ...sale, number }],
+        stock: nextStock,
+        config: { ...d.config, lastSaleNumber: number },
+      };
+    });
+    setSaleForm(null);
+    setSalePage(sale.id);
+  };
+  const payCustomer = (customerId: string, amount: number, method: PaymentMethod) =>
+    update(d => ({ ...d, sales: recordPayment(d.sales, customerId, paymentFor(amount, method)).sales }));
+  const paySale = (saleId: string, amount: number, method: PaymentMethod) =>
+    update(d => ({ ...d, sales: d.sales.map(s => (s.id === saleId ? { ...s, payments: [...s.payments, paymentFor(amount, method)] } : s)) }));
+
   // Opens a supply's page on the Supplies tab (from a care task, for example).
   const openSupply = (itemId: string) => {
     setShowTasks(false);
@@ -790,25 +824,24 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           <SuppliesPanel supplies={supplies} batches={batches} onOpen={setSupplyId} onAdd={kind => setSupplyForm({ mode: 'new', kind })} />
         )}
 
-        {activeTab === 'today' && <ShopToday stock={stock} onOpenCrop={setStockCrop} onStock={() => setActiveTab('stock')} />}
-        {activeTab === 'orders' && (
-          <ComingSoon
-            eyebrow="SELL AND DELIVER"
-            title="Orders"
-            subtitle="One-off orders and subscriptions."
-            icon={ClipboardList}
-            points={['Quick sales at the shop', 'Orders for a delivery date', 'Subscriptions that repeat every week', 'Bills to share on WhatsApp']}
+        {activeTab === 'today' && (
+          <ShopToday
+            stock={stock}
+            sales={sales}
+            customers={customers}
+            currency={currency}
+            onOpenCrop={setStockCrop}
+            onStock={() => setActiveTab('stock')}
+            onNewSale={() => setSaleForm({})}
+            onOpenCustomer={setCustomerPage}
           />
+        )}
+        {activeTab === 'orders' && (
+          <SalesPanel sales={sales} customers={customers} currency={currency} onNew={() => setSaleForm({})} onOpen={setSalePage} />
         )}
         {activeTab === 'stock' && <StockPanel stock={stock} onOpenCrop={setStockCrop} onAdd={() => setAddingStock(true)} />}
         {activeTab === 'customers' && (
-          <ComingSoon
-            eyebrow="THE PEOPLE YOU GROW FOR"
-            title="Customers"
-            subtitle="Homes, restaurants and shops."
-            icon={Users}
-            points={['Name, phone and address', 'Prices for each type of customer', 'Their orders, subscriptions and payments']}
-          />
+          <CustomersPanel customers={customers} sales={sales} currency={currency} onOpen={setCustomerPage} onAdd={() => setCustomerForm({})} />
         )}
 
         {activeTab === 'config' && (
@@ -820,7 +853,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
                 <p>Your space, crops and preferences.</p>
               </div>
             </div>
-            <SettingsMenu config={config} cropTypes={cropTypes} lastBackup={lastBackup} mode={mode} onOpen={setSettingsPage} onOpenInfo={setInfoPage} />
+            <SettingsMenu config={config} cropTypes={cropTypes} lastBackup={lastBackup} mode={mode} pricedCrops={prices.length} onOpen={setSettingsPage} onOpenInfo={setInfoPage} />
           </div>
         )}
       </main>
@@ -873,6 +906,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               <ReportExport batches={batches} />
               <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
             </div>
+          ) : settingsPage === 'prices' ? (
+            <PriceList prices={prices} cropTypes={cropTypes} currency={currency} onChange={next => update(d => ({ ...d, prices: next }))} />
           ) : settingsPage === 'shop' ? (
             <ShopSettingsPanel shop={config.shop} onChange={shop => update(d => ({ ...d, config: { ...d.config, shop } }))} />
           ) : (
@@ -895,6 +930,75 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               hasBatches={batches.length > 0}
             />
           )}
+        </SwipePage>
+      )}
+      {customerPage && (() => {
+        const c = customers.find(x => x.id === customerPage);
+        return c ? (
+          <SwipePage title={c.name} onBack={() => setCustomerPage(null)}>
+            <CustomerPage
+              customer={c}
+              sales={sales}
+              currency={currency}
+              onEdit={() => setCustomerForm({ id: c.id })}
+              onNewSale={() => setSaleForm({ customerId: c.id })}
+              onOpenSale={setSalePage}
+              onPay={(amount, method) => payCustomer(c.id, amount, method)}
+              onDelete={() => {
+                if (customerDue(sales, c.id) > 0) return window.alert(`${c.name} still owes money. Record their payments first.`);
+                if (!window.confirm(`Delete ${c.name}? Their past sales are kept, without the name.`)) return;
+                update(d => ({ ...d, customers: d.customers.filter(x => x.id !== c.id) }));
+                setCustomerPage(null);
+              }}
+            />
+          </SwipePage>
+        ) : null;
+      })()}
+      {salePage && (() => {
+        const sale = sales.find(x => x.id === salePage);
+        if (!sale) return null;
+        const c = customers.find(x => x.id === sale.customerId);
+        return (
+          <SwipePage title={`Sale ${saleCode(sale.number)}`} onBack={() => setSalePage(null)}>
+            <SalePage
+              sale={sale}
+              customer={c}
+              currency={currency}
+              onPay={(amount, method) => paySale(sale.id, amount, method)}
+              onOpenCustomer={() => c && setCustomerPage(c.id)}
+              onDelete={() => {
+                if (!window.confirm('Delete this sale? Its microgreens go back into stock.')) return;
+                update(d => ({ ...d, sales: d.sales.filter(x => x.id !== sale.id), stock: returnSaleStock(d.stock, sale.id) }));
+                setSalePage(null);
+              }}
+            />
+          </SwipePage>
+        );
+      })()}
+      {customerForm && (
+        <SwipePage title={customerForm.id ? 'Edit customer' : 'Add customer'} onBack={() => setCustomerForm(null)}>
+          <CustomerForm
+            customer={customers.find(c => c.id === customerForm.id)}
+            existing={customers}
+            onSave={c => {
+              saveCustomer(c);
+              setCustomerForm(null);
+              if (!customerForm.id) setCustomerPage(c.id);
+            }}
+          />
+        </SwipePage>
+      )}
+      {saleForm && (
+        <SwipePage title="New sale" onBack={() => setSaleForm(null)}>
+          <SaleForm
+            customers={customers}
+            prices={prices}
+            stock={stock}
+            cropTypes={cropTypes}
+            currency={currency}
+            customerId={saleForm.customerId}
+            onSave={saveSale}
+          />
         </SwipePage>
       )}
       {stockCrop && (

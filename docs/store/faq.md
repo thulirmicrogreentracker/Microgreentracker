@@ -96,10 +96,20 @@ When you weigh a harvest, its grams go into Shop → Stock with a use-by date fr
 crop under Settings → Crops & categories; 7 days if not set). Stock close to its use-by date shows under Today and at
 the top of Stock. Open a crop to record waste or correct what's left; you can also add stock by hand.
 
+**How do I record a sale?**
+In Shop, tap "New sale" (on Today or Sales). Choose the customer, or leave it as a walk-in, add each crop and its
+grams, and the price is worked out from Settings → Price list (per 100 g, optionally different for restaurants, shops
+or homes). The grams come off your stock, earliest use-by first. If they didn't pay in full, turn off "Paid in full"
+and enter what they paid; the rest shows as owed under Today and on the customer.
+
+**How do I record a customer's payment?**
+Open the customer and use "Record a payment": it pays off their oldest sales first. You can also record a payment on a
+single sale, and share the bill on WhatsApp or any app from the sale.
+
 **What's the Farm / Shop switch at the top?**
-Farm is for growing: trays, batches and supplies. Shop is for selling: orders, subscriptions, customers and stock (these
-are being added). If you don't sell, turn Shop off under Settings → Shop; you can also pick Shop's colour and your
-currency there.
+Farm is for growing: trays, batches and supplies. Shop is for selling: sales, customers, stock and what's owed
+(orders for later delivery and subscriptions are being added). If you don't sell, turn Shop off under Settings → Shop;
+you can also pick Shop's colour and your currency there.
 
 ## Crops and categories
 

@@ -7,6 +7,7 @@ import { isSafePhotoName } from './photos';
 import { defaultShopSettings, normalizeShopSettings } from '../data/shop';
 import { normalizeSupplies } from '../utils/supplies';
 import { normalizeStock } from '../utils/stock';
+import { normalizeCustomers, normalizePrices, normalizeSales } from '../utils/sales';
 
 // Before version 1 of the storage format, data lived in localStorage under these keys,
 // photos were embedded as data: URLs, and daily snapshots / downloaded .json backups
@@ -31,11 +32,15 @@ export const defaultAppData = (): AppData => ({
     lossReasons: defaultLossReasons,
     lastBatchNumber: 0,
     lastTrayNumber: 0,
+    lastSaleNumber: 0,
     shop: defaultShopSettings(),
   },
   reminders: [],
   supplies: [],
   stock: [],
+  customers: [],
+  prices: [],
+  sales: [],
 });
 
 // Schema version 1 stored a single tray per batch, and lower-case fixed crop categories.
@@ -101,6 +106,13 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
   }]));
   batches = batches.map(b => numbered.get(b.id) ?? b);
 
+  // Sales without a number (or a damaged one) are numbered after the highest, oldest first.
+  const loadedSales = normalizeSales(raw.sales);
+  let nextSale = Math.max(0, ...loadedSales.map(s => s.number));
+  const sales = [...loadedSales]
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map(s => (s.number ? s : { ...s, number: ++nextSale }));
+
   const config: AppConfig = syncCounters({
     ...defaults.config,
     ...rawConfig,
@@ -112,6 +124,8 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     lastBatchNumber: nextBatch,
     lastTrayNumber: nextTray,
     shop: normalizeShopSettings(rawConfig.shop),
+    // Never below a sale number already used.
+    lastSaleNumber: Math.max(wholeNumber(rawConfig.lastSaleNumber, MAX_NUMBER), ...sales.map(s => s.number)),
   }, batches);
   // A saved rack layout must cover exactly the tray positions; otherwise fall back to the default racks.
   const layout = config.farmLayout;
@@ -124,6 +138,9 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
     supplies: normalizeSupplies(raw.supplies),
     stock: normalizeStock(raw.stock),
+    customers: normalizeCustomers(raw.customers),
+    prices: normalizePrices(raw.prices),
+    sales,
   };
 };
 

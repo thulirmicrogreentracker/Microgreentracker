@@ -2005,8 +2005,130 @@ body {
   grid-column: 1 / -1;
 }
 .stock-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   align-self: flex-start;
   font-size: 13px;
   font-weight: 600;
   color: var(--farm-green);
+}
+
+/* Customers and sales */
+.contact-actions {
+  grid-template-columns: 1fr 1fr;
+}
+.pay-method {
+  width: auto;
+  margin: 0;
+}
+.pay-button {
+  margin-top: 10px;
+}
+.sale-line {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f2ea;
+}
+.sale-line select,
+.sale-line input {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--farm-border);
+  border-radius: 12px;
+  background: #fafbf7;
+  font-size: 15px;
+  color: var(--farm-ink);
+}
+.sale-line select {
+  padding-right: 40px;
+}
+.sale-line-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+.sale-remove {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 44px;
+  color: #a23b2a;
+}
+.sale-warn {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a5a17;
+}
+.sale-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px solid #f0f2ea;
+}
+.sale-total span {
+  font-size: 13px;
+  color: var(--farm-muted);
+}
+.sale-total strong {
+  font-size: 24px;
+  font-weight: 750;
+}
+.sale-items {
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.sale-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f2ea;
+}
+.sale-items-total {
+  font-weight: 700;
+  border-bottom: 0 !important;
+}
+.stock-edit.inline {
+  display: inline;
+  font-size: inherit;
+}
+.price-row {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f2ed;
+}
+.price-row:last-child {
+  border-bottom: 0;
+}
+.price-main {
+  display: grid;
+  grid-template-columns: 1fr 96px auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.price-main input,
+.price-types input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--farm-border);
+  border-radius: 10px;
+  background: #fafbf7;
+  font-size: 14px;
+  text-align: right;
+}
+.price-types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
 }

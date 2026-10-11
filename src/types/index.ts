@@ -159,6 +159,7 @@ export interface AppConfig {
   // lower than the numbers already in use, so new batches and trays keep counting up after a restore.
   lastBatchNumber: number;
   lastTrayNumber: number;
+  lastSaleNumber: number; // highest sale number handed out, so numbers are never reused
   shop: ShopSettings;
 }
 
@@ -169,6 +170,57 @@ export interface AppData {
   reminders: Reminder[];
   supplies: SupplyItem[];
   stock: StockLot[];
+  customers: Customer[];
+  prices: CropPrice[];
+  sales: Sale[];
+}
+
+export type CustomerType = 'home' | 'restaurant' | 'shop' | 'other';
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  type: CustomerType;
+  note?: string;
+  createdAt: string;
+}
+
+// The price of a crop per 100 g, with optional different prices for some types of customer.
+export interface CropPrice {
+  crop: string;
+  per100g: number;
+  byType?: Partial<Record<CustomerType, number>>;
+}
+
+export type PaymentMethod = 'cash' | 'upi' | 'card' | 'other';
+
+export interface Payment {
+  id: string;
+  date: string; // YYYY-MM-DD
+  amount: number;
+  method: PaymentMethod;
+}
+
+export interface SaleItem {
+  crop: string;
+  grams: number;
+  amount: number; // the line's price
+}
+
+// A sale: microgreens taken from stock, with what was paid. Paid less than the total means the rest is owed.
+export interface Sale {
+  id: string;
+  number: number; // shown as "S001"
+  date: string; // YYYY-MM-DD
+  customerId?: string; // none for a walk-in sale
+  items: SaleItem[];
+  discount?: number;
+  total: number; // items minus discount
+  payments: Payment[];
+  note?: string;
+  createdAt: string;
 }
 
 // Harvested microgreens waiting to be sold, in grams. A harvest adds a lot; sales and wastage take from it, from the

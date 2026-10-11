@@ -173,7 +173,7 @@ fs.mkdirSync(out, { recursive: true });
   await page.screenshot({ path: `${out}/08-shop.png` });
   await nav('Settings').click();
   assert.equal(await page.locator('.settings-group-label').first().innerText(), 'YOUR SHOP');
-  await page.getByRole('group', { name: 'Shop settings' }).getByRole('button').click();
+  await page.getByRole('group', { name: 'Shop settings' }).getByRole('button', { name: /^Shop / }).click();
   await page.getByRole('radio', { name: 'Blue' }).click();
   await page.getByLabel('Currency').selectOption('USD');
   await page.getByText('Example: US$1,250.50').waitFor();
@@ -183,7 +183,7 @@ fs.mkdirSync(out, { recursive: true });
   assert.equal(await accent(), '#2563a8');
   // Hiding Shop leaves only the farm, with the app's name in the header.
   await nav('Settings').click();
-  await page.getByRole('group', { name: 'Shop settings' }).getByRole('button').click();
+  await page.getByRole('group', { name: 'Shop settings' }).getByRole('button', { name: /^Shop / }).click();
   await page.getByRole('switch').click();
   await page.locator('.swipe-page').getByRole('button', { name: 'Back', exact: true }).click();
   assert.equal(await modeSwitch.count(), 0);
