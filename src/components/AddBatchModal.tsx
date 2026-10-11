@@ -16,13 +16,14 @@ interface AddBatchModalProps {
   config: AppConfig;
   freeSlots: number[]; // positions not held by any growing tray
   supplies: SupplyItem[]; // for the seed in stock; a new batch takes its seed from there when saved
+  preset?: { crop: string; trays: number } | null; // a new batch started from a sowing plan
 }
 
 const MAX_TRAYS = 200;
 
 const inputClass = 'w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors';
 
-const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatch, onSave, cropTypes, config, freeSlots, supplies }) => {
+const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatch, onSave, cropTypes, config, freeSlots, supplies, preset }) => {
   const [cropType, setCropType] = useState('');
   const [sowingDate, setSowingDate] = useState(todayLocal());
   const [expectedHarvestDate, setExpectedHarvestDate] = useState('');
@@ -65,6 +66,14 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatc
       setTrays([draftTray(new Set())]);
       setCountText('1');
       setShowPositions(false);
+      if (preset) {
+        const crop = cropTypes.find(c => c.name.toLowerCase() === preset.crop.toLowerCase());
+        if (crop) {
+          setCropType(crop.name);
+          recalcHarvest(crop.name, todayLocal());
+        }
+        setTrayCount(preset.trays);
+      }
     }
   }, [editBatch, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 

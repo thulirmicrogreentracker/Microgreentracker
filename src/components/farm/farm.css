@@ -2225,3 +2225,81 @@ body {
   width: 100%;
   margin-top: 10px;
 }
+
+/* Sow for orders and the profit report */
+.care-row-static {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  border-bottom: 1px solid #f1f2ed;
+}
+.care-row-static:last-child {
+  border: 0;
+}
+.care-row-static > span:not(.care-icon) {
+  flex: 1;
+  min-width: 0;
+}
+.sow-note {
+  font-size: 11px;
+}
+.profit-periods {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.profit-periods button {
+  padding: 8px 2px;
+  font-size: 11px;
+}
+.profit-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.profit-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.profit-summary span {
+  font-size: 11px;
+  color: var(--farm-muted);
+}
+.profit-summary strong {
+  font-size: 18px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.profit-summary small {
+  font-size: 10px;
+  color: var(--farm-muted);
+}
+.profit-summary .loss strong,
+.profit-crop strong.loss {
+  color: #a23b2a;
+}
+.profit-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.profit-lines p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.profit-lines p span {
+  color: #5d6b5c;
+}
+.profit-lines small {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.profit-crop strong,
+.care-list button > strong {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}

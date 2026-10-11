@@ -204,6 +204,15 @@ fs.mkdirSync(out, { recursive: true });
   await nav('Today').click();
   await page.getByText('No deliveries today.').waitFor();
   assert.match(await page.locator('.farm-metrics').innerText(), /^US\$160\nSold today/);
+  // The profit report has the sale; Farm Home plans sowings for the next weeks of the subscription.
+  await page.getByRole('button', { name: 'Profit report' }).click();
+  await page.locator('.profit-summary').getByText('US$160').first().waitFor();
+  await page.locator('.swipe-page').last().getByRole('button', { name: 'Back', exact: true }).click();
+  await modeSwitch.getByRole('button', { name: /Farm/ }).click();
+  await page.getByRole('heading', { name: 'Sow for orders' }).waitFor();
+  assert.match(await page.locator('main').innerText(), /Sow \d+ trays? of Sunflower/);
+  await page.screenshot({ path: `${out}/10-sow-for-orders.png`, fullPage: true });
+  await modeSwitch.getByRole('button', { name: /Shop/ }).click();
   // Hiding Shop leaves only the farm, with the app's name in the header.
   await nav('Settings').click();
   await page.getByRole('group', { name: 'Shop settings' }).getByRole('button', { name: /^Shop / }).click();
@@ -215,7 +224,7 @@ fs.mkdirSync(out, { recursive: true });
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(
-    'PASS: five tabs, farm and shop modes, shop colour and currency, subscription delivery, all tasks, swipe back, stage pills, batch locations, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, settings pages, capacity guard, persistence and responsive widths.'
+    'PASS: five tabs, farm and shop modes, shop colour and currency, subscription delivery, profit report, sow for orders, all tasks, swipe back, stage pills, batch locations, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, settings pages, capacity guard, persistence and responsive widths.'
   );
 })().catch((e) => {
   console.error(e);

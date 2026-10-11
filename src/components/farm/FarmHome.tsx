@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ArrowUpRight, Check, ChevronRight, CheckCircle2, Droplets, Leaf, Package, Plus, Sprout, Sun, X } from 'lucide-react';
 import { Batch, CropType } from '../../types';
 import { activeTrays, batchCode, isBatchGrowing } from '../../utils/batches';
@@ -150,11 +151,13 @@ export default function FarmHome({
   onAllTasks,
   alerts,
   onSupply,
+  sowSection,
 }: {
   batches: Batch[];
   cropTypes: CropType[];
   alerts: SupplyAlert[];
   onSupply: (itemId: string) => void;
+  sowSection?: ReactNode; // "Sow for orders", when the Shop is on
   onStage: (stage: StageFilter) => void;
   onNew: () => void;
   onWater: (id: string) => void;
@@ -273,6 +276,7 @@ export default function FarmHome({
           )}
         </div>
       </section>
+      {sowSection}
       <button className="farm-primary" onClick={onNew}>
         <Plus size={20} /> {batches.length ? 'New batch' : 'Add Your First Batch'}
       </button>

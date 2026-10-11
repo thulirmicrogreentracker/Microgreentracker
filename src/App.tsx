@@ -44,6 +44,9 @@ import { CustomerForm, CustomerPage, CustomersPanel, paymentFor } from './compon
 import { PriceList, SaleForm, SalePage } from './components/shop/Sales';
 import { CustomerOrders, OrderForm, OrderPage, OrdersPanel, SubscriptionForm, SubscriptionPage } from './components/shop/Orders';
 import { Delivery, deliveriesBetween, deliveryListText, orderCode } from './utils/orders';
+import { sowPlans, SowPlan } from './utils/plan';
+import { SowForOrders, SowForOrdersPage } from './components/farm/SowForOrders';
+import ProfitReportPanel from './components/shop/ProfitReport';
 import { customerDue, recordPayment, returnSaleStock, saleCode } from './utils/sales';
 import { formatDate, getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
@@ -107,6 +110,9 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [selectedTray, setSelectedTray] = useState<{ batchId: string; trayId: string } | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // A new batch started from "Sow for orders": its crop and number of trays.
+  const [batchPreset, setBatchPreset] = useState<{ crop: string; trays: number } | null>(null);
+  const [showSowPlan, setShowSowPlan] = useState(false);
   const [editBatch, setEditBatch] = useState<Batch | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [lossSheet, setLossSheet] = useState<{ batchId: string; trayIds: string[] } | null>(null);
@@ -170,7 +176,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     else if (harvestBatchId) setHarvestBatchId(null);
     else if (lossSheet) setLossSheet(null);
     else if (quickActionModal.isOpen) setQuickActionModal({ isOpen: false, batch: null, actionType: null });
-    else if (isModalOpen) { setIsModalOpen(false); setEditBatch(null); }
+    else if (isModalOpen) handleCloseModal();
     else if (viewerPhoto) setViewerPhoto(null);
     else if (compareBatchId) setCompareBatchId(null);
     else if (galleryBatchId) setGalleryBatchId(null);
@@ -179,6 +185,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     else if (showNotifications) setShowNotifications(false);
     else if (selectedTray) setSelectedTray(null);
     else if (showTasks) setShowTasks(false);
+    else if (showSowPlan) setShowSowPlan(false);
     else if (saleForm) setSaleForm(null);
     else if (customerForm) setCustomerForm(null);
     else if (subForm) setSubForm(null);
@@ -425,6 +432,12 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditBatch(null);
+    setBatchPreset(null);
+  };
+  const sowFor = (p: SowPlan) => {
+    setBatchPreset({ crop: p.crop, trays: p.trays });
+    setEditBatch(null);
+    setIsModalOpen(true);
   };
 
   const updatePhotos = (batchId: string, fn: (photos: BatchPhoto[]) => BatchPhoto[]) =>
@@ -525,8 +538,14 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         { key: 'customers', label: 'Customers', icon: Users },
         { key: 'config', label: 'Settings', icon: Settings },
       ];
-  // Work waiting on the other side of the switch: batches ready to harvest on the farm.
-  const farmBadge = batches.filter(b => b.stage === 'harvest' && isBatchGrowing(b)).length;
+  // What to sow so the Shop's orders and subscriptions have enough (only when selling).
+  const sowing = useMemo(
+    () => (shopOn ? sowPlans(batches, stock, orders, subscriptions, cropTypes, todayLocal()) : { plans: [], short: [] }),
+    [shopOn, batches, stock, orders, subscriptions, cropTypes]
+  );
+  // Work waiting on the other side of the switch: batches ready to harvest on the farm, and sowings due today.
+  const farmBadge =
+    batches.filter(b => b.stage === 'harvest' && isBatchGrowing(b)).length + sowing.plans.filter(p => p.sowBy <= todayLocal()).length;
   // Shop: deliveries due today (or overdue), and stock to sell today or tomorrow or past its use-by date.
   const shopBadge = useMemo(() => {
     const today = todayLocal();
@@ -765,6 +784,9 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               onAllTasks={() => setShowTasks(true)}
               alerts={alerts}
               onSupply={openSupply}
+              sowSection={
+                <SowForOrders plans={sowing.plans} short={sowing.short} freePositions={availableSlots.length} onSow={sowFor} onAll={() => setShowSowPlan(true)} />
+              }
             />
             {batches.length === 0 && (
               <button className="farm-restore-link" onClick={() => importInputRef.current?.click()}>
@@ -897,6 +919,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             onDeliver={deliver}
             onOpenDelivery={openDelivery}
             onShareDeliveries={shareDeliveries}
+            onProfit={() => setSettingsPage('profit')}
             onOpenCrop={setStockCrop}
             onStock={() => setActiveTab('stock')}
             onNewSale={() => setSaleForm({})}
@@ -977,6 +1000,11 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           />
         </SwipePage>
       )}
+      {showSowPlan && (
+        <SwipePage title="Sow for orders" onBack={() => setShowSowPlan(false)}>
+          <SowForOrdersPage plans={sowing.plans} short={sowing.short} onSow={sowFor} />
+        </SwipePage>
+      )}
       {settingsPage && (
         <SwipePage title={settingsTitles[settingsPage]} onBack={() => setSettingsPage(null)}>
           {settingsPage === 'layout' ? (
@@ -986,6 +1014,19 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               <ReportExport batches={batches} />
               <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
             </div>
+          ) : settingsPage === 'profit' ? (
+            <ProfitReportPanel
+              sales={sales}
+              batches={batches}
+              stock={stock}
+              supplies={supplies}
+              customers={customers}
+              currency={currency}
+              onOpenCustomer={id => {
+                setSettingsPage(null);
+                setCustomerPage(id);
+              }}
+            />
           ) : settingsPage === 'prices' ? (
             <PriceList prices={prices} cropTypes={cropTypes} currency={currency} onChange={next => update(d => ({ ...d, prices: next }))} />
           ) : settingsPage === 'shop' ? (
@@ -1454,6 +1495,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         config={config}
         freeSlots={availableSlots}
         supplies={supplies}
+        preset={batchPreset}
       />
 
       {/* Quick Action Modal */}

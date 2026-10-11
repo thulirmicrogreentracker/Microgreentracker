@@ -126,6 +126,20 @@ crop is short.
 **I deleted a delivery's sale by mistake. What happens?**
 Its microgreens go back into stock and the delivery goes back on the list, so you can deliver it again.
 
+**How does the app know what to sow for my orders?**
+When Shop is on, Farm Home shows "Sow for orders". It looks at your orders and subscriptions for the next few weeks,
+takes off what's in stock and what your growing batches should give (by their expected harvest date), and suggests
+how many trays to sow, and by when, for the rest. Trays are worked out from the average weight per tray of your last
+weighed harvests of that crop (150 g a tray until you've weighed one). Tap a suggestion to start the batch with the
+crop and trays filled in. If a delivery is too soon to grow for, it says so, and it warns you when you don't have
+enough free tray positions for the week's sowings.
+
+**Where can I see my profit?**
+In Shop, tap "Profit report" on Today (or Settings → Profit report). For this month, last month, the last 30 days or
+this year it shows your sales, the growing cost (the seed and growing media each harvested batch used, from the prices
+you entered in Supplies), the profit, what was collected and what's still owed, and the same by crop and for your top
+customers. "Download sales (CSV)" saves the period's sales for a spreadsheet.
+
 **What's the Farm / Shop switch at the top?**
 Farm is for growing: trays, batches and supplies. Shop is for selling: orders, subscriptions, sales, customers, stock
 and what's owed. If you don't sell, turn Shop off under Settings → Shop;

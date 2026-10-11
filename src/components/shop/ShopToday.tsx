@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarDays, ChevronRight, Clock, Share2, ShoppingBag, Truck, Wallet } from 'lucide-react';
+import { AlertTriangle, CalendarDays, ChevronRight, Clock, Share2, ShoppingBag, TrendingUp, Truck, Wallet } from 'lucide-react';
 import { Customer, Order, Sale, StockLot, Subscription } from '../../types';
 import { formatMoney } from '../../data/shop';
 import { formatGrams } from '../../utils/batches';
@@ -18,6 +18,7 @@ interface ShopTodayProps {
   onDeliver: (d: Delivery) => void;
   onOpenDelivery: (d: Delivery) => void;
   onShareDeliveries: (deliveries: Delivery[]) => void;
+  onProfit: () => void;
   onOpenCrop: (crop: string) => void;
   onStock: () => void;
   onNewSale: () => void;
@@ -143,6 +144,9 @@ export default function ShopToday(props: ShopTodayProps) {
           </div>
         </section>
       )}
+      <button className="farm-secondary" onClick={props.onProfit}>
+        <TrendingUp size={16} /> Profit report
+      </button>
     </div>
   );
 }
