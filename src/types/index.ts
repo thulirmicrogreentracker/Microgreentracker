@@ -133,6 +133,7 @@ export interface CropType {
   wateringFrequency: number; // days
   lightingHours: number;
   category: string; // one of AppConfig.categories
+  shelfLifeDays?: number; // days a harvest keeps; DEFAULT_SHELF_LIFE when not set
 }
 
 // Shop mode: whether it's shown, its colour (a key from data/shop.ts) and the currency for prices (ISO 4217 code).
@@ -167,4 +168,28 @@ export interface AppData {
   config: AppConfig;
   reminders: Reminder[];
   supplies: SupplyItem[];
+  stock: StockLot[];
+}
+
+// Harvested microgreens waiting to be sold, in grams. A harvest adds a lot; sales and wastage take from it, from the
+// lot whose use-by date comes first.
+export interface StockLot {
+  id: string; // 'h-<batch id>' for a harvest, so weighing again updates the same lot
+  crop: string;
+  batchId?: string;
+  harvestedOn: string; // YYYY-MM-DD
+  useBy: string; // YYYY-MM-DD: harvestedOn + the crop's shelf life
+  grams: number; // added to stock
+  remaining: number;
+  moves: StockMove[];
+  note?: string;
+}
+
+export interface StockMove {
+  id: string;
+  date: string; // YYYY-MM-DD
+  grams: number; // taken out (sold, waste) or the change (adjust, + or −)
+  kind: 'sold' | 'waste' | 'adjust';
+  ref?: string; // the order or sale it went to
+  note?: string;
 }

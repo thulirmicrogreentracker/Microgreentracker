@@ -1943,3 +1943,70 @@ body {
   min-height: 44px;
   width: auto;
 }
+
+/* Stock */
+.stock-expired {
+  color: #a23b2a !important;
+}
+.stock-lot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stock-lot-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.stock-lot-head b {
+  display: block;
+  font-size: 15px;
+  font-weight: 650;
+}
+.stock-lot-head small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--farm-muted);
+}
+.stock-lot-head .stage-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.stock-moves {
+  margin: 0;
+  padding-left: 16px;
+  list-style: disc;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--farm-muted);
+}
+.stock-act {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+}
+.stock-act input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--farm-border);
+  border-radius: 12px;
+  background: #fafbf7;
+  font-size: 15px;
+}
+.stock-act .farm-danger,
+.stock-act .farm-secondary {
+  min-height: 44px;
+  width: auto;
+  padding: 0 12px;
+}
+.stock-act .supply-error {
+  grid-column: 1 / -1;
+}
+.stock-edit {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--farm-green);
+}

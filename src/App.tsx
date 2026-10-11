@@ -37,6 +37,10 @@ import SuppliesPanel from './components/supplies/SuppliesPanel';
 import SupplyDetail from './components/supplies/SupplyDetail';
 import { LotForm, SupplyForm } from './components/supplies/SupplyForms';
 import { suppliesForBatch, supplyAlerts } from './utils/supplies';
+import { addHarvestToStock, moveStock, stockAlerts } from './utils/stock';
+import StockPanel from './components/shop/StockPanel';
+import StockCrop, { AddStock } from './components/shop/StockCrop';
+import ShopToday from './components/shop/ShopToday';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
@@ -70,7 +74,7 @@ interface TrackerAppProps {
 }
 
 function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
-  const { batches, cropTypes, config, reminders, supplies } = data;
+  const { batches, cropTypes, config, reminders, supplies, stock } = data;
   const currency = config.shop.currency;
   const setSupplies = (fn: (prev: SupplyItem[]) => SupplyItem[]) => update(d => ({ ...d, supplies: fn(d.supplies) }));
   const saveSupply = (item: SupplyItem) =>
@@ -114,6 +118,9 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [showTasks, setShowTasks] = useState(false);
   // Supplies: the item page that's open, and a form on top of it.
   const [supplyId, setSupplyId] = useState<string | null>(null);
+  // Stock: one crop's page, and the add-stock form.
+  const [stockCrop, setStockCrop] = useState<string | null>(null);
+  const [addingStock, setAddingStock] = useState(false);
   const [supplyForm, setSupplyForm] = useState<
     { mode: 'new'; kind?: SupplyKind } | { mode: 'edit'; id: string } | { mode: 'lot'; itemId: string; lotId?: string } | null
   >(null);
@@ -157,6 +164,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     else if (showNotifications) setShowNotifications(false);
     else if (selectedTray) setSelectedTray(null);
     else if (showTasks) setShowTasks(false);
+    else if (addingStock) setAddingStock(false);
+    else if (stockCrop) setStockCrop(null);
     else if (supplyForm) setSupplyForm(null);
     else if (supplyId) setSupplyId(null);
     else if (settingsPage) setSettingsPage(null);
@@ -300,22 +309,28 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   };
 
   // Records the harvest: per-tray weights in grams, the date, and the batch total. Also used to correct weights later.
+  // Also adds the weighed harvest to Shop's stock (or updates it when weighed again).
   const harvestBatch = (batchId: string, weights: Record<string, number | undefined>, date: string) => {
-    setBatches(prev => prev.map(b => {
-      if (b.id !== batchId) return b;
-      const trays = b.trays.map(t => (t.id in weights ? { ...t, harvestWeight: weights[t.id] } : t));
-      const total = trays.reduce((sum, t) => sum + (t.status === 'active' ? t.harvestWeight ?? 0 : 0), 0);
-      const weighed = trays.some(t => t.status === 'active' && t.harvestWeight != null);
-      return {
-        ...b,
-        trays,
-        stage: 'completed',
-        actualHarvestDate: date,
-        // Without any tray weights, keep an older total (e.g. from before trays were weighed).
-        ...(weighed ? { yieldAmount: Math.round(total * 10) / 10, yieldUnit: 'grams' as const } : {}),
-        updatedAt: new Date().toISOString(),
-      };
-    }));
+    update(d => {
+      let stock = d.stock;
+      const nextBatches = d.batches.map(b => {
+        if (b.id !== batchId) return b;
+        const trays = b.trays.map(t => (t.id in weights ? { ...t, harvestWeight: weights[t.id] } : t));
+        const total = trays.reduce((sum, t) => sum + (t.status === 'active' ? t.harvestWeight ?? 0 : 0), 0);
+        const weighed = trays.some(t => t.status === 'active' && t.harvestWeight != null);
+        if (weighed) stock = addHarvestToStock(stock, b, total, date, d.cropTypes);
+        return {
+          ...b,
+          trays,
+          stage: 'completed' as const,
+          actualHarvestDate: date,
+          // Without any tray weights, keep an older total (e.g. from before trays were weighed).
+          ...(weighed ? { yieldAmount: Math.round(total * 10) / 10, yieldUnit: 'grams' as const } : {}),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      return { ...d, batches: nextBatches, stock };
+    });
     setHarvestBatchId(null);
   };
 
@@ -489,7 +504,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       ];
   // Work waiting on the other side of the switch: batches ready to harvest on the farm. (Shop's comes with orders.)
   const farmBadge = batches.filter(b => b.stage === 'harvest' && isBatchGrowing(b)).length;
-  const shopBadge = 0;
+  // Shop: stock to sell today or tomorrow, or past its use-by date. (Deliveries are added with orders.)
+  const shopBadge = useMemo(() => stockAlerts(stock, todayLocal()).length, [stock]);
   const alerts = useMemo(() => supplyAlerts(supplies, todayLocal()), [supplies]);
   // Opens a supply's page on the Supplies tab (from a care task, for example).
   const openSupply = (itemId: string) => {
@@ -774,15 +790,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           <SuppliesPanel supplies={supplies} batches={batches} onOpen={setSupplyId} onAdd={kind => setSupplyForm({ mode: 'new', kind })} />
         )}
 
-        {activeTab === 'today' && (
-          <ComingSoon
-            eyebrow="YOUR SHOP TODAY"
-            title="Today"
-            subtitle="Deliveries, sales and stock."
-            icon={CalendarDays}
-            points={["Today's deliveries, from orders and subscriptions", 'Payments due', 'Stock close to its use-by date']}
-          />
-        )}
+        {activeTab === 'today' && <ShopToday stock={stock} onOpenCrop={setStockCrop} onStock={() => setActiveTab('stock')} />}
         {activeTab === 'orders' && (
           <ComingSoon
             eyebrow="SELL AND DELIVER"
@@ -792,15 +800,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             points={['Quick sales at the shop', 'Orders for a delivery date', 'Subscriptions that repeat every week', 'Bills to share on WhatsApp']}
           />
         )}
-        {activeTab === 'stock' && (
-          <ComingSoon
-            eyebrow="FROM HARVEST TO SALE"
-            title="Stock"
-            subtitle="What's harvested and ready to sell."
-            icon={Boxes}
-            points={['Harvests added to stock automatically', 'Use-by dates from each crop\'s shelf life', 'Oldest stock sold first', 'Wastage when stock expires']}
-          />
-        )}
+        {activeTab === 'stock' && <StockPanel stock={stock} onOpenCrop={setStockCrop} onAdd={() => setAddingStock(true)} />}
         {activeTab === 'customers' && (
           <ComingSoon
             eyebrow="THE PEOPLE YOU GROW FOR"
@@ -895,6 +895,27 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               hasBatches={batches.length > 0}
             />
           )}
+        </SwipePage>
+      )}
+      {stockCrop && (
+        <SwipePage title={`${stockCrop} stock`} onBack={() => setStockCrop(null)}>
+          <StockCrop
+            crop={stockCrop}
+            stock={stock}
+            batches={batches}
+            onMove={(lotId, move) => update(d => ({ ...d, stock: moveStock(d.stock, lotId, move) }))}
+          />
+        </SwipePage>
+      )}
+      {addingStock && (
+        <SwipePage title="Add stock" onBack={() => setAddingStock(false)}>
+          <AddStock
+            cropTypes={cropTypes}
+            onSave={lot => {
+              update(d => ({ ...d, stock: [...d.stock, lot] }));
+              setAddingStock(false);
+            }}
+          />
         </SwipePage>
       )}
       {supplyId && (() => {

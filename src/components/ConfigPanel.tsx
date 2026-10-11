@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Check, X, Droplets, Sun, Timer, ChevronDown, Chev
 import { CropType, AppConfig } from '../types';
 import { batchCode, MAX_NUMBER, trayCode, wholeNumber } from '../utils/batches';
 import { categoryIcon, categoryIconOptions } from '../data/categoryIcons';
+import { DEFAULT_SHELF_LIFE } from '../utils/stock';
 import { defaultCategories, defaultCropTypes } from '../data/cropTypes';
 
 // The settings pages this panel draws (the rack layout and the About links are elsewhere).
@@ -434,6 +435,18 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ section, cropTypes, onUpdateC
                 max={24}
               />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-emerald-800 mb-1">
+                <Timer className="w-3 h-3 inline mr-1" />Shelf life (days)
+              </label>
+              <input
+                type="number"
+                value={newCrop.shelfLifeDays ?? DEFAULT_SHELF_LIFE}
+                onChange={e => setNewCrop({ ...newCrop, shelfLifeDays: Number(e.target.value) > 0 ? Number(e.target.value) : undefined })}
+                className="w-full px-3 py-2 border border-emerald-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                min={1}
+              />
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-emerald-800 mb-1">Category</label>
@@ -545,6 +558,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ section, cropTypes, onUpdateC
                               max={24}
                             />
                           </div>
+                          <div>
+                            <label className="block text-xs font-medium text-amber-800 mb-1">Shelf life (days)</label>
+                            <input
+                              type="number"
+                              value={editForm.shelfLifeDays ?? DEFAULT_SHELF_LIFE}
+                              onChange={e => setEditForm({ ...editForm, shelfLifeDays: Number(e.target.value) > 0 ? Number(e.target.value) : undefined })}
+                              className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                              min={1}
+                            />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-amber-800 mb-1">Category</label>
@@ -611,6 +634,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ section, cropTypes, onUpdateC
                         <div className="flex items-center gap-1">
                           <Sun className="w-3 h-3" />
                           <span>{crop.lightingHours}h/day</span>
+                        </div>
+                        <div className="flex items-center gap-1 col-span-4">
+                          <Timer className="w-3 h-3" />
+                          <span>Keeps {crop.shelfLifeDays ?? DEFAULT_SHELF_LIFE} days after harvest</span>
                         </div>
                       </div>
                     </div>

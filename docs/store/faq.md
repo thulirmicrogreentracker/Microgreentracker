@@ -91,6 +91,11 @@ the top of Supplies and in Today's care on Home.
 Yes, when you enter the price you paid for your seed and coco peat. The batch card then shows what its supplies cost,
 in total and per tray.
 
+**How does stock work?**
+When you weigh a harvest, its grams go into Shop → Stock with a use-by date from the crop's shelf life (set it for each
+crop under Settings → Crops & categories; 7 days if not set). Stock close to its use-by date shows under Today and at
+the top of Stock. Open a crop to record waste or correct what's left; you can also add stock by hand.
+
 **What's the Farm / Shop switch at the top?**
 Farm is for growing: trays, batches and supplies. Shop is for selling: orders, subscriptions, customers and stock (these
 are being added). If you don't sell, turn Shop off under Settings → Shop; you can also pick Shop's colour and your

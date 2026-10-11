@@ -6,6 +6,7 @@ import { normalizeLayout } from '../utils/farmLayout';
 import { isSafePhotoName } from './photos';
 import { defaultShopSettings, normalizeShopSettings } from '../data/shop';
 import { normalizeSupplies } from '../utils/supplies';
+import { normalizeStock } from '../utils/stock';
 
 // Before version 1 of the storage format, data lived in localStorage under these keys,
 // photos were embedded as data: URLs, and daily snapshots / downloaded .json backups
@@ -34,6 +35,7 @@ export const defaultAppData = (): AppData => ({
   },
   reminders: [],
   supplies: [],
+  stock: [],
 });
 
 // Schema version 1 stored a single tray per batch, and lower-case fixed crop categories.
@@ -121,6 +123,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     config,
     reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
     supplies: normalizeSupplies(raw.supplies),
+    stock: normalizeStock(raw.stock),
   };
 };
 
