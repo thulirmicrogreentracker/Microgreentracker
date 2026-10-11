@@ -127,7 +127,8 @@ fs.mkdirSync(out, { recursive: true });
   await page.locator('.swipe-page').getByRole('button', { name: /B001 · Radish/ }).click();
   await page.locator('[data-batch-card]').first().waitFor();
   await page.screenshot({ path: `${out}/05-batches.png` });
-  await nav('Insights').click();
+  await nav('Settings').click();
+  await page.getByRole('button', { name: /^Insights & reports/ }).click();
   const dl = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export CSV', exact: true }).click();
   const download = await dl;
@@ -138,6 +139,7 @@ fs.mkdirSync(out, { recursive: true });
   await page.getByRole('button', { name: 'PDF report', exact: true }).click();
   await (await pdf).saveAs(`${out}/report.pdf`);
   assert(fs.readFileSync(`${out}/report.pdf`).subarray(0, 4).toString() === '%PDF');
+  await page.locator('.swipe-page').getByRole('button', { name: 'Back', exact: true }).click();
   await nav('Settings').click();
   await page.getByRole('button', { name: /^Racks & shelves/ }).click();
   await page.getByLabel('Racks', { exact: true }).fill('1');
@@ -155,10 +157,42 @@ fs.mkdirSync(out, { recursive: true });
     await nav('Home').click();
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `overflow at ${width}`);
   }
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // Farm | Shop switch: Shop has its own tabs and colour; the choice and the Shop settings survive a reload.
+  const modeSwitch = page.getByRole('group', { name: 'Farm or shop' });
+  const navLabels = () => page.locator('.farm-nav-item span').allInnerTexts();
+  assert.deepEqual(await navLabels(), ['Home', 'Shelves', 'Batches', 'Supplies', 'Settings']);
+  // The Farm side shows the batches ready to harvest while Shop is open.
+  await modeSwitch.getByRole('button', { name: /Shop/ }).click();
+  assert.deepEqual(await navLabels(), ['Today', 'Orders', 'Stock', 'Customers', 'Settings']);
+  await page.getByRole('heading', { name: 'Today', exact: true }).waitFor();
+  assert.equal(await modeSwitch.getByRole('button', { name: /Farm/ }).innerText(), 'Farm\n1');
+  const accent = () => page.evaluate(() => getComputedStyle(document.querySelector('.farm-app')).getPropertyValue('--farm-green').trim());
+  assert.equal(await accent(), '#c2552d');
+  await page.screenshot({ path: `${out}/08-shop.png` });
+  await nav('Settings').click();
+  assert.equal(await page.locator('.settings-group-label').first().innerText(), 'YOUR SHOP');
+  await page.getByRole('group', { name: 'Shop settings' }).getByRole('button').click();
+  await page.getByRole('radio', { name: 'Blue' }).click();
+  await page.getByLabel('Currency').selectOption('USD');
+  await page.getByText('Example: US$1,250.50').waitFor();
+  assert.equal(await accent(), '#2563a8');
+  await page.reload();
+  assert.deepEqual(await navLabels(), ['Today', 'Orders', 'Stock', 'Customers', 'Settings']);
+  assert.equal(await accent(), '#2563a8');
+  // Hiding Shop leaves only the farm, with the app's name in the header.
+  await nav('Settings').click();
+  await page.getByRole('group', { name: 'Shop settings' }).getByRole('button').click();
+  await page.getByRole('switch').click();
+  await page.locator('.swipe-page').getByRole('button', { name: 'Back', exact: true }).click();
+  assert.equal(await modeSwitch.count(), 0);
+  assert.deepEqual(await navLabels(), ['Home', 'Shelves', 'Batches', 'Supplies', 'Settings']);
+  await page.getByRole('heading', { name: 'Thulir MicroGreen Tracker' }).waitFor();
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(
-    'PASS: five tabs, all tasks, swipe back, stage pills, batch locations, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, settings pages, capacity guard, persistence and responsive widths.'
+    'PASS: five tabs, farm and shop modes, shop colour and currency, all tasks, swipe back, stage pills, batch locations, rack selection, expanded shelf, tray detail, batch navigation, PDF/CSV downloads, settings pages, capacity guard, persistence and responsive widths.'
   );
 })().catch((e) => {
   console.error(e);

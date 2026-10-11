@@ -35,7 +35,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   const browser = await chromium.launch(process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {});
   const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 400, height: 860 } });
   const page = await context.newPage();
-  // Taps a tab in the bottom navigation (Home, Shelves, Batches, Insights, Settings).
+  // Taps a tab in the bottom navigation (Home, Shelves, Batches, Supplies, Settings).
   const tab = name => page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true }).click();
   // Settings → Backup & restore, which opens as its own page; closePage goes back from it.
   const backupPage = async () => { await tab('Settings'); await page.getByRole('button', { name: /^Backup & restore/ }).click(); };
@@ -74,7 +74,9 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   await tab('Batches');
   await page.getByText('Radish').first().waitFor();
   check(await page.getByText('Basil').count() > 0, 'migration: both legacy batches shown');
-  await page.waitForFunction(() => /Backup:/.test(document.body.innerText)); // daily snapshot runs after data loads
+  await tab('Settings');
+  await page.getByText(/^Last copy /).waitFor(); // the daily snapshot runs after the data loads
+  await tab('Batches');
   let disc = await listDisc(page);
   check(disc.some(e => e.path.endsWith('/microgreen/photos/ph1abc.png')), 'migration: embedded photo written as photos/ph1abc.png');
   let env = await latestData(page);

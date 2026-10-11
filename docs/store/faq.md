@@ -56,7 +56,7 @@ gallery can then be filtered by tray and by stage, and photos can be compared si
 
 **A tray failed. How do I record it?**
 Open the batch and tap "Report lost trays". Pick the trays, a reason (fungus or mould, pest attack, physical damage and
-more), the date and an optional note. Lost trays free their positions and appear in Insights → Tray Losses.
+more), the date and an optional note. Lost trays free their positions and appear in Settings → Insights & reports → Tray Losses.
 
 **I marked a tray lost by mistake. Can I undo it?**
 Yes. Tap "Edit batch & trays" and tap "Growing again" next to the tray.
@@ -69,7 +69,7 @@ When a batch is "Ready to Harvest", tap "Harvest & weigh trays", enter the weigh
 all") and tap "Harvest". You can correct weights later with "Edit tray weights".
 
 **Can I export a report?**
-Yes. Open the Insights tab, choose a crop (or all) and the sowing dates, then tap "PDF report" or "Export CSV". The
+Yes. Open Settings → Insights & reports, choose a crop (or all) and the sowing dates, then tap "PDF report" or "Export CSV". The
 file opens in your phone's share sheet, so you can save it or send it by email.
 
 **What is the seed-to-yield ratio?**

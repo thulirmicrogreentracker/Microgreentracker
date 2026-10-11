@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { Plus, Sprout, Settings, BarChart3, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown, LayoutGrid, Layers, Search } from 'lucide-react';
+import { Plus, Sprout, Settings, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown, LayoutGrid, Layers, Search, Package, CalendarDays, ClipboardList, Boxes, Users } from 'lucide-react';
 import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto } from './types';
 import { useAppData, UpdateAppData } from './hooks/useAppData';
 import { useReminders } from './hooks/useReminders';
@@ -29,6 +29,10 @@ import LostTraySheet, { TrayLoss } from './components/LostTraySheet';
 import HarvestSheet from './components/HarvestSheet';
 import AppLogo from './components/AppLogo';
 import InfoPage, { InfoPageKind } from './components/InfoPage';
+import ModeSwitch, { AppMode } from './components/ModeSwitch';
+import ComingSoon from './components/shop/ComingSoon';
+import ShopSettingsPanel from './components/shop/ShopSettingsPanel';
+import { accentColor } from './data/shop';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
@@ -36,7 +40,23 @@ import { defaultCategories, defaultCategoryIcons, defaultCropTypes } from './dat
 import { generateTestBatches } from './utils/generateTestData';
 import { appInfo } from './data/appInfo';
 
-type Tab = 'home' | 'shelves' | 'batches' | 'reports' | 'config';
+type FarmTab = 'home' | 'shelves' | 'batches' | 'supplies';
+type ShopTab = 'today' | 'orders' | 'stock' | 'customers';
+type Tab = FarmTab | ShopTab | 'config';
+
+// The first tab of each mode, where Back and a swipe from the left edge lead.
+const startTab = (mode: AppMode): Tab => (mode === 'farm' ? 'home' : 'today');
+const SHOP_TABS: Tab[] = ['today', 'orders', 'stock', 'customers'];
+
+// The last mode used, remembered on this phone only.
+const MODE_KEY = 'thulir-mode';
+const savedMode = (): AppMode => {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'shop' ? 'shop' : 'farm';
+  } catch {
+    return 'farm';
+  }
+};
 
 interface TrackerAppProps {
   data: AppData;
@@ -62,7 +82,10 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     update(d => ({ ...d, config: { ...next, farmLayout: fits ? layout : undefined } }));
   };
   const setReminders = (fn: (prev: Reminder[]) => Reminder[]) => update(d => ({ ...d, reminders: fn(d.reminders) }));
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+  const shopOn = config.shop.enabled;
+  const [chosenMode, setChosenMode] = useState<AppMode>(savedMode);
+  const mode: AppMode = shopOn ? chosenMode : 'farm';
+  const [activeTab, setActiveTab] = useState<Tab>(() => startTab(mode));
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [batchSearch, setBatchSearch] = useState('');
   const [selectedTray, setSelectedTray] = useState<{ batchId: string; trayId: string } | null>(null);
@@ -122,7 +145,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     else if (selectedTray) setSelectedTray(null);
     else if (showTasks) setShowTasks(false);
     else if (settingsPage) setSettingsPage(null);
-    else if (activeTab !== 'home') setActiveTab('home');
+    else if (activeTab !== startTab(mode)) setActiveTab(startTab(mode));
     else CapacitorApp.exitApp();
   };
   const goBackRef = useRef(goBack);
@@ -133,13 +156,31 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     return () => { handle.then(h => h.remove()); };
   }, []);
 
-  // A swipe from the left edge on a tab other than Home goes back to Home (pushed screens handle their own swipe).
-  const activeTabRef = useRef(activeTab);
-  activeTabRef.current = activeTab;
+  // A swipe from the left edge on a tab other than the mode's first one goes back to it (pushed screens handle their
+  // own swipe).
+  const atStartRef = useRef(true);
+  atStartRef.current = activeTab === startTab(mode);
   useEffect(() => attachSwipeBack(mainRef.current!, () => goBackRef.current(), {
     slideOut: false,
-    enabled: () => activeTabRef.current !== 'home',
+    enabled: () => !atStartRef.current,
   }), []);
+
+  const switchMode = (next: AppMode) => {
+    setChosenMode(next);
+    try {
+      localStorage.setItem(MODE_KEY, next);
+    } catch {
+      // not remembered; nothing else depends on it
+    }
+    setActiveTab(startTab(next));
+    setSettingsPage(null);
+    mainRef.current?.scrollTo(0, 0);
+  };
+
+  // Turning Shop off while on a Shop tab goes back to the farm.
+  useEffect(() => {
+    if (!shopOn && SHOP_TABS.includes(activeTab)) setActiveTab('home');
+  }, [shopOn, activeTab]);
 
   const availableSlots = useMemo(() => freeSlots(batches, config.totalTrays), [batches, config.totalTrays]);
 
@@ -412,13 +453,24 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
 
   const allExpanded = batches.length > 0 && batches.every(b => expandedIds.has(b.id));
 
-  const tabs: { key: Tab; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { key: 'home', label: 'Home', icon: Home },
-    { key: 'shelves', label: 'Shelves', icon: LayoutGrid },
-    { key: 'batches', label: 'Batches', icon: Layers },
-    { key: 'reports', label: 'Insights', icon: BarChart3 },
-    { key: 'config', label: 'Settings', icon: Settings },
-  ];
+  const tabs: { key: Tab; label: string; icon: React.FC<{ className?: string }> }[] = mode === 'farm'
+    ? [
+        { key: 'home', label: 'Home', icon: Home },
+        { key: 'shelves', label: 'Shelves', icon: LayoutGrid },
+        { key: 'batches', label: 'Batches', icon: Layers },
+        { key: 'supplies', label: 'Supplies', icon: Package },
+        { key: 'config', label: 'Settings', icon: Settings },
+      ]
+    : [
+        { key: 'today', label: 'Today', icon: CalendarDays },
+        { key: 'orders', label: 'Orders', icon: ClipboardList },
+        { key: 'stock', label: 'Stock', icon: Boxes },
+        { key: 'customers', label: 'Customers', icon: Users },
+        { key: 'config', label: 'Settings', icon: Settings },
+      ];
+  // Work waiting on the other side of the switch: batches ready to harvest on the farm. (Shop's comes with orders.)
+  const farmBadge = batches.filter(b => b.stage === 'harvest' && isBatchGrowing(b)).length;
+  const shopBadge = 0;
 
   // Opens the Batches tab with one batch expanded and scrolled into view.
   const openBatch = (id: string) => {
@@ -461,7 +513,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     await createSnapshot(data);
     update(() => next);
     setExpandedIds(new Set());
-    setActiveTab('home');
+    setActiveTab(startTab(mode));
     setSettingsPage(null);
   };
 
@@ -508,24 +560,32 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
       return { ...d, batches: test, config: syncCounters({ ...d.config, lastBatchNumber: 0, lastTrayNumber: 0 }, test) };
     });
     setExpandedIds(new Set());
-    setActiveTab('home');
+    setActiveTab(startTab(mode));
     setSettingsPage(null);
   };
 
   return (
-    <div className="farm-app fixed inset-0 flex flex-col max-w-md mx-auto lg:max-w-lg xl:max-w-xl">
+    <div
+      className={`farm-app mode-${mode} fixed inset-0 flex flex-col max-w-md mx-auto lg:max-w-lg xl:max-w-xl`}
+      // In Shop the app's accent colour (buttons, the bottom bar's bubble) becomes the chosen Shop colour.
+      style={mode === 'shop' ? ({ '--farm-green': accentColor(config.shop.accent) } as React.CSSProperties) : undefined}
+    >
       {/* App Header */}
-      <header className="farm-app-header flex items-center justify-between px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] shrink-0">
-        <div className="flex items-center gap-2.5">
+      <header className="farm-app-header flex items-center justify-between gap-3 px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <AppLogo className="w-9 h-9 shrink-0" />
-          <div>
-            <h1 className="text-base font-bold text-gray-900 leading-tight">{appInfo.appName}</h1>
-            {lastBackup && (
-              <p className="text-[10px] text-gray-400 leading-tight">
-                Backup: {new Date(lastBackup).toLocaleDateString()} {new Date(lastBackup).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            )}
-          </div>
+          {shopOn ? (
+            <ModeSwitch mode={mode} onChange={switchMode} farmBadge={farmBadge} shopBadge={shopBadge} />
+          ) : (
+            <div>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">{appInfo.appName}</h1>
+              {lastBackup && (
+                <p className="text-[10px] text-gray-400 leading-tight">
+                  Backup: {new Date(lastBackup).toLocaleDateString()} {new Date(lastBackup).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <button
           onClick={() => setShowNotifications(true)}
@@ -682,30 +742,68 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           </div>
         )}
 
-        {activeTab === 'reports' && (
-          <div className="farm-stack">
-            <div className="farm-heading">
-              <div>
-                <p className="eyebrow">GROW WITH CONFIDENCE</p>
-                <h1>Farm insights</h1>
-                <p>Your harvest, in perspective.</p>
-              </div>
-            </div>
-            <ReportExport batches={batches} />
-            <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
-          </div>
+        {activeTab === 'supplies' && (
+          <ComingSoon
+            eyebrow="FROM SEED TO TRAY"
+            title="Supplies"
+            subtitle="Seed, coco peat and packaging."
+            icon={Package}
+            points={[
+              'Seed lots with supplier, price and expiry',
+              'Seed and coco peat taken off automatically when you sow',
+              'Alerts when a seed or coco peat is running low',
+              'Cost per tray, for your profit reports',
+            ]}
+          />
+        )}
+
+        {activeTab === 'today' && (
+          <ComingSoon
+            eyebrow="YOUR SHOP TODAY"
+            title="Today"
+            subtitle="Deliveries, sales and stock."
+            icon={CalendarDays}
+            points={["Today's deliveries, from orders and subscriptions", 'Payments due', 'Stock close to its use-by date']}
+          />
+        )}
+        {activeTab === 'orders' && (
+          <ComingSoon
+            eyebrow="SELL AND DELIVER"
+            title="Orders"
+            subtitle="One-off orders and subscriptions."
+            icon={ClipboardList}
+            points={['Quick sales at the shop', 'Orders for a delivery date', 'Subscriptions that repeat every week', 'Bills to share on WhatsApp']}
+          />
+        )}
+        {activeTab === 'stock' && (
+          <ComingSoon
+            eyebrow="FROM HARVEST TO SALE"
+            title="Stock"
+            subtitle="What's harvested and ready to sell."
+            icon={Boxes}
+            points={['Harvests added to stock automatically', 'Use-by dates from each crop\'s shelf life', 'Oldest stock sold first', 'Wastage when stock expires']}
+          />
+        )}
+        {activeTab === 'customers' && (
+          <ComingSoon
+            eyebrow="THE PEOPLE YOU GROW FOR"
+            title="Customers"
+            subtitle="Homes, restaurants and shops."
+            icon={Users}
+            points={['Name, phone and address', 'Prices for each type of customer', 'Their orders, subscriptions and payments']}
+          />
         )}
 
         {activeTab === 'config' && (
           <div className="farm-stack">
             <div className="farm-heading">
               <div>
-                <p className="eyebrow">MAKE IT YOUR FARM</p>
+                <p className="eyebrow">{mode === 'farm' ? 'MAKE IT YOUR FARM' : 'MAKE IT YOUR SHOP'}</p>
                 <h1>Settings</h1>
                 <p>Your space, crops and preferences.</p>
               </div>
             </div>
-            <SettingsMenu config={config} cropTypes={cropTypes} lastBackup={lastBackup} onOpen={setSettingsPage} onOpenInfo={setInfoPage} />
+            <SettingsMenu config={config} cropTypes={cropTypes} lastBackup={lastBackup} mode={mode} onOpen={setSettingsPage} onOpenInfo={setInfoPage} />
           </div>
         )}
       </main>
@@ -751,6 +849,13 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         <SwipePage title={settingsTitles[settingsPage]} onBack={() => setSettingsPage(null)}>
           {settingsPage === 'layout' ? (
             <LayoutSettings key={JSON.stringify(config.farmLayout)} config={config} batches={batches} onSave={setConfig} />
+          ) : settingsPage === 'insights' ? (
+            <div className="farm-stack">
+              <ReportExport batches={batches} />
+              <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
+            </div>
+          ) : settingsPage === 'shop' ? (
+            <ShopSettingsPanel shop={config.shop} onChange={shop => update(d => ({ ...d, config: { ...d.config, shop } }))} />
           ) : (
             <ConfigPanel
               section={settingsPage}

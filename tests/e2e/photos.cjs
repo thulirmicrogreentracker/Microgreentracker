@@ -29,7 +29,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   const browser = await chromium.launch(process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {});
   const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 400, height: 860 }, hasTouch: true });
   const page = await context.newPage();
-  // Taps a tab in the bottom navigation (Home, Shelves, Batches, Insights, Settings).
+  // Taps a tab in the bottom navigation (Home, Shelves, Batches, Supplies, Settings).
   const tab = name => page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true }).click();
   page.on('dialog', d => d.accept());
   page.on('pageerror', e => { console.log(`  PAGE ERROR: ${e.message}`); failures++; });
@@ -200,7 +200,8 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await page.getByRole('button', { name: 'Back' }).last().click();
 
   // ---------- 5. Reports → photos by crop ----------
-  await tab('Insights');
+  await tab('Settings');
+  await page.getByRole('button', { name: /^Insights & reports/ }).click();
   const row = page.getByRole('button', { name: /^Radish/ });
   check(/8 photos · 2 batches/.test(await row.innerText()), `reports: Radish row (${(await row.innerText()).replace(/\n/g, ' ')})`);
   check(/1 photo · 1 batch/.test(await page.getByRole('button', { name: /^Basil/ }).innerText()), 'reports: Basil row singular');
@@ -224,6 +225,7 @@ const imgSize = (page, b64) => page.evaluate(async b64 => {
   await page.getByRole('button', { name: 'Back' }).last().click();
   await page.getByRole('button', { name: 'Insights' }).last().click(); // the crop photos screen's back button
   await page.getByRole('heading', { name: 'Radish photos' }).waitFor({ state: 'detached' }).catch(() => {});
+  await page.locator('.swipe-page').getByRole('button', { name: 'Back', exact: true }).click(); // close Insights & reports
 
   // ---------- 7. A missing photo file shows a placeholder, not a crash ----------
   await page.evaluate(() => new Promise(resolve => {

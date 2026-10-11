@@ -6,7 +6,11 @@ const EDGE = 28; // px from the left edge where a back swipe can start
 // Follows a finger that starts at the left edge of `el` and moves right, like the iOS back gesture. Past a third of
 // the width (or after a quick flick) `onBack` runs; otherwise the element springs back. `slideOut` animates the
 // element off screen first (for pages); without it the element is just reset (for the tab screens).
-export function attachSwipeBack(el: HTMLElement, onBack: () => void, { slideOut = true, enabled = () => true } = {}) {
+export function attachSwipeBack(
+  el: HTMLElement,
+  onBack: () => void,
+  { slideOut = true, enabled = () => true }: { slideOut?: boolean; enabled?: () => boolean } = {}
+) {
   let startX = 0;
   let startY = 0;
   let startTime = 0;

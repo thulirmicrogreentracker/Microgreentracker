@@ -97,6 +97,13 @@ export interface CropType {
   category: string; // one of AppConfig.categories
 }
 
+// Shop mode: whether it's shown, its colour (a key from data/shop.ts) and the currency for prices (ISO 4217 code).
+export interface ShopSettings {
+  enabled: boolean;
+  accent: string;
+  currency: string;
+}
+
 export interface AppConfig {
   // Rack / shelf arrangement of the tray positions (1..totalTrays); absent means the default vertical racks.
   farmLayout?: {
@@ -113,6 +120,7 @@ export interface AppConfig {
   // lower than the numbers already in use, so new batches and trays keep counting up after a restore.
   lastBatchNumber: number;
   lastTrayNumber: number;
+  shop: ShopSettings;
 }
 
 export interface AppData {

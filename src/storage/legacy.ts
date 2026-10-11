@@ -4,6 +4,7 @@ import { defaultLossReasons } from '../data/lossReasons';
 import { codeNumber, highestBatchNumber, MAX_NUMBER, MAX_TRAY_POSITIONS, syncCounters, trayCode, wholeNumber } from '../utils/batches';
 import { normalizeLayout } from '../utils/farmLayout';
 import { isSafePhotoName } from './photos';
+import { defaultShopSettings, normalizeShopSettings } from '../data/shop';
 
 // Before version 1 of the storage format, data lived in localStorage under these keys,
 // photos were embedded as data: URLs, and daily snapshots / downloaded .json backups
@@ -28,6 +29,7 @@ export const defaultAppData = (): AppData => ({
     lossReasons: defaultLossReasons,
     lastBatchNumber: 0,
     lastTrayNumber: 0,
+    shop: defaultShopSettings(),
   },
   reminders: [],
 });
@@ -105,6 +107,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     lossReasons: Array.isArray(rawConfig.lossReasons) && rawConfig.lossReasons.length > 0 ? rawConfig.lossReasons : defaultLossReasons,
     lastBatchNumber: nextBatch,
     lastTrayNumber: nextTray,
+    shop: normalizeShopSettings(rawConfig.shop),
   }, batches);
   // A saved rack layout must cover exactly the tray positions; otherwise fall back to the default racks.
   const layout = config.farmLayout;
