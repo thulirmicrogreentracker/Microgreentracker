@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Plus, Sprout, Settings, Home, Bell, X, Download, FolderOpen, AlertTriangle, ChevronsUpDown, LayoutGrid, Layers, Search, Package, CalendarDays, ClipboardList, Boxes, Users } from 'lucide-react';
-import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto } from './types';
+import { AppData, Batch, BatchStats, CropType, AppConfig, Reminder, WateringRecord, BatchNote, BatchPhoto, SupplyItem, SupplyKind } from './types';
 import { useAppData, UpdateAppData } from './hooks/useAppData';
 import { useReminders } from './hooks/useReminders';
 import { useDailySnapshot } from './hooks/useBackup';
@@ -33,6 +33,10 @@ import ModeSwitch, { AppMode } from './components/ModeSwitch';
 import ComingSoon from './components/shop/ComingSoon';
 import ShopSettingsPanel from './components/shop/ShopSettingsPanel';
 import { accentColor } from './data/shop';
+import SuppliesPanel from './components/supplies/SuppliesPanel';
+import SupplyDetail from './components/supplies/SupplyDetail';
+import { LotForm, SupplyForm } from './components/supplies/SupplyForms';
+import { suppliesForBatch, supplyAlerts } from './utils/supplies';
 import { getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
 import { stageConfig } from './data/stages';
@@ -66,7 +70,11 @@ interface TrackerAppProps {
 }
 
 function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
-  const { batches, cropTypes, config, reminders } = data;
+  const { batches, cropTypes, config, reminders, supplies } = data;
+  const currency = config.shop.currency;
+  const setSupplies = (fn: (prev: SupplyItem[]) => SupplyItem[]) => update(d => ({ ...d, supplies: fn(d.supplies) }));
+  const saveSupply = (item: SupplyItem) =>
+    setSupplies(prev => (prev.some(i => i.id === item.id) ? prev.map(i => (i.id === item.id ? item : i)) : [...prev, item]));
   const setBatches = (fn: (prev: Batch[]) => Batch[]) => update(d => ({ ...d, batches: fn(d.batches) }));
   const setCropTypes = (next: CropType[]) => update(d => ({ ...d, cropTypes: next }));
   const setConfig = (next: AppConfig) => {
@@ -104,6 +112,11 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   const [cropPhotos, setCropPhotos] = useState<string | null>(null);
   const [settingsPage, setSettingsPage] = useState<SettingsPage | null>(null);
   const [showTasks, setShowTasks] = useState(false);
+  // Supplies: the item page that's open, and a form on top of it.
+  const [supplyId, setSupplyId] = useState<string | null>(null);
+  const [supplyForm, setSupplyForm] = useState<
+    { mode: 'new'; kind?: SupplyKind } | { mode: 'edit'; id: string } | { mode: 'lot'; itemId: string; lotId?: string } | null
+  >(null);
 
   const [quickActionModal, setQuickActionModal] = useState<{
     isOpen: boolean;
@@ -144,6 +157,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     else if (showNotifications) setShowNotifications(false);
     else if (selectedTray) setSelectedTray(null);
     else if (showTasks) setShowTasks(false);
+    else if (supplyForm) setSupplyForm(null);
+    else if (supplyId) setSupplyId(null);
     else if (settingsPage) setSettingsPage(null);
     else if (activeTab !== startTab(mode)) setActiveTab(startTab(mode));
     else CapacitorApp.exitApp();
@@ -241,10 +256,14 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         updatedAt: new Date().toISOString(),
       };
       const exists = d.batches.some(b => b.id === saved.id);
+      // A new batch takes its seed and growing media off the stock in Supplies.
+      const taken = exists ? null : suppliesForBatch(d.supplies, saved);
+      if (taken && taken.use.length > 0) saved.supplyUse = taken.use;
       return {
         ...d,
         batches: exists ? d.batches.map(b => (b.id === saved.id ? saved : b)) : [...d.batches, saved],
         config: { ...d.config, lastBatchNumber: lastBatch, lastTrayNumber: lastTray },
+        supplies: taken ? taken.supplies : d.supplies,
       };
     });
     if (!batches.some(b => b.id === batch.id)) setExpandedIds(prev => new Set(prev).add(batch.id));
@@ -471,6 +490,13 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   // Work waiting on the other side of the switch: batches ready to harvest on the farm. (Shop's comes with orders.)
   const farmBadge = batches.filter(b => b.stage === 'harvest' && isBatchGrowing(b)).length;
   const shopBadge = 0;
+  const alerts = useMemo(() => supplyAlerts(supplies, todayLocal()), [supplies]);
+  // Opens a supply's page on the Supplies tab (from a care task, for example).
+  const openSupply = (itemId: string) => {
+    setShowTasks(false);
+    setActiveTab('supplies');
+    setSupplyId(itemId);
+  };
 
   // Opens the Batches tab with one batch expanded and scrolled into view.
   const openBatch = (id: string) => {
@@ -625,6 +651,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               onShelves={() => setActiveTab('shelves')}
               onBatch={openBatch}
               onAllTasks={() => setShowTasks(true)}
+              alerts={alerts}
+              onSupply={openSupply}
             />
             {batches.length === 0 && (
               <button className="farm-restore-link" onClick={() => importInputRef.current?.click()}>
@@ -743,18 +771,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         )}
 
         {activeTab === 'supplies' && (
-          <ComingSoon
-            eyebrow="FROM SEED TO TRAY"
-            title="Supplies"
-            subtitle="Seed, coco peat and packaging."
-            icon={Package}
-            points={[
-              'Seed lots with supplier, price and expiry',
-              'Seed and coco peat taken off automatically when you sow',
-              'Alerts when a seed or coco peat is running low',
-              'Cost per tray, for your profit reports',
-            ]}
-          />
+          <SuppliesPanel supplies={supplies} batches={batches} onOpen={setSupplyId} onAdd={kind => setSupplyForm({ mode: 'new', kind })} />
         )}
 
         {activeTab === 'today' && (
@@ -840,6 +857,8 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           <AllTasks
             batches={batches}
             cropTypes={cropTypes}
+            alerts={alerts}
+            onSupply={openSupply}
             onWater={id => handleQuickAction(id, 'watering')}
             onBatch={openBatch}
           />
@@ -878,6 +897,69 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
           )}
         </SwipePage>
       )}
+      {supplyId && (() => {
+        const item = supplies.find(i => i.id === supplyId);
+        return item ? (
+          <SwipePage title={item.name} onBack={() => setSupplyId(null)}>
+            <SupplyDetail
+              item={item}
+              batches={batches}
+              currency={currency}
+              onChange={saveSupply}
+              onEdit={() => setSupplyForm({ mode: 'edit', id: item.id })}
+              onAddLot={() => setSupplyForm({ mode: 'lot', itemId: item.id })}
+              onEditLot={lotId => setSupplyForm({ mode: 'lot', itemId: item.id, lotId })}
+              onDelete={() => {
+                if (!window.confirm(`Delete ${item.name} and its purchases? Batches keep the record of what they used.`)) return;
+                setSupplies(prev => prev.filter(i => i.id !== item.id));
+                setSupplyId(null);
+              }}
+            />
+          </SwipePage>
+        ) : null;
+      })()}
+      {supplyForm && (() => {
+        if (supplyForm.mode === 'lot') {
+          const item = supplies.find(i => i.id === supplyForm.itemId);
+          if (!item) return null;
+          const lot = item.lots.find(l => l.id === supplyForm.lotId);
+          return (
+            <SwipePage title={lot ? 'Edit purchase' : `Add ${item.name}`} onBack={() => setSupplyForm(null)}>
+              <LotForm
+                item={item}
+                lot={lot}
+                currency={currency}
+                onSave={saved => {
+                  saveSupply({ ...item, lots: lot ? item.lots.map(l => (l.id === saved.id ? saved : l)) : [...item.lots, saved] });
+                  setSupplyForm(null);
+                }}
+                onDelete={() => {
+                  if (!window.confirm('Delete this purchase? Its stock is removed.')) return;
+                  saveSupply({ ...item, lots: item.lots.filter(l => l.id !== lot?.id) });
+                  setSupplyForm(null);
+                }}
+              />
+            </SwipePage>
+          );
+        }
+        const editing = supplyForm.mode === 'edit' ? supplies.find(i => i.id === supplyForm.id) : undefined;
+        return (
+          <SwipePage title={editing ? `Edit ${editing.name}` : 'Add supply'} onBack={() => setSupplyForm(null)}>
+            <SupplyForm
+              item={editing}
+              kind={supplyForm.mode === 'new' ? supplyForm.kind : undefined}
+              cropTypes={cropTypes}
+              existing={supplies}
+              currency={currency}
+              onSave={item => {
+                saveSupply(item);
+                setSupplyForm(null);
+                if (!editing) setSupplyId(item.id);
+              }}
+            />
+          </SwipePage>
+        );
+      })()}
       {trayBatch && tray && (
         <SwipePage onBack={() => setSelectedTray(null)}>
           <TrayDetail
@@ -1049,6 +1131,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         cropTypes={cropTypes}
         config={config}
         freeSlots={availableSlots}
+        supplies={supplies}
       />
 
       {/* Quick Action Modal */}

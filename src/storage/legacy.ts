@@ -5,6 +5,7 @@ import { codeNumber, highestBatchNumber, MAX_NUMBER, MAX_TRAY_POSITIONS, syncCou
 import { normalizeLayout } from '../utils/farmLayout';
 import { isSafePhotoName } from './photos';
 import { defaultShopSettings, normalizeShopSettings } from '../data/shop';
+import { normalizeSupplies } from '../utils/supplies';
 
 // Before version 1 of the storage format, data lived in localStorage under these keys,
 // photos were embedded as data: URLs, and daily snapshots / downloaded .json backups
@@ -32,6 +33,7 @@ export const defaultAppData = (): AppData => ({
     shop: defaultShopSettings(),
   },
   reminders: [],
+  supplies: [],
 });
 
 // Schema version 1 stored a single tray per batch, and lower-case fixed crop categories.
@@ -118,6 +120,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     cropTypes,
     config,
     reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
+    supplies: normalizeSupplies(raw.supplies),
   };
 };
 

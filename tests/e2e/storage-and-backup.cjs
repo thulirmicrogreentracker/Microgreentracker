@@ -137,7 +137,7 @@ const latestData = async page => (await dataFiles(page)).filter(f => f.env).sort
   console.log(listing.split('\n').filter(l => /backup|photos/.test(l)).map(l => '  ' + l.trim()).join('\n'));
   check(listing.includes('backup.json') && listing.includes('photos/ph1abc.png') && listing.includes('photos/' + photoName), 'export: zip has backup.json and both photos');
   const manifest = JSON.parse(execSync(`unzip -p ${zipPath} backup.json`).toString());
-  check(manifest.format === 'microgreen-manager-backup' && manifest.schemaVersion === 2 && manifest.data.batches.length === 3, 'export: manifest has format, version and 3 batches');
+  check(manifest.format === 'microgreen-manager-backup' && manifest.schemaVersion === 3 && manifest.data.batches.length === 3, 'export: manifest has format, version and 3 batches');
   await closePage();
 
   // ---------- 7. Wipe data, then restore from the file ----------

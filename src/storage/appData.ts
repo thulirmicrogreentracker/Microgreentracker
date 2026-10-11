@@ -5,7 +5,9 @@ import { deleteUnusedPhotos, photoNamesIn, savePhotoBase64 } from './photos';
 import { migrateLegacySnapshots, photosInSnapshots } from './snapshots';
 
 // 2: batches hold several trays (Batch.trays), batch/tray numbering counters, editable crop categories and loss reasons.
-export const SCHEMA_VERSION = 2;
+// 3: supplies (seed, growing media, packaging) and what each batch used; Shop settings. Older versions of the app
+//    refuse a version 3 backup instead of loading it and losing the supplies.
+export const SCHEMA_VERSION = 3;
 
 // The data is written alternately to two files, each stamped with an increasing sequence
 // number. If the app is killed mid-write only the file being written is damaged, and the

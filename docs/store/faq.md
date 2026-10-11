@@ -76,6 +76,26 @@ file opens in your phone's share sheet, so you can save it or send it by email.
 Grams harvested divided by grams of seed sown. For example 635 g harvested from 75 g of seed is 8.5×. It appears on
 the batch card and in Reports when the seed weight was entered.
 
+## Supplies
+
+**How do I keep track of my seed and coco peat?**
+Open the Supplies tab and add each seed (for a crop) and your coco peat, with how much you bought and, if you like, the
+price, supplier and expiry date. Every new batch then takes its seed (trays × seed per tray) and its coco peat (trays ÷
+trays per block) off the stock, oldest stock first. The new-batch form shows how much seed is left before you save.
+
+**How does the app warn me when something runs low?**
+Each supply has a "warn me at" amount. When the stock falls to it, or a purchase is close to its expiry date, it shows at
+the top of Supplies and in Today's care on Home.
+
+**Can the app work out what a batch cost?**
+Yes, when you enter the price you paid for your seed and coco peat. The batch card then shows what its supplies cost,
+in total and per tray.
+
+**What's the Farm / Shop switch at the top?**
+Farm is for growing: trays, batches and supplies. Shop is for selling: orders, subscriptions, customers and stock (these
+are being added). If you don't sell, turn Shop off under Settings → Shop; you can also pick Shop's colour and your
+currency there.
+
 ## Crops and categories
 
 **Can I add crops that aren't in the list?**

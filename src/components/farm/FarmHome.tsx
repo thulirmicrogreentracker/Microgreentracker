@@ -1,8 +1,9 @@
-import { ArrowUpRight, Check, ChevronRight, CheckCircle2, Droplets, Leaf, Plus, Sprout, Sun, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronRight, CheckCircle2, Droplets, Leaf, Package, Plus, Sprout, Sun, X } from 'lucide-react';
 import { Batch, CropType } from '../../types';
 import { activeTrays, batchCode, isBatchGrowing } from '../../utils/batches';
 import { getDaysSince } from '../../utils/dateUtils';
 import TrayArt from './TrayArt';
+import type { SupplyAlert } from '../../utils/supplies';
 export type StageFilter = Batch['stage'] | 'lost' | 'all';
 
 // Growing batches that are due for watering (by their crop's watering interval) or ready to harvest.
@@ -19,20 +20,39 @@ export const careTasks = (batches: Batch[], cropTypes: CropType[]) => {
 
 const trays = (b: Batch) => `${activeTrays(b).length} tray${activeTrays(b).length === 1 ? '' : 's'}`;
 
-// The rows of a care list: watering tasks open the watering form, harvest tasks open the batch.
+// The rows of a care list: watering tasks open the watering form, harvest tasks open the batch, supply alerts open
+// the supply.
 export function CareRows({
   watering,
   ready,
+  alerts = [],
   onWater,
   onBatch,
+  onSupply,
 }: {
   watering: Batch[];
   ready: Batch[];
+  alerts?: SupplyAlert[];
   onWater: (id: string) => void;
   onBatch: (id: string) => void;
+  onSupply?: (itemId: string) => void;
 }) {
   return (
     <>
+      {alerts.map((a) => (
+        <button key={`s-${a.item.id}-${a.kind}`} onClick={() => onSupply?.(a.item.id)}>
+          <span className="care-icon supply-low">
+            <Package />
+          </span>
+          <span>
+            <b>
+              {a.item.name} {a.kind === 'low' ? 'running low' : a.kind === 'expired' ? 'expired' : 'expiring soon'}
+            </b>
+            <small>{a.text}</small>
+          </span>
+          <ChevronRight />
+        </button>
+      ))}
       {watering.map((b) => (
         <button key={`w-${b.id}`} onClick={() => onWater(b.id)}>
           <span className="care-icon">
@@ -69,13 +89,17 @@ export function CareRows({
 export function AllTasks({
   batches,
   cropTypes,
+  alerts,
   onWater,
   onBatch,
+  onSupply,
 }: {
   batches: Batch[];
   cropTypes: CropType[];
+  alerts: SupplyAlert[];
   onWater: (id: string) => void;
   onBatch: (id: string) => void;
+  onSupply: (itemId: string) => void;
 }) {
   const { watering, ready } = careTasks(batches, cropTypes);
   return (
@@ -96,7 +120,15 @@ export function AllTasks({
           </div>
         </section>
       )}
-      {!watering.length && !ready.length && (
+      {alerts.length > 0 && (
+        <section>
+          <p className="care-group-label">SUPPLIES · {alerts.length}</p>
+          <div className="care-list">
+            <CareRows watering={[]} ready={[]} alerts={alerts} onWater={onWater} onBatch={onBatch} onSupply={onSupply} />
+          </div>
+        </section>
+      )}
+      {!watering.length && !ready.length && !alerts.length && (
         <div className="care-list">
           <div className="care-empty">
             <CheckCircle2 />
@@ -116,9 +148,13 @@ export default function FarmHome({
   onShelves,
   onBatch,
   onAllTasks,
+  alerts,
+  onSupply,
 }: {
   batches: Batch[];
   cropTypes: CropType[];
+  alerts: SupplyAlert[];
+  onSupply: (itemId: string) => void;
   onStage: (stage: StageFilter) => void;
   onNew: () => void;
   onWater: (id: string) => void;
@@ -143,11 +179,13 @@ export default function FarmHome({
     );
   const growing = batches.filter(isBatchGrowing);
   const { watering, ready } = careTasks(batches, cropTypes);
-  const taskCount = watering.length + ready.length;
-  // Up to three tasks on Home, including a harvest when there is one; the rest are on the All tasks page.
+  const taskCount = watering.length + ready.length + alerts.length;
+  // Up to three tasks on Home, including a harvest and a supply alert when there are any; the rest are on the All
+  // tasks page.
   const previewReady = ready.slice(0, 1);
-  const previewWatering = watering.slice(0, 3 - previewReady.length);
-  const hidden = taskCount - previewReady.length - previewWatering.length;
+  const previewAlerts = alerts.slice(0, 1);
+  const previewWatering = watering.slice(0, 3 - previewReady.length - previewAlerts.length);
+  const hidden = taskCount - previewReady.length - previewAlerts.length - previewWatering.length;
   return (
     <div className="farm-stack">
       <div className="farm-heading">
@@ -214,7 +252,14 @@ export default function FarmHome({
           )}
         </div>
         <div className="care-list">
-          <CareRows watering={previewWatering} ready={previewReady} onWater={onWater} onBatch={onBatch} />
+          <CareRows
+            watering={previewWatering}
+            ready={previewReady}
+            alerts={previewAlerts}
+            onWater={onWater}
+            onBatch={onBatch}
+            onSupply={onSupply}
+          />
           {hidden > 0 && (
             <button className="care-more" onClick={onAllTasks}>
               See all {taskCount} tasks <ChevronRight />

@@ -296,7 +296,9 @@ body {
 }
 .farm-secondary {
   background: #eaf1e5;
+  background: color-mix(in srgb, var(--farm-green) 11%, white);
   color: #387a4c;
+  color: color-mix(in srgb, var(--farm-green) 85%, black);
 }
 .farm-danger {
   background: #fdf0eb;
@@ -1800,4 +1802,144 @@ body {
   background: #fff;
   font-size: 14px;
   color: var(--farm-ink);
+}
+
+/* Supplies */
+.supply-alerts {
+  display: flex;
+  flex-direction: column;
+  border-radius: 17px;
+  overflow: hidden;
+  border: 1px solid #f0d9b5;
+  background: #fdf4e4;
+}
+.supply-alerts button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 12px;
+  color: #6b4612;
+  border-bottom: 1px solid #f0d9b5;
+}
+.supply-alerts button:last-child {
+  border-bottom: 0;
+}
+.supply-alerts svg {
+  width: 17px;
+  flex-shrink: 0;
+  color: #a86412;
+}
+.supply-alerts b {
+  font-weight: 650;
+}
+.supply-alerts small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #8a5a17;
+}
+.care-icon.supply-low {
+  background: #fbefd9;
+  color: #a86412;
+}
+.supply-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.supply-kinds {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.supply-kinds button {
+  font-size: 11px;
+  padding: 8px 4px;
+  justify-content: center;
+}
+.supply-form .farm-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.supply-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: #677c60;
+}
+.supply-field input,
+.supply-field select,
+.supply-take input {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--farm-border);
+  border-radius: 12px;
+  background: #fafbf7;
+  font-size: 15px;
+  color: var(--farm-ink);
+}
+.supply-field small {
+  font-size: 11px;
+  color: var(--farm-muted);
+}
+.supply-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.supply-error {
+  font-size: 13px;
+  color: #a23b2a;
+}
+.supply-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+.supply-summary > div {
+  display: flex;
+  flex-direction: column;
+}
+.supply-summary strong {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+}
+.supply-summary span {
+  font-size: 12px;
+  color: var(--farm-muted);
+}
+.supply-summary .farm-help {
+  flex-basis: 100%;
+}
+.supply-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 650;
+  background: #fbefd9;
+  color: #8a5a17;
+}
+.supply-actions {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+.supply-take {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 10px;
+}
+.supply-take .farm-secondary {
+  min-height: 44px;
+  width: auto;
 }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Minus, CreditCard as Edit3, MapPin, ChevronLeft, Trash2 } from 'lucide-react';
-import { AppConfig, Batch, CropType, Tray } from '../types';
+import { AppConfig, Batch, CropType, SupplyItem, Tray } from '../types';
 import { addDaysToDate, formatDate, todayLocal } from '../utils/dateUtils';
 import { batchCode, newId, trayCode } from '../utils/batches';
 import { locationLabel, rackShelves } from '../utils/farmLayout';
+import { formatAmount, seedFor, stockOf } from '../utils/supplies';
 
 interface AddBatchModalProps {
   isOpen: boolean;
@@ -14,13 +15,14 @@ interface AddBatchModalProps {
   cropTypes: CropType[];
   config: AppConfig;
   freeSlots: number[]; // positions not held by any growing tray
+  supplies: SupplyItem[]; // for the seed in stock; a new batch takes its seed from there when saved
 }
 
 const MAX_TRAYS = 200;
 
 const inputClass = 'w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors';
 
-const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatch, onSave, cropTypes, config, freeSlots }) => {
+const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatch, onSave, cropTypes, config, freeSlots, supplies }) => {
   const [cropType, setCropType] = useState('');
   const [sowingDate, setSowingDate] = useState(todayLocal());
   const [expectedHarvestDate, setExpectedHarvestDate] = useState('');
@@ -349,6 +351,20 @@ const AddBatchModal: React.FC<AddBatchModalProps> = ({ isOpen, onClose, editBatc
               Same for all {trays.length} trays · {Math.round(Number(seedText) * trays.length * 10) / 10} g of seed in total
             </p>
           )}
+          {/* A new batch takes its seed from Supplies; say how much is there. */}
+          {!editBatch && cropType && (() => {
+            const seed = seedFor(supplies, cropType);
+            if (!seed) return <p className="text-xs text-gray-500 mt-1">No {cropType} seed in Supplies, so no stock is taken off.</p>;
+            const stock = stockOf(seed);
+            const need = Number(seedText) > 0 ? Math.round(Number(seedText) * trays.filter(t => t.status === 'active').length * 10) / 10 : 0;
+            const short = need > stock;
+            return (
+              <p className={`text-xs mt-1 ${short ? 'text-amber-700' : 'text-emerald-700'}`}>
+                {formatAmount(stock, 'g')} of {cropType} seed in stock
+                {need > 0 && (short ? `, ${formatAmount(Math.round((need - stock) * 10) / 10, 'g')} short for this batch` : `; this batch uses ${formatAmount(need, 'g')}`)}
+              </p>
+            );
+          })()}
         </div>
 
         <div>

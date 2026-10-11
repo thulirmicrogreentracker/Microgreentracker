@@ -27,8 +27,46 @@ export interface Batch {
   // older data may have a total in ounces or pounds instead. Read it with batchYieldGrams().
   yieldAmount?: number;
   yieldUnit?: 'grams' | 'ounces' | 'pounds';
+  // Supplies taken from stock when the batch was started (seed, growing media), with what they cost.
+  supplyUse?: SupplyUse[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SupplyUse {
+  itemId: string;
+  lotId: string;
+  amount: number; // in the item's unit
+  cost: number; // amount × the lot's price per unit; 0 when no price was entered
+}
+
+// Things bought for the farm. Each item (e.g. "Sunflower seed", "Coco peat block") holds the lots bought, and stock is
+// taken from the oldest lot first.
+export type SupplyKind = 'seed' | 'media' | 'packaging' | 'other';
+
+export interface SupplyItem {
+  id: string;
+  kind: SupplyKind;
+  name: string;
+  crop?: string; // seed: the crop it's for (CropType.name); new batches of that crop use it
+  unit: string; // 'g' for seed; e.g. 'block', 'kg', 'bag', 'pcs' for the rest
+  traysPerUnit?: number; // growing media: trays one unit fills (a 5 kg block → 8 trays)
+  autoUse?: boolean; // growing media: taken off for every new batch
+  lowAt?: number; // shown as running low at or below this much (in the unit)
+  lots: SupplyLot[];
+  createdAt: string;
+}
+
+export interface SupplyLot {
+  id: string;
+  purchasedOn: string; // YYYY-MM-DD
+  quantity: number; // bought, in the item's unit
+  remaining: number;
+  price?: number; // paid for the whole lot, in the shop currency
+  supplier?: string;
+  lotNumber?: string;
+  expiresOn?: string; // YYYY-MM-DD
+  note?: string;
 }
 
 export interface BatchNote {
@@ -128,4 +166,5 @@ export interface AppData {
   cropTypes: CropType[];
   config: AppConfig;
   reminders: Reminder[];
+  supplies: SupplyItem[];
 }

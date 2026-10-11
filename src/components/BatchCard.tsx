@@ -4,6 +4,8 @@ import { AppConfig, Batch } from '../types';
 import { formatDate, getDaysSince, getRelativeTimeString } from '../utils/dateUtils';
 import { activeTrays, batchCode, batchSeedGrams, batchYieldGrams, formatGrams, isBatchGrowing, isBatchLost, lostTrays, trayRange } from '../utils/batches';
 import { locationLabel, rackShelves, shortLocation } from '../utils/farmLayout';
+import { batchSupplyCost } from '../utils/supplies';
+import { formatMoney } from '../data/shop';
 import { categoryIcon } from '../data/categoryIcons';
 import { STAGE_ORDER, stageConfig } from '../data/stages';
 import TrayArt from './farm/TrayArt';
@@ -77,6 +79,7 @@ const BatchCard: React.FC<BatchCardProps> = ({
   const yieldGrams = batchYieldGrams(batch);
   const weighedTrays = active.filter(t => t.harvestWeight != null);
   const seedGrams = batchSeedGrams(batch);
+  const supplyCost = batchSupplyCost(batch); // seed and growing media taken from stock for this batch
 
   // Where the batch is (or was, once harvested or lost) in the racks.
   const where = rackShelves((growing ? active : batch.trays).map(t => t.slot), config);
@@ -267,8 +270,14 @@ const BatchCard: React.FC<BatchCardProps> = ({
             </button>
           )}
 
-          {(seedGrams > 0 || yieldGrams > 0 || harvested) && (
+          {(seedGrams > 0 || yieldGrams > 0 || harvested || supplyCost > 0) && (
             <div className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-2 space-y-1">
+              {supplyCost > 0 && (
+                <div>
+                  Supplies: <span className="font-medium text-gray-900">{formatMoney(supplyCost, config.shop.currency)}</span>
+                  {batch.trays.length > 1 && <> · {formatMoney(Math.round((supplyCost / batch.trays.length) * 100) / 100, config.shop.currency)} per tray</>}
+                </div>
+              )}
               {seedGrams > 0 && (
                 <div>Seed: <span className="font-medium text-gray-900">{formatGrams(batch.seedWeightPerTray ?? 0)}</span> per tray · {formatGrams(seedGrams)} in total</div>
               )}
