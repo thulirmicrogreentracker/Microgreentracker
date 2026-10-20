@@ -1,11 +1,12 @@
 import { AlertTriangle, CalendarDays, ChevronRight, Clock, Share2, ShoppingBag, TrendingUp, Truck, Wallet } from 'lucide-react';
-import { Customer, Order, Sale, StockLot, Subscription } from '../../types';
+import { Customer, Order, OrderItem, Sale, StockLot, Subscription } from '../../types';
 import { formatMoney } from '../../data/shop';
 import { formatGrams } from '../../utils/batches';
 import { formatDate, todayLocal } from '../../utils/dateUtils';
 import { stockAlerts, stockByCrop } from '../../utils/stock';
 import { customerDue, salesTotal } from '../../utils/sales';
 import { Delivery, deliveriesBetween } from '../../utils/orders';
+import { Allocation } from '../../utils/plan';
 import { DeliveryRows } from './Orders';
 
 interface ShopTodayProps {
@@ -15,7 +16,10 @@ interface ShopTodayProps {
   orders: Order[];
   subscriptions: Subscription[];
   currency: string;
+  supply: Map<string, Allocation[]>;
+  packs: Map<string, { items: OrderItem[]; short: number }>; // today's boxes as they'd be packed from stock now
   onDeliver: (d: Delivery) => void;
+  onMissed: (d: Delivery) => void;
   onOpenDelivery: (d: Delivery) => void;
   onShareDeliveries: (deliveries: Delivery[]) => void;
   onProfit: () => void;
@@ -39,6 +43,7 @@ export default function ShopToday(props: ShopTodayProps) {
   const short = [...need]
     .map(([crop, grams]) => ({ crop, grams, have: byCrop.find(c => c.crop.toLowerCase() === crop.toLowerCase())?.available ?? 0 }))
     .filter(x => x.have < x.grams);
+  const mixShort = deliveries.reduce((n, d) => n + (d.mix ? props.packs.get(d.key)?.short ?? 0 : 0), 0);
   const owing = customers
     .map(c => ({ c, due: customerDue(sales, c.id) }))
     .filter(x => x.due > 0)
@@ -77,10 +82,23 @@ export default function ShopToday(props: ShopTodayProps) {
         </div>
         {deliveries.length > 0 ? (
           <>
-            <DeliveryRows deliveries={deliveries} customers={customers} onOpen={props.onOpenDelivery} onDeliver={props.onDeliver} />
-            {short.length > 0 && (
+            <DeliveryRows
+              deliveries={deliveries}
+              customers={customers}
+              supply={props.supply}
+              contents={d => props.packs.get(d.key)?.items}
+              onOpen={props.onOpenDelivery}
+              onDeliver={props.onDeliver}
+              onMissed={props.onMissed}
+            />
+            {(short.length > 0 || mixShort > 0) && (
               <p className="sale-warn delivery-short">
-                Not enough in stock: {short.map(x => `${x.crop} needs ${formatGrams(x.grams)}, ${formatGrams(x.have)} ready`).join('; ')}.
+                Not enough in stock:{' '}
+                {[
+                  ...short.map(x => `${x.crop} needs ${formatGrams(x.grams)}, ${formatGrams(x.have)} ready`),
+                  ...(mixShort > 0 ? [`mixed boxes are ${formatGrams(mixShort)} short`] : []),
+                ].join('; ')}
+                .
               </p>
             )}
             <button className="farm-secondary share-list" onClick={() => props.onShareDeliveries(deliveries)}>

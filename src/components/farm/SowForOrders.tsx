@@ -19,7 +19,7 @@ export function SowRows({ plans, short, onSow }: { plans: SowPlan[]; short: Shor
           </span>
           <span>
             <b>
-              {s.crop}: {formatGrams(s.grams)} short for {when(s.date, today)}
+              {s.crop === 'Mix' ? 'Mixed boxes' : s.crop}: {formatGrams(s.grams)} short for {when(s.date, today)}
             </b>
             <small>Too soon to sow for it. Harvest early, or deliver less.</small>
           </span>
@@ -35,7 +35,8 @@ export function SowRows({ plans, short, onSow }: { plans: SowPlan[]; short: Shor
               Sow {p.trays} tray{p.trays === 1 ? '' : 's'} of {p.crop}
             </b>
             <small>
-              {p.sowBy === today ? 'Today' : `By ${when(p.sowBy, today)}`} · for {when(p.forDate, today)} ({formatGrams(p.grams)} more needed)
+              {p.sowBy === today ? 'Today' : `By ${when(p.sowBy, today)}`} · for {when(p.forDate, today)} ({formatGrams(p.grams)} more needed
+              {p.forMix ? ', mixed boxes' : ''})
             </small>
           </span>
           <ChevronRight />

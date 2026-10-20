@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { AlertTriangle, BarChart3, ChevronRight, Database, HardDrive, Hash, HelpCircle, LayoutGrid, Mail, ShieldCheck, ShoppingBag, Sprout, Tag, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BarChart3, Bell, ChevronRight, Database, HardDrive, Hash, HelpCircle, LayoutGrid, Mail, ShieldCheck, ShoppingBag, Sprout, Tag, TrendingUp } from 'lucide-react';
 import { AppConfig, CropType } from '../types';
 import { appInfo, isFilledIn } from '../data/appInfo';
 import { batchCode, trayCode } from '../utils/batches';
@@ -10,7 +10,7 @@ import type { InfoPageKind } from './InfoPage';
 import type { AppMode } from './ModeSwitch';
 import { shopAccents } from '../data/shop';
 
-export type SettingsPage = 'insights' | 'layout' | 'shop' | 'prices' | 'profit' | ConfigSection;
+export type SettingsPage = 'insights' | 'layout' | 'shop' | 'prices' | 'profit' | 'notifications' | ConfigSection;
 
 export const settingsTitles: Record<SettingsPage, string> = {
   insights: 'Insights & reports',
@@ -18,6 +18,7 @@ export const settingsTitles: Record<SettingsPage, string> = {
   shop: 'Shop',
   prices: 'Price list',
   profit: 'Profit report',
+  notifications: 'Notifications',
   crops: 'Crops & categories',
   lossReasons: 'Loss reasons',
   numbering: 'Numbering',
@@ -63,6 +64,10 @@ export default function SettingsMenu({ config, cropTypes, lastBackup, mode, pric
         ]
       : []),
   ];
+  const { notifications: n } = config;
+  const reminders: Row[] = [
+    ['notifications', Bell, n.enabled ? `Morning ${n.morning}${n.evening ? ` · evening ${n.evening}` : ''}` : 'Off · watering, deliveries and more'],
+  ];
   const data: Row[] = [
     ['backup', HardDrive, lastBackup ? `Last copy ${new Date(lastBackup).toLocaleDateString()}` : 'A copy is saved on this phone every day'],
     // Development builds only, so a store build can't replace a grower's data by accident.
@@ -93,6 +98,8 @@ export default function SettingsMenu({ config, cropTypes, lastBackup, mode, pric
       <p className="settings-group-label">YOUR FARM</p>
       <div className="settings-menu" role="group" aria-label="Farm settings">{farm.map(row)}</div>
       {mode === 'farm' && shopGroup}
+      <p className="settings-group-label">REMINDERS</p>
+      <div className="settings-menu" role="group" aria-label="Reminder settings">{reminders.map(row)}</div>
       <p className="settings-group-label">DATA</p>
       <div className="settings-menu" role="group" aria-label="Data settings">{data.map(row)}</div>
       <p className="settings-group-label">ABOUT</p>

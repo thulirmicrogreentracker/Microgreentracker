@@ -45,6 +45,9 @@ addresses and what each customer gets) to the app you choose.
 - **Camera**: only used when you tap "Take photo" to photograph a tray. Photos are saved inside the app.
 - **Photos / files**: only used when you choose to attach an existing photo or open a backup file. The app only
   reads the item you pick.
+- **Notifications**: only if you turn on daily reminders in Settings. The reminders are made on your phone from your
+  own data and shown by your phone; nothing is sent to us or anyone else. The app may also ask to run after your
+  phone restarts, so the reminders you set keep working.
 
 The app does not use your location, contacts, microphone or any other personal information.
 

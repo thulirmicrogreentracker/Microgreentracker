@@ -189,6 +189,8 @@ fs.mkdirSync(out, { recursive: true });
   await page.getByPlaceholder('Hotel Annapoorna').fill('Priya');
   await page.getByRole('button', { name: 'Add customer' }).click();
   await page.waitForFunction(() => document.querySelector('.swipe-page:last-of-type select')?.selectedOptions[0]?.textContent.startsWith('Priya'));
+  // New subscriptions start as a mixed box; this one is for chosen crops.
+  await page.getByRole('radio', { name: 'Chosen crops' }).click();
   await page.getByLabel('Crop').selectOption('Sunflower');
   await page.getByLabel('Grams').fill('200');
   await page.getByRole('button', { name: new Date().toLocaleDateString('en-US', { weekday: 'long' }) }).click();

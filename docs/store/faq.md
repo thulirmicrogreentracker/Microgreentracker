@@ -118,6 +118,23 @@ every week or every other week. Each delivery day shows under Today, ready to de
 a single day, pause it until a date (for a holiday), end it, or change it. Restaurants and shops are set to pay later
 when you deliver; homes are set to paid in full. You can change either before saving.
 
+**What's a mixed box?**
+Most subscriptions are a mix rather than set crops. Choose "Mixed box", the box's weight and how many crops go in it
+(for example 300 g of 3), and, if the customer has favourites, the crops it may use. For each delivery the app picks
+from what's ready, the crops to use first and different from the customer's last box, and Today shows what to pack.
+Choose "Chosen crops" instead for a customer who always gets the same.
+
+**How does the app plan for my subscriptions?**
+Every upcoming delivery shows where its microgreens will come from: "Ready from stock", a growing batch ("Radish from
+B012, ready Sat, Oct 24"), a sowing still to make ("sow Pea Shoots by Thu, Oct 15"), or what's short. Mixed boxes rotate
+through your crops week to week, using the ones that can grow in time. The sowings appear on Farm Home under "Sow for
+orders".
+
+**Does the app keep a record of each delivery?**
+Yes. Each subscription has a delivery log for the last 8 weeks: delivered (tap it to see the sale), skipped, paused or
+missed. A delivery day that passes without a delivery stays on Today as overdue for a week, with "Deliver" (if you
+delivered late) and "Missed". After a week it shows in the log as not recorded.
+
 **Can I send the day's delivery list to someone?**
 Yes. Under Today → Deliveries, tap "Share delivery list" to send the names, phone numbers, addresses and what each
 customer gets to WhatsApp or any app. If you don't have enough stock for the day's deliveries, Today tells you which
@@ -133,6 +150,12 @@ how many trays to sow, and by when, for the rest. Trays are worked out from the 
 weighed harvests of that crop (150 g a tray until you've weighed one). Tap a suggestion to start the batch with the
 crop and trays filled in. If a delivery is too soon to grow for, it says so, and it warns you when you don't have
 enough free tray positions for the week's sowings.
+
+**Can the app remind me what to do each day?**
+Yes. Turn on Settings → Notifications. Each morning (7:00 AM unless you change it) you get a summary of the day:
+batches to water, deliveries (including overdue ones), sowings for your orders, batches to harvest and stock to sell
+soon. In the evening (6:00 PM) there's a reminder if something is still to do. Choose which of these to include.
+Reminders are set for the coming week each time you open the app, so open it now and then to keep them up to date.
 
 **Where can I see my profit?**
 In Shop, tap "Profit report" on Today (or Settings → Profit report). For this month, last month, the last 30 days or

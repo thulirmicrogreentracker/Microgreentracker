@@ -41,7 +41,7 @@ try {
   assert.deepEqual(pl.yieldPerTray([done], 'Radish'), { grams: 150, estimated: true });
 
   // 500 g every Wednesday. 300 g in stock (use by 15 Oct) and 2 trays growing (ready 19 Oct, so 400 g).
-  const sub = { id: 's', customerId: 'c', items: [{ crop: 'Sunflower', grams: 500 }], weekdays: [3], everyWeeks: 1, startOn: today, skipped: [], delivered: [], createdAt: '' };
+  const sub = { id: 's', customerId: 'c', items: [{ crop: 'Sunflower', grams: 500 }], weekdays: [3], everyWeeks: 1, startOn: today, skipped: [], missed: [], delivered: [], createdAt: '' };
   const growing = batch('g', 'Sunflower', 'growth', [tray('e'), tray('f')], { expectedHarvestDate: '2026-10-19' });
   const stock = [{ id: 'l', crop: 'Sunflower', harvestedOn: '2026-10-08', useBy: '2026-10-15', grams: 300, remaining: 300, moves: [] }];
   const { plans, short } = pl.sowPlans([done, growing], stock, [], [sub], cropTypes, today);

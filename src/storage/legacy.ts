@@ -5,6 +5,7 @@ import { codeNumber, highestBatchNumber, MAX_NUMBER, MAX_TRAY_POSITIONS, syncCou
 import { normalizeLayout } from '../utils/farmLayout';
 import { isSafePhotoName } from './photos';
 import { defaultShopSettings, normalizeShopSettings } from '../data/shop';
+import { defaultNotificationSettings, normalizeNotificationSettings } from '../utils/dailySummary';
 import { normalizeSupplies } from '../utils/supplies';
 import { normalizeStock } from '../utils/stock';
 import { normalizeCustomers, normalizePrices, normalizeSales } from '../utils/sales';
@@ -36,6 +37,7 @@ export const defaultAppData = (): AppData => ({
     lastSaleNumber: 0,
     lastOrderNumber: 0,
     shop: defaultShopSettings(),
+    notifications: defaultNotificationSettings(),
   },
   reminders: [],
   supplies: [],
@@ -133,6 +135,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     lastBatchNumber: nextBatch,
     lastTrayNumber: nextTray,
     shop: normalizeShopSettings(rawConfig.shop),
+    notifications: normalizeNotificationSettings(rawConfig.notifications),
     // Never below a sale number already used.
     lastSaleNumber: Math.max(wholeNumber(rawConfig.lastSaleNumber, MAX_NUMBER), ...sales.map(s => s.number)),
     lastOrderNumber: Math.max(wholeNumber(rawConfig.lastOrderNumber, MAX_NUMBER), ...orders.map(o => o.number)),

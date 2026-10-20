@@ -1,10 +1,24 @@
 import { useEffect, useState } from 'react';
 import { CalendarClock, ChevronRight, ClipboardList, Pause, Pencil, Play, Plus, Repeat, ShoppingBag, Trash2, Truck, X } from 'lucide-react';
-import { CropType, Customer, Order, OrderItem, Sale, Subscription } from '../../types';
+import { CropType, Customer, MixSpec, Order, OrderItem, Sale, Subscription } from '../../types';
 import { formatDate, formatDay, todayLocal, addDaysToDate } from '../../utils/dateUtils';
 import { formatGrams, newId } from '../../utils/batches';
 import { customerTypeLabel, saleCode } from '../../utils/sales';
-import { Delivery, deliveriesBetween, itemsText, nextDates, orderCode, scheduleText, subStatus, WEEKDAYS } from '../../utils/orders';
+import {
+  boxText,
+  Delivery,
+  deliveriesBetween,
+  itemsText,
+  LogStatus,
+  MAX_VARIETIES,
+  nextDates,
+  orderCode,
+  scheduleText,
+  subscriptionLog,
+  subStatus,
+  WEEKDAYS,
+} from '../../utils/orders';
+import { Allocation } from '../../utils/plan';
 import { SaleRows } from './Customers';
 
 // "Today", "Tomorrow", "Overdue · Fri, Oct 9", or "Wed, Oct 14".
@@ -13,40 +27,86 @@ export const dayLabel = (date: string, today: string) =>
 
 const customerName = (customers: Customer[], id: string) => customers.find(c => c.id === id)?.name ?? 'Customer';
 
+const when = (date: string, today: string) =>
+  date <= today ? 'today' : date === addDaysToDate(today, 1) ? 'tomorrow' : formatDay(date);
+
+// Where a delivery's microgreens come from, in a few words: "Ready from stock", "Radish from B012 (Wed, Oct 21)",
+// "Sow Pea Shoots by Thu, Oct 15", "100 g Beet short". The tone is the most urgent part.
+export const supplyText = (allocations: Allocation[] | undefined, today: string): { text: string; tone: 'ok' | 'grow' | 'sow' | 'short' } | null => {
+  if (!allocations?.length) return null;
+  const parts: string[] = [];
+  const byCrop = (from: Allocation['from']) => {
+    const m = new Map<string, Allocation[]>();
+    for (const a of allocations.filter(x => x.from === from)) m.set(a.crop, [...(m.get(a.crop) ?? []), a]);
+    return [...m.entries()];
+  };
+  for (const [crop, list] of byCrop('short')) parts.push(`${formatGrams(list.reduce((n, a) => n + a.grams, 0))} ${crop === 'Mix' ? 'of the mix' : crop} short`);
+  for (const [crop, list] of byCrop('sow')) parts.push(`sow ${crop} by ${when(list[0].sowBy!, today)}`);
+  for (const [crop, list] of byCrop('batch')) {
+    const ready = list[0].readyOn!;
+    parts.push(`${crop} from ${[...new Set(list.map(a => a.batchCode))].join(', ')} (${ready <= today ? 'harvest now' : `ready ${when(ready, today)}`})`);
+  }
+  const stock = allocations.filter(a => a.from === 'stock');
+  if (stock.length) parts.push(parts.length ? 'rest from stock' : 'Ready from stock');
+  const tone = allocations.some(a => a.from === 'short') ? 'short' : allocations.some(a => a.from === 'sow') ? 'sow' : allocations.some(a => a.from === 'batch') ? 'grow' : 'ok';
+  const text = parts.slice(0, 3).join(' · ');
+  return { text: text.charAt(0).toUpperCase() + text.slice(1), tone };
+};
+
+export function SupplyLine({ allocations, today }: { allocations?: Allocation[]; today: string }) {
+  const s = supplyText(allocations, today);
+  return s ? <small className={`supply-line supply-${s.tone}`}>{s.text}</small> : null;
+}
+
 interface DeliveryRowsProps {
   deliveries: Delivery[];
   customers: Customer[];
   showDate?: boolean;
+  supply?: Map<string, Allocation[]>; // where each delivery's microgreens come from
+  contents?: (d: Delivery) => OrderItem[] | undefined; // today's boxes as they'd be packed now
   onOpen: (d: Delivery) => void;
   onDeliver?: (d: Delivery) => void;
+  onMissed?: (d: Delivery) => void; // for overdue subscription days
 }
 
-// Deliveries to make: who, what, and a Deliver button that records the sale.
-export function DeliveryRows({ deliveries, customers, showDate, onOpen, onDeliver }: DeliveryRowsProps) {
+// Deliveries to make: who, what, where it comes from, and a Deliver button that records the sale.
+export function DeliveryRows({ deliveries, customers, showDate, supply, contents, onOpen, onDeliver, onMissed }: DeliveryRowsProps) {
   const today = todayLocal();
   return (
     <div className="care-list delivery-list">
-      {deliveries.map(d => (
-        <div key={d.key} className="delivery-row">
-          <button onClick={() => onOpen(d)}>
-            <span className={`care-icon ${d.date < today ? 'supply-low' : 'lime'}`}>{d.subscription ? <Repeat /> : <ClipboardList />}</span>
-            <span>
-              <b>{customerName(customers, d.customerId)}</b>
-              <small>
-                {showDate || d.date < today ? `${dayLabel(d.date, today)} · ` : ''}
-                {d.order ? `${orderCode(d.order.number)} · ` : ''}
-                {itemsText(d.items)}
-              </small>
-            </span>
-            {!onDeliver && <ChevronRight />}
-          </button>
-          {onDeliver && (
-            <button className="delivery-go" onClick={() => onDeliver(d)} aria-label={`Deliver to ${customerName(customers, d.customerId)}`}>
-              <Truck size={15} /> Deliver
+      {deliveries.map(d => {
+        const packed = d.mix ? contents?.(d) : undefined;
+        return (
+          <div key={d.key} className="delivery-row">
+            <button onClick={() => onOpen(d)}>
+              <span className={`care-icon ${d.date < today ? 'supply-low' : 'lime'}`}>{d.subscription ? <Repeat /> : <ClipboardList />}</span>
+              <span>
+                <b>{customerName(customers, d.customerId)}</b>
+                <small>
+                  {showDate || d.date < today ? `${dayLabel(d.date, today)} · ` : ''}
+                  {d.order ? `${orderCode(d.order.number)} · ` : ''}
+                  {boxText(d)}
+                </small>
+                {packed?.length ? <small className="supply-line">Pack: {itemsText(packed)}</small> : null}
+                <SupplyLine allocations={supply?.get(d.key)} today={today} />
+              </span>
+              {!onDeliver && <ChevronRight />}
             </button>
-          )}
-        </div>
-      ))}
+            {onDeliver && (
+              <span className="delivery-actions">
+                <button className="delivery-go" onClick={() => onDeliver(d)} aria-label={`Deliver to ${customerName(customers, d.customerId)}`}>
+                  <Truck size={15} /> Deliver
+                </button>
+                {onMissed && d.subscription && d.date < today && (
+                  <button className="stock-edit" onClick={() => onMissed(d)} aria-label={`Missed ${customerName(customers, d.customerId)} on ${formatDate(d.date)}`}>
+                    Missed
+                  </button>
+                )}
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -195,6 +255,64 @@ export function OrderForm({ customers, cropTypes, order, customerId: startCustom
   );
 }
 
+const DEFAULT_MIX: MixSpec = { grams: 300, varieties: 3 };
+
+// A mixed box: total grams, how many crops, and optionally which crops it can use.
+function MixEditor({ mix, setMix, cropTypes }: { mix: MixSpec; setMix: (m: MixSpec) => void; cropTypes: CropType[] }) {
+  const [gramsText, setGramsText] = useState(String(mix.grams));
+  const crops = cropTypes.map(c => c.name).sort((a, b) => a.localeCompare(b));
+  const chosen = mix.crops ?? [];
+  const toggle = (crop: string) => {
+    const next = chosen.includes(crop) ? chosen.filter(c => c !== crop) : [...chosen, crop];
+    setMix({ ...mix, crops: next.length ? next : undefined });
+  };
+  return (
+    <>
+      <div className="supply-row">
+        <label className="supply-field">
+          <span>Box weight (g)</span>
+          <input
+            value={gramsText}
+            onChange={e => {
+              setGramsText(e.target.value);
+              const n = Math.round(Number(e.target.value.replace(',', '.')));
+              setMix({ ...mix, grams: Number.isFinite(n) ? n : 0 });
+            }}
+            inputMode="numeric"
+            aria-label="Box weight in grams"
+          />
+        </label>
+        <div className="supply-field">
+          <span>Crops in each box</span>
+          <div className="variety-stepper" role="group" aria-label="Crops in each box">
+            <button onClick={() => setMix({ ...mix, varieties: Math.max(1, mix.varieties - 1) })} aria-label="Fewer crops">
+              −
+            </button>
+            <b>{mix.varieties}</b>
+            <button onClick={() => setMix({ ...mix, varieties: Math.min(MAX_VARIETIES, mix.varieties + 1) })} aria-label="More crops">
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="supply-field">
+        <span>Crops it can use {chosen.length ? `(${chosen.length})` : '(any you grow)'}</span>
+        <div className="crop-chips" role="group" aria-label="Crops for the mix">
+          {crops.map(c => (
+            <button key={c} aria-pressed={chosen.includes(c)} onClick={() => toggle(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="farm-help">
+        Each delivery the app picks {mix.varieties} crop{mix.varieties === 1 ? '' : 's'} from what's ready, freshest first and different from
+        last time, and plans the sowing so there's enough.
+      </p>
+    </>
+  );
+}
+
 interface SubscriptionFormProps {
   customers: Customer[];
   cropTypes: CropType[];
@@ -211,6 +329,9 @@ export function SubscriptionForm({ customers, cropTypes, subscription: sub, cust
     if (startCustomer) setCustomerId(startCustomer);
   }, [startCustomer]);
   const [lines, setLines] = useState(() => toLines(sub?.items));
+  // New subscriptions are mixed boxes; one with only chosen crops opens on those.
+  const [kind, setKind] = useState<'mix' | 'crops'>(sub && !sub.mix ? 'crops' : 'mix');
+  const [mix, setMix] = useState<MixSpec>(sub?.mix ?? DEFAULT_MIX);
   const [weekdays, setWeekdays] = useState<number[]>(sub?.weekdays ?? []);
   const [everyWeeks, setEveryWeeks] = useState(sub?.everyWeeks ?? 1);
   const [startOn, setStartOn] = useState(sub?.startOn ?? todayLocal());
@@ -220,8 +341,15 @@ export function SubscriptionForm({ customers, cropTypes, subscription: sub, cust
   const toggleDay = (day: number) => setWeekdays(ds => (ds.includes(day) ? ds.filter(d => d !== day) : [...ds, day]));
   const save = () => {
     if (!customerId) return setError('Choose the customer.');
-    const items = readLines(lines);
-    if (typeof items === 'string') return setError(items);
+    let items: OrderItem[] = [];
+    if (kind === 'crops') {
+      const read = readLines(lines);
+      if (typeof read === 'string') return setError(read);
+      items = read;
+    } else {
+      if (!(mix.grams >= 10)) return setError('Enter the weight of the box.');
+      if (mix.crops?.length && mix.crops.length < mix.varieties) return setError(`Choose at least ${mix.varieties} crops, or none to use any you grow.`);
+    }
     if (!weekdays.length) return setError('Choose the days to deliver.');
     if (!startOn) return setError('Choose the start date.');
     if (endOn && endOn < startOn) return setError('The end date is before the start date.');
@@ -229,12 +357,14 @@ export function SubscriptionForm({ customers, cropTypes, subscription: sub, cust
       id: sub?.id ?? newId(),
       customerId,
       items,
+      mix: kind === 'mix' ? mix : undefined,
       weekdays: [...weekdays].sort((a, b) => a - b),
       everyWeeks,
       startOn,
       endOn: endOn || undefined,
       pausedUntil: sub?.pausedUntil,
       skipped: sub?.skipped ?? [],
+      missed: sub?.missed ?? [],
       delivered: sub?.delivered ?? [],
       note: note.trim() || undefined,
       createdAt: sub?.createdAt ?? new Date().toISOString(),
@@ -243,7 +373,19 @@ export function SubscriptionForm({ customers, cropTypes, subscription: sub, cust
   return (
     <div className="farm-stack supply-form">
       <CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} onAddCustomer={onAddCustomer} />
-      <ItemsEditor lines={lines} setLines={setLines} cropTypes={cropTypes} />
+      <section className="farm-surface">
+        <h2>What's in the box</h2>
+        <div className="segmented-control supply-kinds how-often" role="radiogroup" aria-label="Box">
+          <button role="radio" aria-checked={kind === 'mix'} aria-pressed={kind === 'mix'} onClick={() => setKind('mix')}>
+            Mixed box
+          </button>
+          <button role="radio" aria-checked={kind === 'crops'} aria-pressed={kind === 'crops'} onClick={() => setKind('crops')}>
+            Chosen crops
+          </button>
+        </div>
+        {kind === 'mix' && <MixEditor mix={mix} setMix={setMix} cropTypes={cropTypes} />}
+      </section>
+      {kind === 'crops' && <ItemsEditor lines={lines} setLines={setLines} cropTypes={cropTypes} />}
       <section className="farm-surface">
         <div className="supply-field">
           <span>Deliver on</span>
@@ -372,9 +514,10 @@ interface SubscriptionPageProps {
   subscription: Subscription;
   customer?: Customer;
   sales: Sale[];
-  currency: string;
+  supply: Map<string, Allocation[]>;
   onDeliver: (date: string) => void;
   onSkip: (date: string) => void;
+  onMissed: (date: string, missed: boolean) => void;
   onPause: (until: string | undefined) => void;
   onEnd: (endOn: string | undefined) => void;
   onEdit: () => void;
@@ -384,12 +527,25 @@ interface SubscriptionPageProps {
 }
 
 // One subscription: its schedule, the next deliveries (skip one, or deliver today's), pause, end, edit.
-export function SubscriptionPage({ subscription: sub, customer, sales, currency, onDeliver, onSkip, onPause, onEnd, onEdit, onDelete, onOpenSale, onOpenCustomer }: SubscriptionPageProps) {
+const LOG_LABEL: Record<LogStatus, string> = {
+  delivered: 'Delivered',
+  skipped: 'Skipped',
+  missed: 'Missed',
+  overdue: 'Not delivered yet',
+  unrecorded: 'Not recorded',
+};
+
+export function SubscriptionPage(props: SubscriptionPageProps) {
+  const { subscription: sub, customer, sales, supply, onDeliver, onSkip, onMissed, onPause, onEnd, onEdit, onDelete, onOpenSale, onOpenCustomer } = props;
   const today = todayLocal();
   const status = subStatus(sub, today);
   const [pauseUntil, setPauseUntil] = useState(addDaysToDate(today, 7));
+  const [showAll, setShowAll] = useState(false);
   const upcoming = status === 'ended' ? [] : nextDates({ ...sub, pausedUntil: undefined }, today, 8);
-  const delivered = [...sub.delivered].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+  const log = subscriptionLog(sub, today);
+  const shownLog = showAll ? log : log.slice(0, 6);
+  const delivered = sub.delivered.length;
+  const missed = log.filter(l => l.status === 'missed' || l.status === 'unrecorded').length;
   return (
     <div className="farm-stack">
       <section className="farm-surface">
@@ -410,7 +566,19 @@ export function SubscriptionPage({ subscription: sub, customer, sales, currency,
               <span>{formatGrams(i.grams)}</span>
             </li>
           ))}
+          {sub.mix && (
+            <li>
+              <span>
+                Mixed box of {sub.mix.varieties} crop{sub.mix.varieties === 1 ? '' : 's'}
+                {sub.mix.crops?.length ? ` (${sub.mix.crops.join(', ')})` : ''}
+              </span>
+              <span>{formatGrams(sub.mix.grams)}</span>
+            </li>
+          )}
         </ul>
+        <p className="farm-help">
+          {delivered} delivered{missed ? ` · ${missed} missed` : ''}
+        </p>
         <p className="farm-help">
           From {formatDate(sub.startOn)}
           {sub.endOn ? ` to ${formatDate(sub.endOn)}` : ''}
@@ -432,7 +600,8 @@ export function SubscriptionPage({ subscription: sub, customer, sales, currency,
                 <div key={d.date} className={`delivery-row${d.skipped || paused ? ' skipped' : ''}`}>
                   <span className="delivery-date">
                     <b>{dayLabel(d.date, today)}</b>
-                    <small>{d.delivered ? 'Delivered' : paused ? 'Paused' : d.skipped ? 'Skipped' : itemsText(sub.items)}</small>
+                    <small>{d.delivered ? 'Delivered' : paused ? 'Paused' : d.skipped ? 'Skipped' : boxText(sub)}</small>
+                    {!d.delivered && !d.skipped && !paused && <SupplyLine allocations={supply.get(`s-${sub.id}-${d.date}`)} today={today} />}
                   </span>
                   {d.date === today && !d.delivered && !d.skipped && !paused && (
                     <button className="delivery-go" onClick={() => onDeliver(d.date)}>
@@ -472,13 +641,61 @@ export function SubscriptionPage({ subscription: sub, customer, sales, currency,
         </section>
       )}
 
-      {delivered.length > 0 && (
+      {log.length > 0 && (
         <section>
           <div className="section-heading">
-            <h2>Delivered</h2>
-            <span>{sub.delivered.length}</span>
+            <h2>Delivery log</h2>
+            <span>Last 8 weeks</span>
           </div>
-          <SaleRows sales={delivered.map(d => sales.find(s => s.id === d.saleId)).filter((s): s is Sale => !!s)} customers={customer ? [customer] : []} currency={currency} onOpen={onOpenSale} />
+          <div className="care-list delivery-list">
+            {shownLog.map(l => {
+              const sale = l.saleId ? sales.find(s => s.id === l.saleId) : undefined;
+              const open = l.status === 'overdue' || l.status === 'unrecorded';
+              return (
+                <div key={l.date} className={`delivery-row log-${l.status}`}>
+                  {sale ? (
+                    <button onClick={() => onOpenSale(sale.id)}>
+                      <span className="delivery-date">
+                        <b>{formatDay(l.date)}</b>
+                        <small>
+                          <span className="log-chip">{LOG_LABEL[l.status]}</span> {saleCode(sale.number)} · {itemsText(sale.items)}
+                        </small>
+                      </span>
+                      <ChevronRight />
+                    </button>
+                  ) : (
+                    <span className="delivery-date">
+                      <b>{formatDay(l.date)}</b>
+                      <small>
+                        <span className="log-chip">{LOG_LABEL[l.status]}</span>
+                      </small>
+                    </span>
+                  )}
+                  {open && (
+                    <span className="delivery-actions">
+                      <button className="delivery-go" onClick={() => onDeliver(l.date)} aria-label={`Delivered on ${formatDate(l.date)}`}>
+                        <Truck size={15} /> Deliver
+                      </button>
+                      <button className="stock-edit" onClick={() => onMissed(l.date, true)} aria-label={`Missed on ${formatDate(l.date)}`}>
+                        Missed
+                      </button>
+                    </span>
+                  )}
+                  {l.status === 'missed' && (
+                    <button className="stock-edit" onClick={() => onMissed(l.date, false)} aria-label={`Undo missed ${formatDate(l.date)}`}>
+                      Undo
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {log.length > shownLog.length && (
+              <button className="care-more" onClick={() => setShowAll(true)}>
+                Show all {log.length}
+              </button>
+            )}
+          </div>
+          {delivered > 0 && <p className="farm-help">Tap a delivery to see its sale.</p>}
         </section>
       )}
 
@@ -527,7 +744,7 @@ export function SubscriptionRows({ subscriptions, customers, showCustomer = true
             </span>
             <span>
               <b>{showCustomer ? customerName(customers, s.customerId) : scheduleText(s)}</b>
-              <small>{showCustomer ? `${scheduleText(s)} · ${itemsText(s.items)}` : itemsText(s.items)}</small>
+              <small>{showCustomer ? `${scheduleText(s)} · ${boxText(s)}` : boxText(s)}</small>
             </span>
             {status !== 'active' && <span className="supply-badge">{status === 'paused' ? 'Paused' : 'Ended'}</span>}
             <ChevronRight />
@@ -541,6 +758,7 @@ export function SubscriptionRows({ subscriptions, customers, showCustomer = true
 type OrdersView = 'upcoming' | 'subscriptions' | 'sales';
 
 interface OrdersPanelProps {
+  supply: Map<string, Allocation[]>;
   orders: Order[];
   subscriptions: Subscription[];
   sales: Sale[];
@@ -633,7 +851,7 @@ export function OrdersPanel(p: OrdersPanelProps) {
                   <h2>{date === 'overdue' ? 'Overdue' : dayLabel(date, today)}</h2>
                   <span>{list.length}</span>
                 </div>
-                <DeliveryRows deliveries={list} customers={p.customers} showDate={date === 'overdue'} onOpen={p.onOpenDelivery} />
+                <DeliveryRows deliveries={list} customers={p.customers} showDate={date === 'overdue'} supply={p.supply} onOpen={p.onOpenDelivery} />
               </section>
             ))
           )}

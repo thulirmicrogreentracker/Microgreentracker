@@ -43,10 +43,14 @@ import ShopToday from './components/shop/ShopToday';
 import { CustomerForm, CustomerPage, CustomersPanel, paymentFor } from './components/shop/Customers';
 import { PriceList, SaleForm, SalePage } from './components/shop/Sales';
 import { CustomerOrders, OrderForm, OrderPage, OrdersPanel, SubscriptionForm, SubscriptionPage } from './components/shop/Orders';
-import { Delivery, deliveriesBetween, deliveryListText, orderCode } from './utils/orders';
-import { sowPlans, SowPlan } from './utils/plan';
+import { Delivery, deliveriesBetween, deliveryListText, orderCode, pickMix } from './utils/orders';
+import { defaultMixCrops, SowPlan, supplyPlan } from './utils/plan';
 import { SowForOrders, SowForOrdersPage } from './components/farm/SowForOrders';
 import ProfitReportPanel from './components/shop/ProfitReport';
+import NotificationSettingsPanel from './components/NotificationSettingsPanel';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { daySummary } from './utils/dailySummary';
+import { scheduleReminders, sendTestNotification } from './utils/notify';
 import { customerDue, recordPayment, returnSaleStock, saleCode } from './utils/sales';
 import { formatDate, getDaysSince, todayLocal } from './utils/dateUtils';
 import { activeTrays, batchYieldGrams, freeSlots, highestBatchNumber, highestTrayNumber, isBatchGrowing, isBatchLost, lostTrays, newId, syncCounters, trayCode } from './utils/batches';
@@ -208,6 +212,17 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
   useEffect(() => {
     const handle = CapacitorApp.addListener('backButton', () => goBackRef.current());
     return () => { handle.then(h => h.remove()); };
+  }, []);
+
+  // Tapping a reminder opens the side it's mostly about: Farm Home, or the Shop's Today.
+  const openFromNotificationRef = useRef<(tab: unknown) => void>(() => {});
+  openFromNotificationRef.current = tab => {
+    if (tab === 'today' && config.shop.enabled) switchMode('shop');
+    else switchMode('farm');
+  };
+  useEffect(() => {
+    const handle = LocalNotifications.addListener('localNotificationActionPerformed', a => openFromNotificationRef.current(a.notification.extra?.tab));
+    return () => { handle.then(h => h.remove()).catch(() => {}); };
   }, []);
 
   // A swipe from the left edge on a tab other than the mode's first one goes back to it (pushed screens handle their
@@ -539,10 +554,50 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         { key: 'config', label: 'Settings', icon: Settings },
       ];
   // What to sow so the Shop's orders and subscriptions have enough (only when selling).
-  const sowing = useMemo(
-    () => (shopOn ? sowPlans(batches, stock, orders, subscriptions, cropTypes, todayLocal()) : { plans: [], short: [] }),
-    [shopOn, batches, stock, orders, subscriptions, cropTypes]
+  // and where each upcoming delivery's microgreens come from (stock, a growing batch, a sowing to make).
+  const supply = useMemo(
+    () =>
+      shopOn
+        ? supplyPlan(batches, stock, orders, subscriptions, cropTypes, todayLocal(), defaultMixCrops(batches, prices, cropTypes))
+        : { plans: [], short: [], deliveries: new Map() },
+    [shopOn, batches, stock, orders, subscriptions, cropTypes, prices]
   );
+  const sowing = supply;
+  // Keeps the phone's reminders for the coming week in step with the data, and with the date when the app comes back.
+  const [resumed, setResumed] = useState(0);
+  useEffect(() => {
+    const handle = CapacitorApp.addListener('resume', () => setResumed(n => n + 1));
+    return () => { handle.then(h => h.remove()); };
+  }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => scheduleReminders(data, supply.plans, todayLocal()).catch(() => {}), 1500);
+    return () => clearTimeout(timer);
+  }, [data, supply.plans, resumed]);
+  // The crops a subscription's last delivery had, so the next mixed box rotates to others.
+  const lastCrops = (subscriptionId?: string) => {
+    const sub = subscriptions.find(x => x.id === subscriptionId);
+    const last = sub?.delivered.slice().sort((a, b) => b.date.localeCompare(a.date))[0];
+    return sales.find(x => x.id === last?.saleId)?.items.map(i => i.crop) ?? [];
+  };
+  // Today's boxes as they'd be packed from stock now, one after another so two boxes don't count the same grams.
+  const packs = useMemo(() => {
+    const today = todayLocal();
+    const result = new Map<string, { items: OrderItem[]; short: number }>();
+    let left = stock;
+    for (const d of deliveriesBetween(orders, subscriptions, today, today, true)) {
+      const items = [...d.items];
+      for (const i of d.items) left = sellFromStock(left, i.crop, i.grams, today).stock;
+      let short = 0;
+      if (d.mix) {
+        const pick = pickMix(d.mix, left, today, lastCrops(d.subscription?.id));
+        for (const i of pick.items) left = sellFromStock(left, i.crop, i.grams, today).stock;
+        items.push(...pick.items);
+        short = pick.short;
+      }
+      result.set(d.key, { items, short });
+    }
+    return result;
+  }, [stock, orders, subscriptions, sales]); // eslint-disable-line react-hooks/exhaustive-deps
   // Work waiting on the other side of the switch: batches ready to harvest on the farm, and sowings due today.
   const farmBadge =
     batches.filter(b => b.stage === 'harvest' && isBatchGrowing(b)).length + sowing.plans.filter(p => p.sowBy <= todayLocal()).length;
@@ -605,11 +660,17 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
     setSubForm(null);
     if (isNew) setSubPage(s.id);
   };
-  const deliver = (d: Delivery) =>
-    setSaleForm({ customerId: d.customerId, items: d.items, orderId: d.order?.id, subscriptionId: d.subscription?.id, date: d.date });
+  // Delivering opens the sale filled in: chosen crops as ordered, a mixed box as picked from stock.
+  const deliver = (d: Delivery) => {
+    const packed = packs.get(d.key)?.items;
+    const items = packed ?? [...d.items, ...(d.mix ? pickMix(d.mix, stock, todayLocal(), lastCrops(d.subscription?.id), d.items).items : [])];
+    setSaleForm({ customerId: d.customerId, items, orderId: d.order?.id, subscriptionId: d.subscription?.id, date: d.date });
+  };
+  const markMissed = (subscriptionId: string, date: string, missed: boolean) =>
+    updateSub(subscriptionId, s => ({ ...s, missed: missed ? [...new Set([...s.missed, date])] : s.missed.filter(x => x !== date) }));
   const openDelivery = (d: Delivery) => (d.order ? setOrderPage(d.order.id) : d.subscription && setSubPage(d.subscription.id));
   const shareDeliveries = async (list: Delivery[]) => {
-    const text = deliveryListText(list, customers, `Deliveries · ${formatDate(todayLocal())}`);
+    const text = deliveryListText(list, customers, `Deliveries · ${formatDate(todayLocal())}`, d => packs.get(d.key)?.items ?? d.items);
     try {
       if (navigator.share) return await navigator.share({ text });
     } catch {
@@ -916,7 +977,10 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
             orders={orders}
             subscriptions={subscriptions}
             currency={currency}
+            supply={supply.deliveries}
+            packs={packs}
             onDeliver={deliver}
+            onMissed={d => d.subscription && markMissed(d.subscription.id, d.date, true)}
             onOpenDelivery={openDelivery}
             onShareDeliveries={shareDeliveries}
             onProfit={() => setSettingsPage('profit')}
@@ -928,6 +992,7 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
         )}
         {activeTab === 'orders' && (
           <OrdersPanel
+            supply={supply.deliveries}
             orders={orders}
             subscriptions={subscriptions}
             sales={sales}
@@ -1014,6 +1079,14 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               <ReportExport batches={batches} />
               <ReportsPanel batches={batches} stats={stats} cropTypes={cropTypes} onOpenCropPhotos={setCropPhotos} />
             </div>
+          ) : settingsPage === 'notifications' ? (
+            <NotificationSettingsPanel
+              settings={config.notifications}
+              shopOn={shopOn}
+              today={daySummary(data, sowing.plans, { ...config.notifications, enabled: true }, todayLocal(), todayLocal()).lines}
+              onChange={notifications => update(d => ({ ...d, config: { ...d.config, notifications } }))}
+              onTest={() => sendTestNotification(data, sowing.plans, todayLocal())}
+            />
           ) : settingsPage === 'profit' ? (
             <ProfitReportPanel
               sales={sales}
@@ -1131,12 +1204,14 @@ function TrackerApp({ data, update, saveError, onRetrySave }: TrackerAppProps) {
               subscription={sub}
               customer={c}
               sales={sales}
-              currency={currency}
-              onDeliver={date => deliver({ key: sub.id, date, customerId: sub.customerId, items: sub.items, subscription: sub })}
+              supply={supply.deliveries}
+              onDeliver={date => deliver({ key: `s-${sub.id}-${date}`, date, customerId: sub.customerId, items: sub.items, mix: sub.mix, subscription: sub })}
+              onMissed={(date, missed) => markMissed(sub.id, date, missed)}
               onSkip={date =>
                 updateSub(sub.id, s => ({ ...s, skipped: s.skipped.includes(date) ? s.skipped.filter(x => x !== date) : [...s.skipped, date] }))
               }
-              onPause={until => updateSub(sub.id, s => ({ ...s, pausedUntil: until }))}
+              // Resuming sets the pause to end today, so the days it covered stay in the log as paused.
+              onPause={until => updateSub(sub.id, s => ({ ...s, pausedUntil: until ?? todayLocal() }))}
               onEnd={endOn => {
                 if (endOn && !window.confirm('End this subscription? There are no more deliveries from today.')) return;
                 updateSub(sub.id, s => ({ ...s, endOn }));

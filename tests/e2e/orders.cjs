@@ -23,7 +23,7 @@ try {
     weekdays: [1, 4],
     everyWeeks: 1,
     startOn: '2026-10-05',
-    skipped: [],
+    skipped: [], missed: [],
     delivered: [],
     createdAt: '2026-10-01',
   };
@@ -59,8 +59,10 @@ try {
   const keys = list => list.map(d => d.key);
   assert.deepEqual(keys(o.deliveriesBetween(orders, subs, '2026-10-08', '2026-10-15')), ['o-a', 'o-b', 's-s1-2026-10-15']);
   assert.deepEqual(keys(o.deliveriesBetween(orders, subs, '2026-10-11', '2026-10-15')), ['o-b', 's-s1-2026-10-15']);
-  assert.deepEqual(keys(o.deliveriesBetween(orders, subs, '2026-10-11', '2026-10-15', true)), ['o-a', 'o-b', 's-s1-2026-10-15']);
-  assert.deepEqual([...o.gramsNeeded(orders, subs, '2026-10-11', '2026-10-15')], [['Sunflower', 500]]);
+  // Overdue: the open order from 9 Oct, and the subscription's Monday 5 Oct (within a week, not delivered or skipped).
+  assert.deepEqual(keys(o.deliveriesBetween(orders, subs, '2026-10-11', '2026-10-15', true)), ['s-s1-2026-10-05', 'o-a', 'o-b', 's-s1-2026-10-15']);
+  // Marked missed, it leaves the list.
+  assert.deepEqual(keys(o.deliveriesBetween(orders, [{ ...subs[0], missed: ['2026-10-05'] }], '2026-10-11', '2026-10-15', true)), ['o-a', 'o-b', 's-s1-2026-10-15']);
   const next = o.nextDates(subs[0], '2026-10-08', 3);
   assert.deepEqual(
     next.map(d => [d.date, d.skipped, d.delivered]),
@@ -100,7 +102,7 @@ try {
   const old = normalizeAppData({ batches: [] });
   assert.deepEqual([old.orders, old.subscriptions, old.config.lastOrderNumber], [[], [], 0]);
 
-  console.log('PASS: subscription dates (weekdays, every other week, start, end, pause), skips, deliveries, grams needed, list to share, order numbering, repair of damaged data.');
+  console.log('PASS: subscription dates (weekdays, every other week, start, end, pause), skips, overdue and missed days, deliveries, list to share, order numbering, repair of damaged data.');
 } catch (e) {
   console.error(e);
   process.exit(1);

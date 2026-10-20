@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
@@ -34,6 +35,10 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Reminders come from the local-notifications plugin. They don't need to the minute, so its exact-alarm
+         permission (restricted on Google Play) is removed; the plugin falls back to an inexact alarm. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
 
     <!-- Android 11+ hides other apps unless declared here; without it the photo input can't find the camera app
          and Capacitor falls back to the file picker. -->

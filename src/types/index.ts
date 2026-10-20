@@ -162,6 +162,18 @@ export interface AppConfig {
   lastSaleNumber: number; // highest sale number handed out, so numbers are never reused
   lastOrderNumber: number;
   shop: ShopSettings;
+  notifications: NotificationSettings;
+}
+
+// Daily reminders on the phone: a morning summary and an evening reminder of what's left.
+export interface NotificationSettings {
+  enabled: boolean;
+  morning: string; // "HH:MM"
+  evening?: string; // "HH:MM"; no evening reminder when absent
+  watering: boolean;
+  deliveries: boolean;
+  sowHarvest: boolean;
+  stock: boolean;
 }
 
 export interface AppData {
@@ -196,17 +208,28 @@ export interface Order {
   createdAt: string;
 }
 
-// A repeating order, e.g. 200 g sunflower every Monday and Thursday. Each delivery becomes a sale when delivered.
+// A mixed box: a total weight made of a few crops, picked at each delivery from what's ready (freshest first,
+// rotating from one delivery to the next).
+export interface MixSpec {
+  grams: number;
+  varieties: number; // how many crops in the box
+  crops?: string[]; // only these crops (CropType names); any crop when absent
+}
+
+// A repeating order, e.g. a 300 g mixed box every Monday and Thursday, or 200 g sunflower every week. Each delivery
+// becomes a sale when delivered.
 export interface Subscription {
   id: string;
   customerId: string;
-  items: OrderItem[];
+  items: OrderItem[]; // chosen crops (with or without a mix)
+  mix?: MixSpec;
   weekdays: number[]; // 0 = Sunday … 6 = Saturday
   everyWeeks: number; // 1 = every week, 2 = every other week
   startOn: string; // YYYY-MM-DD
   endOn?: string; // last day, if it ends
   pausedUntil?: string; // no deliveries before this date
-  skipped: string[]; // delivery dates skipped
+  skipped: string[]; // delivery dates skipped in advance
+  missed: string[]; // delivery dates that passed without a delivery, marked missed
   delivered: { date: string; saleId: string }[];
   note?: string;
   createdAt: string;
