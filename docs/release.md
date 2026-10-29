@@ -49,8 +49,8 @@ Studio set Settings → Build Tools → Gradle → Gradle JDK to a JDK 21.
 Google Play needs a higher **versionCode** for each upload. In `android/app/build.gradle`:
 
 ```gradle
-versionCode 2        // +1 for every upload, never reused
-versionName "1.1"    // what users see
+versionCode 3        // +1 for every upload, never reused
+versionName "1.2"    // what users see
 ```
 
 On iPhone the matching settings are Xcode → App target → General → Version (users see this) and Build (+1 for every

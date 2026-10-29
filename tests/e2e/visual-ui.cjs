@@ -179,6 +179,7 @@ fs.mkdirSync(out, { recursive: true });
   await page.getByText('Example: US$1,250.50').waitFor();
   assert.equal(await accent(), '#2563a8');
   await page.reload();
+  await nav('Settings').waitFor();
   assert.deepEqual(await navLabels(), ['Today', 'Orders', 'Stock', 'Customers', 'Settings']);
   assert.equal(await accent(), '#2563a8');
   // A subscription for today's weekday, for a customer added from the form; delivering it records a sale and takes it
